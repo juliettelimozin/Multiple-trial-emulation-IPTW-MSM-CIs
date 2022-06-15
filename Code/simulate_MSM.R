@@ -47,7 +47,7 @@ DATA_GEN_censored<-function(ns, nv){   # ns= number of subjects, nv=no of visits
     Ap[seqlist[[k]]]<-A[seqlist[[k-1]]]
     CAp[seqlist[[k]]]<-CAp[seqlist[[k-1]]]+Ap[seqlist[[k]]]
     
-    X1P0<-1/(1+exp(-Ap[seqlist[[k]]]))
+    X1P0<-1/(1+exp(Ap[seqlist[[k]]]))
     X1[seqlist[[k]]]<-rbinom(ns,1,X1P0) ## binary time-varying confounder 
     
     X2[seqlist[[k]]]<-Z2[seqlist[[k]]]-0.3*Ap[seqlist[[k]]] ## continuous time-varying confounder 
@@ -64,7 +64,7 @@ DATA_GEN_censored<-function(ns, nv){   # ns= number of subjects, nv=no of visits
     ##Generate outcome
     
     
-    lp<--7-0.8*A[seqlist[[k]]]+X1[seqlist[[k]]]+X2[seqlist[[k]]]+X3[seqlist[[k]]]+X4[seqlist[[k]]]+0.5*(age[seqlist[[k]]]-35)/12
+    lp<--7-1.2*A[seqlist[[k]]]+0.5*X1[seqlist[[k]]]+0.7*X2[seqlist[[k]]]+X3[seqlist[[k]]]+X4[seqlist[[k]]]+0.5*(age[seqlist[[k]]]-35)/12
     
     Yp[seqlist[[k]]]<-Y[seqlist[[k-1]]]
     Y[seqlist[[k]]]<-(rbinom(ns,1,1/(1+exp(-lp))))*as.numeric(Yp[seqlist[[k]]]==0)+as.numeric(Yp[seqlist[[k]]]==1)
@@ -94,7 +94,7 @@ DATA_GEN_censored<-function(ns, nv){   # ns= number of subjects, nv=no of visits
   
   DATA<-data.frame(ID,t=rep(c(0:(nv-1)),ns),A,Ap,CAp,X1,X2,X3,X4,age,Y,Yp)
   DATA$eligible<-as.numeric(DATA$age>=18 & CAp==0 & Yp==0)  ## eligibility criteria: age>=18, had no treatment so far, no event so far
- 
+  
   ##censoring
   
   Dprob<-1/(1+exp(1+Ap+0.5*X1-0.5*X2+0.2*X3-0.2*X4+(age-35)/12)) ##Probability of dropout
@@ -110,9 +110,9 @@ DATA_GEN_censored<-function(ns, nv){   # ns= number of subjects, nv=no of visits
   
   RL<-ave(DATA$C,DATA$ID,FUN=indfun)
   
-
+  
   eligCum<-ave(DATA$eligible,DATA$ID,FUN=cumsum)
-   
+  
   DATA$age_s<-(DATA$age-35)/12
   DATA[RL==0 & DATA$Yp==0 & eligCum>0,] #remove observations after event occurrence and censoring, and not eligible
   
