@@ -3,7 +3,7 @@ library(modelr)
 library(reshape2)
 library(tidyverse)
 library(tidyr)
-setwd("/Users/juliette/Documents/MPhil PHS 21-22/MPhil dissertation")
+setwd("/Users/juliette/Documents/MPhil PHS 21-22/MPhil-dissertation")
 source("simulate_MSM.R")
 set.seed(20222022)
 
