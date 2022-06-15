@@ -1,0 +1,120 @@
+
+## simulate data for testing TrialEmulation package, using the algorithm in Young and Tchetgen Tchetgen (2014) 
+
+
+DATA_GEN_censored<-function(ns, nv){   # ns= number of subjects, nv=no of visits including baseline visit
+  
+  
+  nvisit<-nv+1
+  
+  X1<-rep(0,nvisit*ns)          ## place holders for time-varying covariates
+  X2<-rep(0,nvisit*ns)          ## place holders for time-varying covariates
+  Z2<-rnorm(nvisit*ns,0,1)
+  X3<-rep(rbinom(ns,1,0.5),each=nvisit) # gender
+  X4<-rep(rnorm(ns,0,1),each=nvisit) # baseline continuous covariate
+  ##simulate age 
+  age<-round(rnorm(ns,35,12), digits=0)  ##age at baseline
+  age<-rep(age,each=nvisit)+rep((-1):(nv-1), ns) ##age at each visit
+  
+  
+  A<-rep(0,nvisit*ns) ##place holders for current  treatments
+  Ap<-rep(0,nvisit*ns) ##place holders for  previous treatments
+  
+  CAp<-rep(0,nvisit*ns)   ##place holders for sum of previous treatment A
+  
+  
+  
+  Y<-rep(0,nvisit*ns)     ##place holders for outcome vector
+  Yp<-rep(0,nvisit*ns)    ##place holders for previous outcome vector
+  
+  ##Fill in initial values
+  seq1<-seq(1,nvisit*ns-nv,nvisit)
+  
+  X1[seq1]<-0  ###  time-varying covariates at visit -1, by convention set at 0
+  X2[seq1]<-0
+  
+  P0<-list() ##list of treatment probabilities 
+  P0[[1]]<-rep(0, ns) 
+  seqlist<-list()                              
+  seqlist[[1]]<-seq1
+  CAp[seq1]<-rep(0, ns)
+  
+  for (k in 2:nvisit){  
+    ## update covariates
+    
+    
+    seqlist[[k]]<-seqlist[[k-1]]+1
+    Ap[seqlist[[k]]]<-A[seqlist[[k-1]]]
+    CAp[seqlist[[k]]]<-CAp[seqlist[[k-1]]]+Ap[seqlist[[k]]]
+    
+    X1P0<-1/(1+exp(-Ap[seqlist[[k]]]))
+    X1[seqlist[[k]]]<-rbinom(ns,1,X1P0) ## binary time-varying confounder 
+    
+    X2[seqlist[[k]]]<-Z2[seqlist[[k]]]-0.3*Ap[seqlist[[k]]] ## continuous time-varying confounder 
+    
+    ## update treatment
+    lpp<-Ap[seqlist[[k]]]+0.5*X1[seqlist[[k]]]+0.5*X2[seqlist[[k]]]-0.2*X3[seqlist[[k]]]+X4[seqlist[[k]]]-0.3*(age[seqlist[[k]]]-35)/12
+    P0[[k]]<-1/(1+exp(-lpp))
+    
+    A[seqlist[[k]]]<-rbinom(ns,1,P0[[k]]) ##Generate treatment at current visit based on  covariates, previous treatment
+    
+    
+    
+    
+    ##Generate outcome
+    
+    
+    lp<--7-0.8*A[seqlist[[k]]]+X1[seqlist[[k]]]+X2[seqlist[[k]]]+X3[seqlist[[k]]]+X4[seqlist[[k]]]+0.5*(age[seqlist[[k]]]-35)/12
+    
+    Yp[seqlist[[k]]]<-Y[seqlist[[k-1]]]
+    Y[seqlist[[k]]]<-(rbinom(ns,1,1/(1+exp(-lp))))*as.numeric(Yp[seqlist[[k]]]==0)+as.numeric(Yp[seqlist[[k]]]==1)
+    
+  }
+  
+  ##Make data frame
+  
+  ID<-rep(1:ns,each=nv)
+  
+  ##Align data by removing values 
+  NSEQ<-seq1
+  
+  X1<-X1[-NSEQ]
+  X2<-X2[-NSEQ]
+  X3<-X3[-NSEQ]
+  X4<-X4[-NSEQ]
+  age<-age[-NSEQ]
+  
+  A<-A[-NSEQ]
+  Ap<-Ap[-NSEQ]
+  CAp<-CAp[-NSEQ]
+  Y<-Y[-seq(1,nvisit*ns-nv,nvisit)]
+  Yp<-Yp[-seq(1,nvisit*ns-nv,nvisit)]
+  
+  ##Create data frame
+  
+  DATA<-data.frame(ID,t=rep(c(0:(nv-1)),ns),A,Ap,CAp,X1,X2,X3,X4,age,Y,Yp)
+  DATA$eligible<-as.numeric(DATA$age>=18 & CAp==0 & Yp==0)  ## eligibility criteria: age>=18, had no treatment so far, no event so far
+ 
+  ##censoring
+  
+  Dprob<-1/(1+exp(1+Ap+0.5*X1-0.5*X2+0.2*X3-0.2*X4+(age-35)/12)) ##Probability of dropout
+  
+  DATA$C<-rbinom(nv*ns,1,Dprob) ##C=0 is remain in the study
+  
+  
+  
+  indfun<-function(n){
+    if (sum(n)==0) {rep(0,nv)}
+    else{k<-min(which(n==1))
+    c(rep(0,k),rep(1,nv-k))}}
+  
+  RL<-ave(DATA$C,DATA$ID,FUN=indfun)
+  
+
+  eligCum<-ave(DATA$eligible,DATA$ID,FUN=cumsum)
+   
+  DATA$age_s<-(DATA$age-35)/12
+  DATA[RL==0 & DATA$Yp==0 & eligCum>0,] #remove observations after event occurrence and censoring, and not eligible
+  
+  
+}
