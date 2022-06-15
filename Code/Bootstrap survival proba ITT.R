@@ -55,6 +55,9 @@ fitting_data_treatment <- fitting_data_treatment[which(!is.na(fitting_data_treat
 fitting_data_control <- fitting_data_treatment %>% 
   dplyr::mutate(assigned_treatment = assigned_treatment*0)
 
+write.csv(fitting_data_treatment, "fitting_data_treatment.csv")
+write.csv(fitting_data_control, "fitting_data_control.csv")
+
 Y_pred_ITT_treatment <- predict.glm(ITT$model$model, fitting_data_treatment, 
                                     type = "response")
 Y_pred_ITT_control <- predict.glm(ITT$model$model, fitting_data_control, 
@@ -194,6 +197,8 @@ predicted_probas_ITT <- predicted_probas_ITT %>%
                 survival_ratio_lb = surv_ITT_ratio_boostrap_estimates$lb,
                 survival_ratio_ub = surv_ITT_ratio_boostrap_estimates$ub)
 
+write.csv(predicted_probas_ITT, "predicted_probas_ITT.csv")
+save(ITT,file = "ITT_fit.rda")
 
 ##### Plot survival curves #####
 library(ggplot2)

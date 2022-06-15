@@ -29,29 +29,8 @@ PP <- RandomisedTrialsEmulation::initiators(data_path, id='ID', period='t', trea
 
 #### Survival function point estimate for PP ####
 
-design_mat <- expand.grid(id = 1:1000,
-                          for_period = 0:9,
-                          followup_time = 0:9) %>% 
-  dplyr::mutate(followup_time2 = followup_time^2)
-design_mat <- design_mat[which(10 -design_mat$for_period > design_mat$followup_time),]
-
-switch_data <- read.csv("switch_data.csv")
-fitting_data_treatment <-  switch_data %>% 
-  dplyr::mutate(assigned_treatment = followup_time*0 + 1) %>% 
-  dplyr::select(id,for_period, followup_time, followup_time2, X3, X4, age_s, assigned_treatment) %>% 
-  merge(design_mat, by = c("id", "for_period", "followup_time", "followup_time2"), all.y = TRUE) %>% 
-  dplyr::group_by(id) %>% 
-  tidyr::fill(X3,X4,age_s,assigned_treatment,.direction = "down") %>% 
-  dplyr::ungroup() %>% 
-  dplyr::select(id, for_period, followup_time, followup_time2, X3, X4, age_s, assigned_treatment) %>% 
-  merge(data.frame(id = switch_data$id, for_period = switch_data$for_period), by = c("id", "for_period"), all.y = TRUE) %>% 
-  dplyr::arrange(id, for_period, followup_time)
-
-fitting_data_treatment <- fitting_data_treatment[!duplicated(fitting_data_treatment),]
-fitting_data_treatment <- fitting_data_treatment[which(!is.na(fitting_data_treatment$X3)),]
-
-fitting_data_control <- fitting_data_treatment %>% 
-  dplyr::mutate(assigned_treatment = assigned_treatment*0)
+fitting_data_treatment <- read.csv("fitting_data_treatment.csv")
+fitting_data_control <- read.csv("fitting_data_control.csv")
 
 Y_pred_PP_treatment <- predict.glm(PP$model$model, fitting_data_treatment, 
                                     type = "response")
@@ -194,6 +173,8 @@ predicted_probas_PP <- predicted_probas_PP %>%
                 survival_ratio_lb = surv_PP_ratio_boostrap_estimates$lb,
                 survival_ratio_ub = surv_PP_ratio_boostrap_estimates$ub)
 
+write.csv(predicted_probas_PP, "predicted_probas_PP.csv")
+save(PP,file = "PP_fit.rda")
 
 ##### Plot survival curves #####
 library(ggplot2)
