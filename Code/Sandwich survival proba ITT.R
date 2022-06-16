@@ -18,9 +18,15 @@ predicted_probas_ITT <- read.csv("predicted_probas_ITT.csv")
 fitting_data_treatment <- read.csv("fitting_data_treatment.csv")
 fitting_data_control <- read.csv("fitting_data_control.csv")
 
+#Calculate robust SE's covariance matrix 
+corr <- summary.glm(ITT$model$model, correlation = TRUE)$correlation
+sd_mat <- outer(ITT$model$robust$robust_se, ITT$model$robust$robust_se)
+
+covariance_mat <- corr*sd_mat
+
 #Step 1 of algorithm  -- sampling Y_n1, ..., Y_nB ~ MN(0,covmat(coeffs))
 sampling_size <- 100
-coeffs_sample <- mvrnorm(sampling_size,c(0,0,0,0,0,0,0), vcov(ITT$model$model))
+coeffs_sample <- mvrnorm(sampling_size,c(0,0,0,0,0,0,0), covariance_mat)
 
 surv_ITT_treatment_sandwich_estimates <- as.data.frame(matrix(,10,sampling_size))
 surv_ITT_control_sandwich_estimates <- as.data.frame(matrix(,10,sampling_size))
