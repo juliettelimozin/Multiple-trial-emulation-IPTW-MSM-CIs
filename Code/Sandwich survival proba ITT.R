@@ -10,6 +10,7 @@ library(MASS)
 library(RandomisedTrialsEmulation, lib.loc='/home/li/lib/R/R_LIBS/')
 library(matrixStats)
 library(Metrics)
+library(sandwich)
 
 
 #RUN BOOTSTRAP FILES TO WORK ON SAME SIMULATED DATA AND MODEL FIT
@@ -19,14 +20,13 @@ fitting_data_treatment <- read.csv("fitting_data_treatment.csv")
 fitting_data_control <- read.csv("fitting_data_control.csv")
 
 #Calculate robust SE's covariance matrix 
-corr <- summary.glm(ITT$model$model, correlation = TRUE)$correlation
-sd_mat <- outer(ITT$model$robust$robust_se, ITT$model$robust$robust_se)
 
-covariance_mat <- corr*sd_mat
+covariance_mat <- sandwich::vcovCL(ITT$model$model, cluster =ITT$model$model$data$id,
+                                     type = NULL, sandwich = TRUE, fix = FALSE)
 
-#Step 1 of algorithm  -- sampling Y_n1, ..., Y_nB ~ MN(0,covmat(coeffs))
-sampling_size <- 100
-coeffs_sample <- mvrnorm(sampling_size,c(0,0,0,0,0,0,0), covariance_mat)
+#Step 1 of algorithm  -- sampling Y_n1, ..., Y_nB ~ MN(coeffs,sandwich covariance)
+sampling_size <- 200
+coeffs_sample <- mvrnorm(sampling_size,ITT$model$model$coefficients, covariance_mat)
 
 surv_ITT_treatment_sandwich_estimates <- as.data.frame(matrix(,10,sampling_size))
 surv_ITT_control_sandwich_estimates <- as.data.frame(matrix(,10,sampling_size))
@@ -34,11 +34,11 @@ surv_ITT_difference_sandwich_estimates <- as.data.frame(matrix(,10,sampling_size
 surv_ITT_ratio_sandwich_estimates <- as.data.frame(matrix(,10,sampling_size))
 
 for (i in 1:sampling_size){
-  #Step 1 of algorithm -- calculating theta*_nb = coeffs + B^-1/2 * Y_nb
+  #Step 1 of algorithm -- same model with new coeffs = one point from MVN sample
   fit_sample <- ITT
-  fit_sample$model$model$coefficients <-ITT$model$model$coefficients + coeffs_sample[i,]*sampling_size^(-1/2)
+  fit_sample$model$model$coefficients <- coeffs_sample[i,]
   
-  #Step 2 -- calculating g(theta*)
+  #Step 2 -- calculating survival probas with new model
   Y_pred_sample_treatment <- predict.glm(fit_sample$model$model, 
                                            fitting_data_treatment, 
                                            type = "response")
@@ -62,31 +62,53 @@ for (i in 1:sampling_size){
   surv_ITT_ratio_sandwich_estimates[,i] <- predicted_probas_ITT_sample[,2]/predicted_probas_ITT_sample[,3]
 }
 
-#Step 3 -- calculating g(theta*) +- 1.96*MSE(g(theta*))
-surv_ITT_treatment_sandwich_estimates <- (surv_ITT_treatment_sandwich_estimates - predicted_probas_ITT$survival_treatment)^2
-surv_ITT_treatment_sandwich_estimates$MSE <- rowMeans(as.matrix(surv_ITT_treatment_sandwich_estimates))
+#Step 3 -- calculating lower and upper bounds by 2.5% and 97.5% quantiles
+surv_ITT_treatment_sandwich_estimates$lb <-apply(surv_ITT_treatment_sandwich_estimates,
+                                                 1,
+                                                 quantile,
+                                                 probs = c(0.025))
+surv_ITT_treatment_sandwich_estimates$ub <- apply(surv_ITT_treatment_sandwich_estimates,
+                                                  1,
+                                                  quantile,
+                                                  probs = c(0.975))
+surv_ITT_control_sandwich_estimates$lb <-apply(surv_ITT_control_sandwich_estimates,
+                                            1,
+                                            quantile,
+                                            probs = c(0.025))
+surv_ITT_control_sandwich_estimates$ub <- apply(surv_ITT_control_sandwich_estimates,
+                                                 1,
+                                                 quantile,
+                                                 probs = c(0.975))
+surv_ITT_difference_sandwich_estimates$lb <- apply(surv_ITT_difference_sandwich_estimates,
+                                                1,
+                                                quantile,
+                                                probs = c(0.025))
+surv_ITT_difference_sandwich_estimates$ub <- apply(surv_ITT_difference_sandwich_estimates,
+                                                    1,
+                                                    quantile,
+                                                    probs = c(0.975))
 
-surv_ITT_control_sandwich_estimates <- (surv_ITT_control_sandwich_estimates - predicted_probas_ITT$survival_control)^2
-surv_ITT_control_sandwich_estimates$MSE <- rowMeans(as.matrix(surv_ITT_control_sandwich_estimates))
-
-surv_ITT_difference_sandwich_estimates <- (surv_ITT_difference_sandwich_estimates - predicted_probas_ITT$survival_difference)^2
-surv_ITT_difference_sandwich_estimates$MSE <- rowMeans(as.matrix(surv_ITT_difference_sandwich_estimates))
-
-surv_ITT_ratio_sandwich_estimates <- (surv_ITT_ratio_sandwich_estimates - predicted_probas_ITT$survival_ratio)^2
-surv_ITT_ratio_sandwich_estimates$MSE <- rowMeans(as.matrix(surv_ITT_ratio_sandwich_estimates))
+surv_ITT_ratio_sandwich_estimates$lb <- apply(surv_ITT_ratio_sandwich_estimates,
+                                           1,
+                                           quantile,
+                                           probs = c(0.025))
+surv_ITT_ratio_sandwich_estimates$ub <- apply(surv_ITT_ratio_sandwich_estimates,
+                                               1,
+                                               quantile,
+                                               probs = c(0.975))
 
 
 #Update dataframe with results
 predicted_probas_ITT <- predicted_probas_ITT %>% 
-  dplyr::mutate(survival_treatment_lb_sandwich = survival_treatment - 1.96 * (surv_ITT_treatment_sandwich_estimates$MSE)^(1/2),
-                survival_treatment_ub_sandwich = survival_treatment + 1.96 * (surv_ITT_treatment_sandwich_estimates$MSE)^(1/2),
-                survival_control_lb_sandwich = survival_control - 1.96 * (surv_ITT_control_sandwich_estimates$MSE)^(1/2),
-                survival_control_ub_sandwich = survival_control + 1.96 * (surv_ITT_control_sandwich_estimates$MSE)^(1/2),
-                survival_difference_lb_sandwich = survival_difference - 1.96 * (surv_ITT_difference_sandwich_estimates$MSE)^(1/2),
-                survival_difference_ub_sandwich = survival_difference + 1.96 * (surv_ITT_difference_sandwich_estimates$MSE)^(1/2),
-                survival_ratio_lb_sandwich = survival_ratio - 1.96 * (surv_ITT_ratio_sandwich_estimates$MSE)^(1/2),
-                survival_ratio_lb_sandwich = survival_ratio + 1.96 * (surv_ITT_ratio_sandwich_estimates$MSE)^(1/2)
-                )
+  dplyr::mutate(survival_treatment_lb_sandwich = surv_ITT_treatment_sandwich_estimates$lb,
+                survival_treatment_ub_sandwich = surv_ITT_treatment_sandwich_estimates$ub,
+                survival_control_lb_sandwich = surv_ITT_control_sandwich_estimates$lb,
+                survival_control_ub_sandwich = surv_ITT_control_sandwich_estimates$ub,
+                survival_difference_lb_sandwich = surv_ITT_difference_sandwich_estimates$lb,
+                survival_difference_ub_sandwich = surv_ITT_difference_sandwich_estimates$ub,
+                survival_ratio_lb_sandwich = surv_ITT_ratio_sandwich_estimates$lb,
+                survival_ratio_ub_sandwich = surv_ITT_ratio_sandwich_estimates$ub)
+              
 
 ##### Plot survival curves #####
 library(ggplot2)
@@ -116,14 +138,14 @@ ggplot(data = predicted_probas_ITT, aes(followup_time)) +
   geom_stepribbon(aes(ymin = survival_ratio_lb_sandwich, 
                       ymax = survival_ratio_ub_sandwich), alpha = 0.1) +
   labs(x = 'Follow-up time', 
-       y = "Ratio of survival functions for each treatment type", title = "ITT analysis")
+       y = "Ratio of survival functions for each treatment type", title = "ITT analysis - sandwich CIs")
 
 ggplot(data = predicted_probas_ITT, aes(followup_time)) +
   geom_step(aes(y = survival_difference)) +
   geom_stepribbon(aes(ymin = survival_difference_lb_sandwich, 
                       ymax = survival_difference_ub_sandwich), alpha = 0.1) +
   labs(x = 'Follow-up time', 
-       y = "Difference between treatment and control survival functions", title = "ITT analysis")
+       y = "Difference between treatment and control survival functions", title = "ITT analysis- sandwich CIs")
   
   
   
