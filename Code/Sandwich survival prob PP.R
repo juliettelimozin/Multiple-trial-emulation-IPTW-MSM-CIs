@@ -7,7 +7,7 @@ setwd("/Users/juliette/Documents/MPhil PHS 21-22/MPhil-dissertation/Code")
 source("simulate_MSM.R")
 set.seed(20222022)
 library(MASS)
-library(RandomisedTrialsEmulation, lib.loc='/home/li/lib/R/R_LIBS/')
+library(RandomisedTrialsEmulation)
 library(matrixStats)
 library(Metrics)
 library(sandwich)
@@ -21,8 +21,7 @@ fitting_data_control <- read.csv("fitting_data_control.csv")
 
 #Calculate robust SE's covariance matrix 
 
-covariance_mat <- sandwich::vcovCL(PP$model$model, cluster =PP$model$model$data$id,
-                                   type = NULL, sandwich = TRUE, fix = FALSE)
+covariance_mat <- PP$model$robust$matrix
 
 #Step 1 of algorithm  -- sampling Y_n1, ..., Y_nB ~ MN(coeffs,sandwich covariance)
 sampling_size <- 200

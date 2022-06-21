@@ -9,7 +9,7 @@ set.seed(20222022)
 
 #RUN ITT FILE FIRST TO ENSURE SIMULATED DATA ARE THE SAME
 
-library(RandomisedTrialsEmulation, lib.loc='/home/li/lib/R/R_LIBS/')
+library(RandomisedTrialsEmulation)
 
 ###################account for censoring##############################################
 

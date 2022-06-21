@@ -13,7 +13,7 @@ simdata_censored<-DATA_GEN_censored(1000, 10)
 write.csv(simdata_censored, file= "MSM_censor.csv", row.names = F) 
 
 
-library(RandomisedTrialsEmulation, lib.loc='/home/li/lib/R/R_LIBS/')
+library(RandomisedTrialsEmulation)
 
 ###################account for censoring##############################################
 
