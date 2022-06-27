@@ -2,7 +2,7 @@
 ## simulate data for testing TrialEmulation package, using the algorithm in Young and Tchetgen Tchetgen (2014) 
 
 
-DATA_GEN_censored<-function(ns, nv){   # ns= number of subjects, nv=no of visits including baseline visit
+DATA_GEN_censored<-function(ns, nv, conf = 0.5, treat_prev = 0, all_treat = FALSE, all_control = FALSE, censor = TRUE){   # ns= number of subjects, nv=no of visits including baseline visit
   
   
   nvisit<-nv+1
@@ -53,18 +53,20 @@ DATA_GEN_censored<-function(ns, nv){   # ns= number of subjects, nv=no of visits
     X2[seqlist[[k]]]<-Z2[seqlist[[k]]]-0.3*Ap[seqlist[[k]]] ## continuous time-varying confounder 
     
     ## update treatment
-    lpp<-Ap[seqlist[[k]]]+0.5*X1[seqlist[[k]]]+0.5*X2[seqlist[[k]]]-0.2*X3[seqlist[[k]]]+X4[seqlist[[k]]]-0.3*(age[seqlist[[k]]]-35)/12
+    lpp<- as.numeric(treat_prev) + Ap[seqlist[[k]]]+0.5*X1[seqlist[[k]]]+as.numeric(conf)*X2[seqlist[[k]]]-0.2*X3[seqlist[[k]]]+X4[seqlist[[k]]]-0.3*(age[seqlist[[k]]]-35)/12
     P0[[k]]<-1/(1+exp(-lpp))
     
-    A[seqlist[[k]]]<-rbinom(ns,1,P0[[k]]) ##Generate treatment at current visit based on  covariates, previous treatment
-    
-    
-    
-    
+    if (all_treat == TRUE){
+      A[seqlist[[k]]]<- 1.0
+    } else{ if (all_control == TRUE){
+              A[seqlist[[k]]]<- 0.0
+            } else{
+                A[seqlist[[k]]]<-rbinom(ns,1,P0[[k]]) ##Generate treatment at current visit based on  covariates, previous treatment
+              }
+    }
     ##Generate outcome
     
-    
-    lp<--7-1.2*A[seqlist[[k]]]+0.5*X1[seqlist[[k]]]+0.7*X2[seqlist[[k]]]+X3[seqlist[[k]]]+X4[seqlist[[k]]]+0.5*(age[seqlist[[k]]]-35)/12
+    lp<--7-1.2*A[seqlist[[k]]]+0.5*X1[seqlist[[k]]]+as.numeric(conf)*X2[seqlist[[k]]]+X3[seqlist[[k]]]+X4[seqlist[[k]]]+0.5*(age[seqlist[[k]]]-35)/12
     
     Yp[seqlist[[k]]]<-Y[seqlist[[k-1]]]
     Y[seqlist[[k]]]<-(rbinom(ns,1,1/(1+exp(-lp))))*as.numeric(Yp[seqlist[[k]]]==0)+as.numeric(Yp[seqlist[[k]]]==1)
@@ -96,7 +98,7 @@ DATA_GEN_censored<-function(ns, nv){   # ns= number of subjects, nv=no of visits
   DATA$eligible<-as.numeric(DATA$age>=18 & CAp==0 & Yp==0)  ## eligibility criteria: age>=18, had no treatment so far, no event so far
   
   ##censoring
-  
+  if (censor == T){
   Dprob<-1/(1+exp(1+Ap+0.5*X1-0.5*X2+0.2*X3-0.2*X4+(age-35)/12)) ##Probability of dropout
   
   DATA$C<-rbinom(nv*ns,1,Dprob) ##C=0 is remain in the study
@@ -115,6 +117,11 @@ DATA_GEN_censored<-function(ns, nv){   # ns= number of subjects, nv=no of visits
   
   DATA$age_s<-(DATA$age-35)/12
   DATA[RL==0 & DATA$Yp==0 & eligCum>0,] #remove observations after event occurrence and censoring, and not eligible
-  
+  } else {
+    eligCum<-ave(DATA$eligible,DATA$ID,FUN=cumsum)
+    
+    DATA$age_s<-(DATA$age-35)/12
+    DATA[DATA$Yp==0 & eligCum>0,] 
+  }
   
 }

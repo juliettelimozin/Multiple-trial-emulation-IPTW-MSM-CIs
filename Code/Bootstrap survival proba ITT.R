@@ -13,7 +13,7 @@ simdata_censored<-DATA_GEN_censored(1000, 10)
 write.csv(simdata_censored, file= "MSM_censor.csv", row.names = F) 
 
 
-library(RandomisedTrialsEmulation, lib.loc='/home/li/lib/R/R_LIBS/')
+library(RandomisedTrialsEmulation)
 
 ###################account for censoring##############################################
 
@@ -84,18 +84,21 @@ surv_ITT_difference_boostrap_estimates <-as.data.frame(matrix(,10,bootstrap_iter
 surv_ITT_ratio_boostrap_estimates <-as.data.frame(matrix(,10,bootstrap_iter))
 
 bootstrap_construct <- function(data){
-  idx <- sort(sample(unique(data$ID), length(unique(data$ID)), replace = TRUE))
-  data_boot <- data[which(data$ID == idx[1]),]
-  for (i in 2:length(idx)){
-    data_duplicate <- data[which(data$ID == idx[i]),]
-    if (idx[i] == idx[i-1]){
-      data_duplicate$ID <- replace(data_duplicate$ID, 
-                                   data_duplicate$ID == idx[i], 
-                                   tail(idx, n = 1) + i)
-    }
-    data_boot <- rbind(data_boot,data_duplicate)
+  sampleindex<-sample(unique(data$ID), length(unique(data$ID)),replace=T)
+  sampleindex<-sampleindex[order(sampleindex)]
+
+  dataindex=newsub=NULL
+  
+  for (i in 1:length(unique(data$ID)))
+  {
+    index<-which(data$ID==sampleindex[i])
+    dataindex<-c(dataindex,index)
+    newsub<-c(newsub, rep(i,length(index)))
   }
-  return(data_boot)
+  
+  bootdata<-data[dataindex,]
+  bootdata$ID<-newsub
+  return(bootdata)
 }
 
 for (i in 1:bootstrap_iter){
@@ -105,7 +108,7 @@ for (i in 1:bootstrap_iter){
                          outcomeCov_var=c('X3', 'X4', 'age_s'), outcomeCov =c( 'X3', 'X4', 'age_s'), model_var = c('assigned_treatment'),
                          cov_censed = c( 'X1', 'X2','X3', 'X4', 'age_s'), model_censed =c( 'X1', 'X2','X3', 'X4', 'age_s'), pool_cense=1,
                          include_expansion_time_case = 0,  include_followup_time_case = c("linear", "quadratic"), include_regime_length = 1,
-                         use_weight=1, use_censor=0, case_control = 0, data_dir =getwd(), numCores = 1, quiet = TRUE)
+                         use_weight=1, use_censor=0, case_control = 0, data_dir =getwd(), numCores = 4, quiet = TRUE)
   switch_data_boot <- read.csv("switch_data.csv")
   design_mat <- expand.grid(id = 1:tail(switch_data_boot$id)[1],
                             for_period = 0:9,
