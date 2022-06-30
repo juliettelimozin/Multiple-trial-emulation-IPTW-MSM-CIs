@@ -7,7 +7,7 @@ setwd("/Users/juliette/Documents/MPhil PHS 21-22/MPhil-dissertation/Code")
 source("simulate_MSM.R")
 set.seed(20222022)
 
-simdata_censored<-DATA_GEN_censored(1000, 10) 
+simdata_censored<-DATA_GEN_censored(1000, 10, conf = 0.1) 
 
 
 write.csv(simdata_censored, file= "MSM_censor.csv", row.names = F) 

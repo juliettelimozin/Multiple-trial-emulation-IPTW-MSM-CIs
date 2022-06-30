@@ -1,6 +1,7 @@
 library(modelr)
 library(tidyverse)
 library(tidyr)
+setwd("/Users/juliette/Documents/MPhil PHS 21-22/MPhil-dissertation/Code")
 source("simulate_MSM.R")
 set.seed(20222022)
 library(RandomisedTrialsEmulation)
@@ -15,33 +16,26 @@ library(lubridate)
 library(ggplot2)
 library(pammtools)
 
-simdata_censored_conf_treat<-DATA_GEN_censored(1000000, 10, conf = j, all_treat = T, censor = F)
-simdata_censored_conf_control<-DATA_GEN_censored(1000000, 10, conf = j, all_control = T, censor = F)
+load("true_value_conf.rda")
+load("true_value_treat.rda")
+load("HPC output/CI_bootstrap_coefs_PP_2.rda")
+load("HPC output/CI_sandwich_coefs_PP_2.rda")
+load("HPC output/CI_bootstrap_treat_PP_1.rda")
+load("HPC output/CI_sandwich_treat_PP_1.rda")
 
-surv_data_treat <- simdata_censored_conf_treat[ !duplicated(simdata_censored_conf_treat[, c("ID")], fromLast=T),] %>% 
-  dplyr::mutate(status = Y) %>% 
-  dplyr::select(ID, t, status)
-
-f1 <- survfit(Surv(t, status) ~ 1, data = surv_data_treat)
-
-plot(f1, 
-     xlab = "Days", 
-     ylab = "Overall survival probability ")
-
-
-surv_data_control <- simdata_censored_conf_control[ !duplicated(simdata_censored_conf_control[, c("ID")], fromLast=T),] %>% 
-  dplyr::mutate(status = Y) %>% 
-  dplyr::select(ID, t, status)
-
-f2 <- survfit(Surv(t, status) ~ 1, data = surv_data_control)
-
-plot(f2, 
-     xlab = "Days", 
-     ylab = "Overall survival probability")
-
+for (iter in 1:20){
+  print(ggplot(,aes(x = 1:10)) +
+    geom_step(aes(y = true_value_treat[,1,1] - true_value_treat[,2,1])) +
+    geom_stepribbon(aes(ymin = CI_bootstrap_treat_PP[,1,iter], ymax = CI_bootstrap_treat_PP[,2,iter]), alpha = 0.3) +
+    geom_stepribbon(aes(ymin = CI_sandwich_treat_PP[,1,iter], ymax = CI_sandwich_treat_PP[,2,iter]), alpha = 0.1) +
+    labs(x = 'Follow-up time', y = "Survival function", color = "Assigned treatment", title = paste0("PP Analysis ",iter)))
+}
 
 ggplot(data = predicted_probas_PP, aes(followup_time)) +
-  geom_step(aes(y = f1$surv, color = "Treatment")) +
-  geom_step(aes(y = f2$surv, color = "Control")) + 
-  scale_color_manual(name = "Treatment assignment", values = c("Treatment"= "red", "Control" = "blue")) +
-  labs(x = 'Follow-up time', y = "Survival function", color = "Assigned treatment", title = "PP Analysis")
+  geom_step(aes(y = survival_difference)) +
+  geom_stepribbon(aes(ymin = survival_difference_lb_sandwich, 
+                      ymax = survival_difference_ub_sandwich), alpha = 0.1, colour = 'red') +
+  geom_stepribbon(aes(ymin = CI_bootstrap_coefs_PP[,1,1], ymax = CI_bootstrap_coefs_PP[,2,1]), alpha = 0.3) +
+  geom_stepribbon(aes(ymin = CI_sandwich_coefs_PP[,1,1], ymax = CI_sandwich_coefs_PP[,2,1]), alpha = 0.1, colour = 'blue') +
+  labs(x = 'Follow-up time', 
+       y = "Difference between treatment and control survival functions", title = "PP analysis- sandwich CIs")
