@@ -40,14 +40,15 @@ design_mat <- design_mat[which(10 -design_mat$for_period > design_mat$followup_t
 switch_data <- read.csv("switch_data.csv")
 fitting_data_treatment <-  switch_data %>% 
   dplyr::mutate(assigned_treatment = followup_time*0 + 1) %>% 
-  dplyr::select(id,for_period, followup_time, followup_time2, X3, X4, age_s, assigned_treatment) %>% 
+  dplyr::select(id,for_period, followup_time, followup_time2, X1, X2, X3, X4, age_s, assigned_treatment) %>% 
   merge(design_mat, by = c("id", "for_period", "followup_time", "followup_time2"), all.y = TRUE) %>% 
   dplyr::group_by(id) %>% 
-  tidyr::fill(X3,X4,age_s,assigned_treatment,.direction = "down") %>% 
+  tidyr::fill( X1, X2,,X3,X4,age_s,assigned_treatment,.direction = "down") %>% 
   dplyr::ungroup() %>% 
-  dplyr::select(id, for_period, followup_time, followup_time2, X3, X4, age_s, assigned_treatment) %>% 
+  dplyr::select(id, for_period, followup_time, followup_time2, X1, X2,X3, X4, age_s, assigned_treatment) %>% 
   merge(data.frame(id = switch_data$id, for_period = switch_data$for_period), by = c("id", "for_period"), all.y = TRUE) %>% 
-  dplyr::arrange(id, for_period, followup_time)
+  dplyr::arrange(id, for_period, followup_time) %>% 
+  dplyr::mutate(for_period2 = for_period^2) 
 
 fitting_data_treatment <- fitting_data_treatment[!duplicated(fitting_data_treatment),]
 fitting_data_treatment <- fitting_data_treatment[which(!is.na(fitting_data_treatment$X3)),]

@@ -43,10 +43,10 @@ data_direction <- getwd()
 registerDoParallel(cores = 67)
 
 for (i in 1:iters){
-  ##################### sizeOUNDING STRENGTH #######################################
+  ##################### CONFOUNDING STRENGTH #######################################
   tryCatch({
     print(i)
-    simdata_censored_size<-DATA_GEN_censored(j, 10)
+    simdata_censored_size<-DATA_GEN_censored(100*l, 10)
     
     ################################### Bootstrap CI ###################################
     bootstrap_iter <- 200
@@ -63,28 +63,16 @@ for (i in 1:iters){
       
       ###########################################
       
-      PP_boot_size_prep <- RandomisedTrialsEmulation::data_preparation(boot_data_size[[k]], id='ID', period='t', treatment='A', outcome='Y', eligible ='eligible', cense = 'C',
-                                                                       model_switchd =c( 'X1', 'X2', 'X3', 'X4', 'age_s'),
-                                                                       cov_switchd = c( 'X1', 'X2', 'X3', 'X4', 'age_s'),
-                                                                       outcomeCov_var=c('X1', 'X2', 'X3', 'X4', 'age_s'), outcomeCov =c('X1', 'X2','X3', 'X4', 'age_s'), model_var = c('assigned_treatment'),
-                                                                       cov_censed = c( 'X1', 'X2','X3', 'X4', 'age_s'), model_censed =c( 'X1', 'X2','X3', 'X4', 'age_s'), pool_cense=1,
-                                                                       include_expansion_time_case = 0, include_followup_time_case = c("linear", "quadratic"), include_regime_length = 1,
-                                                                       use_weight=1, use_censor=1, data_dir = data_direction, numCores = 1, quiet = TRUE)
-      switch_data_boot <- PP_boot_size_prep$switch_data %>% 
-        dplyr::mutate(tA = followup_time*assigned_treatment, 
-                      tX1 = followup_time*X1,
-                      tX2 = followup_time*X2,
-                      tX3 = followup_time*X3,
-                      tX4 = followup_time*X4,
-                      tage_s = followup_time*age_s) 
+      PP_boot_size <- RandomisedTrialsEmulation::initiators(boot_data_size[[k]], id='ID', period='t', treatment='A', outcome='Y', eligible ='eligible', cense = 'C',
+                                                            model_switchd =c( 'X1', 'X2', 'X3', 'X4', 'age_s'),
+                                                            cov_switchd = c( 'X1', 'X2', 'X3', 'X4', 'age_s'),
+                                                            outcomeCov_var=c('X1', 'X2', 'X3', 'X4', 'age_s'), outcomeCov =c('X1', 'X2', 'X3', 'X4', 'age_s'), model_var = c('assigned_treatment'),
+                                                            cov_censed = c( 'X1', 'X2','X3', 'X4', 'age_s'), model_censed =c( 'X1', 'X2','X3', 'X4', 'age_s'), pool_cense=1,
+                                                            include_expansion_time_case = 0, include_followup_time_case = c("linear", "quadratic"), include_regime_length = 1,
+                                                            use_weight=1, use_censor=1, case_control = 0, data_dir =data_direction, numCores = 1, quiet = TRUE)
       
-      PP_boot_size <- RandomisedTrialsEmulation::data_modelling(switch_data = switch_data_boot,
-                                                                outcomeCov_var=c('X1', 'X2', 'X3', 'X4', 'age_s', 'tA', 'tX1', 'tX2', 'tX3', 'tX4', 'tage_s'),
-                                                                outcomeCov =c('X1', 'X2', 'X3', 'X4', 'age_s', 'tA', 'tX1', 'tX2', 'tX3', 'tX4', 'tage_s'), model_var = c('assigned_treatment'),
-                                                                include_expansion_time_case = 0, include_followup_time_case = c("linear", "quadratic"),
-                                                                use_weight=1, use_censor=1, numCores = 1, quiet = TRUE, use_sample_weights =  F)
+      switch_data_boot = PP_boot_size$model$switch_data
       
-      #### Survival function point estimate for PP ####
       design_mat <- expand.grid(id = 1:tail(switch_data_boot$id)[1],
                                 for_period = 0:9,
                                 followup_time = 0:9) %>% 
@@ -93,33 +81,27 @@ for (i in 1:iters){
       
       fitting_data_treatment_boot <- switch_data_boot %>% 
         dplyr::mutate(assigned_treatment = followup_time*0 + 1) %>% 
-        dplyr::select(id,for_period, followup_time, followup_time2, X1, X2, X3, X4, age_s, assigned_treatment) %>% 
+        dplyr::select(id,for_period, followup_time, followup_time2, X1, X2,X3, X4, age_s, assigned_treatment) %>% 
         merge(design_mat, by = c("id", "for_period", "followup_time", "followup_time2"), all.y = TRUE) %>% 
         dplyr::group_by(id) %>% 
-        tidyr::fill( X1, X2,X3,X4,age_s,assigned_treatment,.direction = "down") %>% 
+        tidyr::fill(X1, X2,X3,X4,age_s,assigned_treatment,.direction = "down") %>% 
         dplyr::ungroup() %>% 
         dplyr::select(id, for_period, followup_time, followup_time2, X1, X2,X3, X4, age_s, assigned_treatment) %>% 
         merge(data.frame(id = switch_data_boot$id, for_period = switch_data_boot$for_period), by = c("id", "for_period"), all.y = TRUE) %>% 
         dplyr::arrange(id, for_period, followup_time) %>% 
-        dplyr::mutate(tA = followup_time*assigned_treatment, 
-                      tX1 = followup_time*X1,
-                      tX2 = followup_time*X2,
-                      tX3 = followup_time*X3,
-                      tX4 = followup_time*X4,
-                      tage_s = followup_time*age_s) %>% 
         dplyr::filter(for_period == 0)
+      
       
       fitting_data_treatment_boot <- fitting_data_treatment_boot[!duplicated(fitting_data_treatment_boot),]
       fitting_data_treatment_boot <- fitting_data_treatment_boot[which(!is.na(fitting_data_treatment_boot$X3)),]
       
       fitting_data_control_boot <- fitting_data_treatment_boot %>% 
-        dplyr::mutate(assigned_treatment = assigned_treatment*0,
-                      tA = followup_time*assigned_treatment)
+        dplyr::mutate(assigned_treatment = assigned_treatment*0)
       
-      Y_pred_PP_treatment_boot <- predict.glm(PP_boot_size$model, 
+      Y_pred_PP_treatment_boot <- predict.glm(PP_boot_size$model$model, 
                                               fitting_data_treatment_boot, 
                                               type = "response")
-      Y_pred_PP_control_boot <- predict.glm(PP_boot_size$model, 
+      Y_pred_PP_control_boot <- predict.glm(PP_boot_size$model$model, 
                                             fitting_data_control_boot,
                                             type = "response")
       predicted_probas_PP_boot <- fitting_data_treatment_boot %>% 
@@ -152,82 +134,63 @@ for (i in 1:iters){
     CI_bootstrap_size_PP[,2,i] <- surv_PP_difference_boostrap_estimates_size$ub
     
     
-    ############################SANDWICH ######################################
+    ############################SANDWICH #######################################
     
-    PP_prep <- RandomisedTrialsEmulation::data_preparation(simdata_censored_size, id='ID', period='t', treatment='A', outcome='Y', eligible ='eligible', cense = 'C',
-                                                           model_switchd =c( 'X1', 'X2', 'X3', 'X4', 'age_s'),
-                                                           cov_switchd = c( 'X1', 'X2', 'X3', 'X4', 'age_s'),
-                                                           outcomeCov_var=c('X1', 'X2', 'X3', 'X4', 'age_s'), outcomeCov =c('X1', 'X2','X3', 'X4', 'age_s'), model_var = c('assigned_treatment'),
-                                                           cov_censed = c( 'X1', 'X2','X3', 'X4', 'age_s'), model_censed =c( 'X1', 'X2','X3', 'X4', 'age_s'), pool_cense=1,
-                                                           include_expansion_time_case = 0, include_followup_time_case = c("linear", "quadratic"), include_regime_length = 1,
-                                                           use_weight=1, use_censor=1, data_dir = data_direction, numCores = 1, quiet = TRUE)
-    switch_data <- PP_prep$switch_data %>% 
-      dplyr::mutate(tA = followup_time*assigned_treatment, 
-                    tX1 = followup_time*X1,
-                    tX2 = followup_time*X2,
-                    tX3 = followup_time*X3,
-                    tX4 = followup_time*X4,
-                    tage_s = followup_time*age_s) 
-    
-    PP <- RandomisedTrialsEmulation::data_modelling(switch_data = switch_data,
-                                                    outcomeCov_var=c('X1', 'X2', 'X3', 'X4', 'age_s', 'tA', 'tX1', 'tX2', 'tX3', 'tX4', 'tage_s'),
-                                                    outcomeCov =c('X1', 'X2', 'X3', 'X4', 'age_s', 'tA', 'tX1', 'tX2', 'tX3', 'tX4', 'tage_s'), model_var = c('assigned_treatment'),
-                                                    include_expansion_time_case = 0, include_followup_time_case = c("linear", "quadratic"),
-                                                    use_weight=1, use_censor=1, numCores = 1, quiet = TRUE, use_sample_weights =  F)
-    if (all(eigen(PP$robust$matrix)$values > 0) == F){
+    PP <-RandomisedTrialsEmulation::initiators( simdata_censored_size,id='ID', period='t', treatment='A', outcome='Y', eligible ='eligible', cense = 'C',
+                                                model_switchd =c( 'X1', 'X2', 'X3', 'X4', 'age_s'),
+                                                cov_switchd = c('X1', 'X2', 'X3', 'X4', 'age_s'),
+                                                outcomeCov_var=c('X1', 'X2', 'X3', 'X4', 'age_s'), outcomeCov =c('X1', 'X2', 'X3', 'X4', 'age_s'), model_var = c('assigned_treatment'),
+                                                cov_censed = c( 'X1', 'X2','X3', 'X4', 'age_s'), model_censed =c( 'X1', 'X2','X3', 'X4', 'age_s'), pool_cense=1,
+                                                include_expansion_time_case = 0, include_followup_time_case = c("linear", "quadratic"), include_regime_length = 1,
+                                                use_weight=1, use_censor=1, case_control = 0, data_dir =data_direction, numCores = 1, quiet = TRUE)
+    if (all(eigen(PP$model$robust$matrix)$values > 0) == F){
       not_pos_def <- not_pos_def + 1.0
       next
     }
     
-    #### Survival function point estimate for PP ####
     design_mat <- expand.grid(id = 1:1000,
                               for_period = 0:9,
                               followup_time = 0:9) %>% 
       dplyr::mutate(followup_time2 = followup_time^2)
     design_mat <- design_mat[which(10 -design_mat$for_period > design_mat$followup_time),]
     
+    switch_data <- PP$model$switch_data
+    
     fitting_data_treatment <-  switch_data %>% 
       dplyr::mutate(assigned_treatment = followup_time*0 + 1) %>% 
-      dplyr::select(id,for_period, followup_time, followup_time2, X1, X2, X3, X4, age_s, assigned_treatment) %>% 
+      dplyr::select(id,for_period, followup_time, followup_time2, X1, X2,X3, X4, age_s, assigned_treatment) %>% 
       merge(design_mat, by = c("id", "for_period", "followup_time", "followup_time2"), all.y = TRUE) %>% 
       dplyr::group_by(id) %>% 
-      tidyr::fill( X1, X2,X3,X4,age_s,assigned_treatment,.direction = "down") %>% 
+      tidyr::fill(X1, X2,X3,X4,age_s,assigned_treatment,.direction = "down") %>% 
       dplyr::ungroup() %>% 
       dplyr::select(id, for_period, followup_time, followup_time2, X1, X2,X3, X4, age_s, assigned_treatment) %>% 
       merge(data.frame(id = switch_data$id, for_period = switch_data$for_period), by = c("id", "for_period"), all.y = TRUE) %>% 
       dplyr::arrange(id, for_period, followup_time) %>% 
-      dplyr::mutate(tA = followup_time*assigned_treatment, 
-                    tX1 = followup_time*X1,
-                    tX2 = followup_time*X2,
-                    tX3 = followup_time*X3,
-                    tX4 = followup_time*X4,
-                    tage_s = followup_time*age_s) %>% 
       dplyr::filter(for_period == 0)
     
     fitting_data_treatment <- fitting_data_treatment[!duplicated(fitting_data_treatment),]
     fitting_data_treatment <- fitting_data_treatment[which(!is.na(fitting_data_treatment$X3)),]
     
     fitting_data_control <- fitting_data_treatment %>% 
-      dplyr::mutate(assigned_treatment = assigned_treatment*0,
-                    tA = followup_time*assigned_treatment)
+      dplyr::mutate(assigned_treatment = assigned_treatment*0)
     
-    covariance_mat <-PP$robust$matrix
+    covariance_mat <-PP$model$robust$matrix
     
     #Step 1 of algorithm  -- sampling Y_n1, ..., Y_nB ~ MN(coeffs,sandwich covariance)
     sampling_size <- 200
-    coeffs_sample <- mvrnorm(sampling_size,PP$model$coefficients, covariance_mat)
+    coeffs_sample <- mvrnorm(sampling_size,PP$model$model$coefficients, covariance_mat)
     
     surv_PP_difference_sandwich_estimates <- foreach(k = 1:sampling_size, .combine=cbind) %dopar% {
       
       #Step 1 of algorithm -- same model with new coeffs = one point from MVN sample
       fit_sample <- PP
-      fit_sample$model$coefficients <- coeffs_sample[k,]
+      fit_sample$model$model$coefficients <- coeffs_sample[k,]
       
       #Step 2 -- calculating survival probas with new model
-      Y_pred_sample_treatment <- predict.glm(fit_sample$model, 
+      Y_pred_sample_treatment <- predict.glm(fit_sample$model$model, 
                                              fitting_data_treatment, 
                                              type = "response")
-      Y_pred_sample_control <- predict.glm(fit_sample$model, 
+      Y_pred_sample_control <- predict.glm(fit_sample$model$model, 
                                            fitting_data_control,
                                            type = "response")
       
@@ -263,8 +226,5 @@ for (i in 1:iters){
   }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
 }
 print(paste0("% not pos def: ", not_pos_def*100/iters))
-save(CI_bootstrap_size_PP, file = paste("CI_bootstrap_size_PP_",as.character(l),".rda", sep = ""))
-save(CI_sandwich_size_PP, file = paste("CI_sandwich_size_PP_",as.character(l),".rda", sep = ""))
-
-
-
+save(CI_bootstrap_size_PP, file = paste("CI_bootstrap_size_PP_noint_",as.character(l),".rda", sep = ""))
+save(CI_sandwich_size_PP, file = paste("CI_sandwich_size_PP_noint_",as.character(l),".rda", sep = ""))

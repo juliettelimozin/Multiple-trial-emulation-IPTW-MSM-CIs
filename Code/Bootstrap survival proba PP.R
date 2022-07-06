@@ -19,22 +19,61 @@ data_path = "MSM_censor.csv"
 
 #### PP analysis
 
-PP <- RandomisedTrialsEmulation::initiators(data_path, id='ID', period='t', treatment='A', outcome='Y', eligible ='eligible', cense = 'C',
+PP_prep <- RandomisedTrialsEmulation::data_preparation(data_path, id='ID', period='t', treatment='A', outcome='Y', eligible ='eligible', cense = 'C',
                                             model_switchd =c( 'X1', 'X2', 'X3', 'X4', 'age_s'),
                                             cov_switchd = c( 'X1', 'X2', 'X3', 'X4', 'age_s'),
-                                            outcomeCov_var=c( 'X3', 'X4', 'age_s'), outcomeCov =c('X3', 'X4', 'age_s'), model_var = c('assigned_treatment'),
+                                            outcomeCov_var=c('X1', 'X2', 'X3', 'X4', 'age_s'), outcomeCov =c('X1', 'X2','X3', 'X4', 'age_s'), model_var = c('assigned_treatment'),
                                             cov_censed = c( 'X1', 'X2','X3', 'X4', 'age_s'), model_censed =c( 'X1', 'X2','X3', 'X4', 'age_s'), pool_cense=1,
                                             include_expansion_time_case = 0, include_followup_time_case = c("linear", "quadratic"), include_regime_length = 1,
-                                            use_weight=1, use_censor=1, case_control = 0, data_dir =getwd(), numCores = 1, quiet = FALSE)
+                                            use_weight=1, use_censor=1, data_dir =getwd(), numCores = 1, quiet = FALSE)
+switch_data <- read.csv("switch_data.csv") %>% 
+  dplyr::mutate(tA = followup_time*assigned_treatment, 
+                tX1 = followup_time*X1,
+                tX2 = followup_time*X2,
+                tX3 = followup_time*X3,
+                tX4 = followup_time*X4,
+                tage_s = followup_time*age_s) 
+write.csv(switch_data, "switch_data.csv")
 
+PP <- RandomisedTrialsEmulation::data_modelling(absolutePath = "switch_data.csv",
+                                                outcomeCov_var=c('X1', 'X2', 'X3', 'X4', 'age_s', 'tA', 'tX1', 'tX2', 'tX3', 'tX4', 'tage_s'),
+                                                outcomeCov =c('X1', 'X2', 'X3', 'X4', 'age_s', 'tA', 'tX1', 'tX2', 'tX3', 'tX4', 'tage_s'), model_var = c('assigned_treatment'),
+                                                include_expansion_time_case = 0, include_followup_time_case = c("linear", "quadratic"),
+                                                use_weight=1, use_censor=1, numCores = 1, quiet = FALSE, use_sample_weights =  F)
 #### Survival function point estimate for PP ####
+design_mat <- expand.grid(id = 1:1000,
+                          for_period = 0:9,
+                          followup_time = 0:9) %>% 
+  dplyr::mutate(followup_time2 = followup_time^2)
+design_mat <- design_mat[which(10 -design_mat$for_period > design_mat$followup_time),]
 
-fitting_data_treatment <- read.csv("fitting_data_treatment.csv")
-fitting_data_control <- read.csv("fitting_data_control.csv")
+switch_data <- read.csv("switch_data.csv")
+fitting_data_treatment <-  switch_data %>% 
+  dplyr::mutate(assigned_treatment = followup_time*0 + 1) %>% 
+  dplyr::select(id,for_period, followup_time, followup_time2, X1, X2, X3, X4, age_s, assigned_treatment) %>% 
+  merge(design_mat, by = c("id", "for_period", "followup_time", "followup_time2"), all.y = TRUE) %>% 
+  dplyr::group_by(id) %>% 
+  tidyr::fill( X1, X2,X3,X4,age_s,assigned_treatment,.direction = "down") %>% 
+  dplyr::ungroup() %>% 
+  dplyr::select(id, for_period, followup_time, followup_time2, X1, X2,X3, X4, age_s, assigned_treatment) %>% 
+  merge(data.frame(id = switch_data$id, for_period = switch_data$for_period), by = c("id", "for_period"), all.y = TRUE) %>% 
+  dplyr::arrange(id, for_period, followup_time) %>% 
+  dplyr::mutate(tA = followup_time*assigned_treatment, 
+                tX1 = followup_time*X1,
+                tX2 = followup_time*X2,
+                tX3 = followup_time*X3,
+                tX4 = followup_time*X4,
+                tage_s = followup_time*age_s) 
 
-Y_pred_PP_treatment <- predict.glm(PP$model$model, fitting_data_treatment, 
+fitting_data_treatment <- fitting_data_treatment[!duplicated(fitting_data_treatment),]
+fitting_data_treatment <- fitting_data_treatment[which(!is.na(fitting_data_treatment$X3)),]
+
+fitting_data_control <- fitting_data_treatment %>% 
+  dplyr::mutate(assigned_treatment = assigned_treatment*0)
+
+Y_pred_PP_treatment <- predict.glm(PP$model, fitting_data_treatment, 
                                     type = "response")
-Y_pred_PP_control <- predict.glm(PP$model$model, fitting_data_control, 
+Y_pred_PP_control <- predict.glm(PP$model, fitting_data_control, 
                                   type = "response")
 predicted_probas_PP <- fitting_data_treatment %>% 
   dplyr::mutate(predicted_proba_treatment = Y_pred_PP_treatment,
@@ -49,6 +88,7 @@ predicted_probas_PP <- fitting_data_treatment %>%
                    survival_difference = survival_treatment - survival_control,
                    survival_ratio = survival_treatment/survival_control)
 
+predicted_probas_PP_old <- read.csv("predicted_probas_PP.csv")
 ###### Bootstrap CI ######
 bootstrap_iter <- 100
 
@@ -78,9 +118,9 @@ for (i in 1:bootstrap_iter){
   PP_boot <- RandomisedTrialsEmulation::initiators("boot_data.csv", id='ID', period='t', treatment='A', outcome='Y', eligible ='eligible', cense = 'C',
                                                    model_switchd =c( 'X1', 'X2', 'X3', 'X4', 'age_s'),
                                                    cov_switchd = c( 'X1', 'X2', 'X3', 'X4', 'age_s'),
-                                                   outcomeCov_var=c( 'X3', 'X4', 'age_s'), outcomeCov =c('X3', 'X4', 'age_s'), model_var = c('assigned_treatment'),
+                                                   outcomeCov_var=c( 'X1', 'X2','X3', 'X4', 'age_s'), outcomeCov =c('X1', 'X2','X3', 'X4', 'age_s'), model_var = c('assigned_treatment'),
                                                    cov_censed = c( 'X1', 'X2','X3', 'X4', 'age_s'), model_censed =c( 'X1', 'X2','X3', 'X4', 'age_s'), pool_cense=1,
-                                                   include_expansion_time_case = 0, include_followup_time_case = c("linear", "quadratic"), include_regime_length = 1,
+                                                   include_expansion_time_case = c("linear", "quadratic"), include_followup_time_case = c("linear", "quadratic"), include_regime_length = 1,
                                                    use_weight=1, use_censor=1, case_control = 0, data_dir =getwd(), numCores = 1, quiet = TRUE)
   switch_data_boot <- read.csv("switch_data.csv")
   design_mat <- expand.grid(id = 1:tail(switch_data_boot$id)[1],
