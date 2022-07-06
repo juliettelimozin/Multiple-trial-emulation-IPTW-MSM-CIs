@@ -42,7 +42,7 @@ for (i in conf){
                                                   include_expansion_time_case = 0, include_followup_time_case = c("linear", "quadratic"),
                                                   use_weight=1, use_censor=1, numCores = 1, quiet = FALSE, use_sample_weights =  F)
   #### Survival function point estimate for PP ####
-  design_mat <- expand.grid(id = 1:1000,
+  design_mat <- expand.grid(id = 1:1000000,
                             for_period = 0:9,
                             followup_time = 0:9) %>% 
     dplyr::mutate(followup_time2 = followup_time^2)
@@ -116,7 +116,7 @@ for (i in conf){
                                                   include_expansion_time_case = 0, include_followup_time_case = c("linear", "quadratic"),
                                                   use_weight=1, use_censor=1, numCores = 1, quiet = FALSE, use_sample_weights =  F)
   #### Survival function point estimate for PP ####
-  design_mat <- expand.grid(id = 1:1000,
+  design_mat <- expand.grid(id = 1:1000000,
                             for_period = 0:9,
                             followup_time = 0:9) %>% 
     dplyr::mutate(followup_time2 = followup_time^2)

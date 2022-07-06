@@ -29,7 +29,7 @@ for (i in conf){
                                               include_expansion_time_case = 0, include_followup_time_case = c("linear", "quadratic"), include_regime_length = 1,
                                               use_weight=1, use_censor=1, case_control = 0, data_dir =data_direction, numCores = 1, quiet = TRUE)
   
-  design_mat <- expand.grid(id = 1:1000,
+  design_mat <- expand.grid(id = 1:1000000,
                             for_period = 0:9,
                             followup_time = 0:9) %>% 
     dplyr::mutate(followup_time2 = followup_time^2)
@@ -85,7 +85,7 @@ for (i in conf){
                                               include_expansion_time_case = 0, include_followup_time_case = c("linear", "quadratic"), include_regime_length = 1,
                                               use_weight=1, use_censor=1, case_control = 0, data_dir =data_direction, numCores = 1, quiet = TRUE)
  
-  design_mat <- expand.grid(id = 1:1000,
+  design_mat <- expand.grid(id = 1:1000000,
                             for_period = 0:9,
                             followup_time = 0:9) %>% 
     dplyr::mutate(followup_time2 = followup_time^2)
