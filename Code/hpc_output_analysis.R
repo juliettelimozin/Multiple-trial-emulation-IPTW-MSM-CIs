@@ -183,142 +183,142 @@ for (i in 1:1000){
     
     if (all(is.na(bootstrap_coefs[10,1,i,j])) == F){
       success[1,j] <- success[1,j] + 1
-      if (all(bootstrap_coefs[10,1,i,j] < true_value_conf[10,1,j] - true_value_conf[10,2,j]) 
-          & all(bootstrap_coefs[10,2,i,j] > true_value_conf[10,1,j] - true_value_conf[10,2,j])){
+      if (all(bootstrap_coefs[,1,i,j] < true_value_conf[,1,j] - true_value_conf[,2,j]) 
+          & all(bootstrap_coefs[,2,i,j] > true_value_conf[,1,j] - true_value_conf[,2,j])){
         coverage_ind[1,j] <- coverage_ind[1,j] + 1
       }
-      if (all(bootstrap_coefs[10,1,i,j] < est_true_value_conf_full[10,1,j] - est_true_value_conf_full[10,2,j]) 
-          & all(bootstrap_coefs[10,2,i,j] > est_true_value_conf_full[10,1,j] - est_true_value_conf_full[10,2,j])){
+      if (all(bootstrap_coefs[,1,i,j] < est_true_value_conf_full[,1,j] - est_true_value_conf_full[,2,j]) 
+          & all(bootstrap_coefs[,2,i,j] > est_true_value_conf_full[,1,j] - est_true_value_conf_full[,2,j])){
         coverage_ind_est[1,j] <- coverage_ind_est[1,j] + 1
       }
     }
     
-    if (all(is.na(sandwich_coefs[10,1,i,j])) == F){
+    if (all(is.na(sandwich_coefs[,1,i,j])) == F){
       success[2,j] <- success[2,j] + 1
-      if (all(sandwich_coefs[10,1,i,j] < true_value_conf[10,1,j] - true_value_conf[10,2,j]) 
-        & all(sandwich_coefs[10,2,i,j] > true_value_conf[10,1,j] - true_value_conf[10,2,j])){
+      if (all(sandwich_coefs[,1,i,j] < true_value_conf[,1,j] - true_value_conf[,2,j]) 
+        & all(sandwich_coefs[,2,i,j] > true_value_conf[,1,j] - true_value_conf[,2,j])){
         coverage_ind[2,j] <- coverage_ind[2,j] + 1
       }
-      if (all(sandwich_coefs[10,1,i,j] < est_true_value_conf_full[10,1,j] - est_true_value_conf_full[10,2,j]) 
-          & all(sandwich_coefs[10,2,i,j] > est_true_value_conf_full[10,1,j] - est_true_value_conf_full[10,2,j])){
+      if (all(sandwich_coefs[,1,i,j] < est_true_value_conf_full[,1,j] - est_true_value_conf_full[,2,j]) 
+          & all(sandwich_coefs[,2,i,j] > est_true_value_conf_full[,1,j] - est_true_value_conf_full[,2,j])){
         coverage_ind_est[2,j] <- coverage_ind_est[2,j] + 1
       }
     }
-    if (all(is.na(bootstrap_treat[10,1,i,j])) == F){
+    if (all(is.na(bootstrap_treat[,1,i,j])) == F){
       success[3,j] <- success[3,j] + 1
-      if (all(bootstrap_treat[10,1,i,j] < true_value_treat[10,1,j] - true_value_treat[10,2,j]) 
-          & all(bootstrap_treat[10,2,i,j] > true_value_treat[10,1,j] - true_value_treat[10,2,j])){
+      if (all(bootstrap_treat[,1,i,j] < true_value_treat[,1,j] - true_value_treat[,2,j]) 
+          & all(bootstrap_treat[,2,i,j] > true_value_treat[,1,j] - true_value_treat[,2,j])){
         coverage_ind[3,j] <- coverage_ind[3,j] + 1
       }
-      if (all(bootstrap_treat[10,1,i,j] < est_true_value_treat_full[10,1,j] - est_true_value_treat_full[10,2,j]) 
-          & all(bootstrap_treat[10,2,i,j] > est_true_value_treat_full[10,1,j] - est_true_value_treat_full[10,2,j])){
+      if (all(bootstrap_treat[,1,i,j] < est_true_value_treat_full[,1,j] - est_true_value_treat_full[,2,j]) 
+          & all(bootstrap_treat[,2,i,j] > est_true_value_treat_full[,1,j] - est_true_value_treat_full[,2,j])){
         coverage_ind_est[3,j] <- coverage_ind_est[3,j] + 1
       }
     }
-    if (all(is.na(sandwich_treat[10,1,i,j])) == F){
+    if (all(is.na(sandwich_treat[,1,i,j])) == F){
       success[4,j] <- success[4,j] + 1
-      if (all(sandwich_treat[10,1,i,j] < true_value_treat[10,1,j] - true_value_treat[10,2,j]) 
-          & all(sandwich_treat[10,2,i,j] > true_value_treat[10,1,j] - true_value_treat[10,2,j])){
+      if (all(sandwich_treat[,1,i,j] < true_value_treat[,1,j] - true_value_treat[,2,j]) 
+          & all(sandwich_treat[,2,i,j] > true_value_treat[,1,j] - true_value_treat[,2,j])){
         coverage_ind[4,j] <- coverage_ind[4,j] + 1
       }
-      if (all(sandwich_treat[10,1,i,j] < est_true_value_treat_full[10,1,j] - est_true_value_treat_full[10,2,j]) 
-          & all(sandwich_treat[10,2,i,j] > est_true_value_treat_full[10,1,j] - est_true_value_treat_full[10,2,j])){
+      if (all(sandwich_treat[,1,i,j] < est_true_value_treat_full[,1,j] - est_true_value_treat_full[,2,j]) 
+          & all(sandwich_treat[,2,i,j] > est_true_value_treat_full[,1,j] - est_true_value_treat_full[,2,j])){
         coverage_ind_est[4,j] <- coverage_ind_est[4,j] + 1
       }
     }
     
-    if (all(is.na(bootstrap_coefs_noint[10,1,i,j])) == F){
+    if (all(is.na(bootstrap_coefs_noint[,1,i,j])) == F){
       success[5,j] <- success[5,j] + 1
-      if (all(bootstrap_coefs_noint[10,1,i,j] < true_value_conf[10,1,j] - true_value_conf[10,2,j]) 
-          & all(bootstrap_coefs_noint[10,2,i,j] > true_value_conf[10,1,j] - true_value_conf[10,2,j])){
+      if (all(bootstrap_coefs_noint[,1,i,j] < true_value_conf[,1,j] - true_value_conf[,2,j]) 
+          & all(bootstrap_coefs_noint[,2,i,j] > true_value_conf[,1,j] - true_value_conf[,2,j])){
         coverage_ind[5,j] <- coverage_ind[5,j] + 1
       }
-      if (all(bootstrap_coefs_noint[10,1,i,j] < est_true_value_conf_noint[10,1,j] - est_true_value_conf_noint[10,2,j]) 
-          & all(bootstrap_coefs_noint[10,2,i,j] > est_true_value_conf_noint[10,1,j] - est_true_value_conf_noint[10,2,j])){
+      if (all(bootstrap_coefs_noint[,1,i,j] < est_true_value_conf_noint[,1,j] - est_true_value_conf_noint[,2,j]) 
+          & all(bootstrap_coefs_noint[,2,i,j] > est_true_value_conf_noint[,1,j] - est_true_value_conf_noint[,2,j])){
         coverage_ind_est[5,j] <- coverage_ind_est[5,j] + 1
       }
     }
     
-    if (all(is.na(sandwich_coefs_noint[10,1,i,j])) == F){
+    if (all(is.na(sandwich_coefs_noint[,1,i,j])) == F){
       success[6,j] <- success[6,j] + 1
-      if (all(sandwich_coefs_noint[10,1,i,j] < true_value_conf[10,1,j] - true_value_conf[10,2,j]) 
-          & all(sandwich_coefs_noint[10,2,i,j] > true_value_conf[10,1,j] - true_value_conf[10,2,j])){
+      if (all(sandwich_coefs_noint[,1,i,j] < true_value_conf[,1,j] - true_value_conf[,2,j]) 
+          & all(sandwich_coefs_noint[,2,i,j] > true_value_conf[,1,j] - true_value_conf[,2,j])){
         coverage_ind[6,j] <- coverage_ind[6,j] + 1
       }
-      if (all(sandwich_coefs_noint[10,1,i,j] < est_true_value_conf_noint[10,1,j] - est_true_value_conf_noint[10,2,j]) 
-          & all(sandwich_coefs_noint[10,2,i,j] > est_true_value_conf_noint[10,1,j] - est_true_value_conf_noint[10,2,j])){
+      if (all(sandwich_coefs_noint[,1,i,j] < est_true_value_conf_noint[,1,j] - est_true_value_conf_noint[,2,j]) 
+          & all(sandwich_coefs_noint[,2,i,j] > est_true_value_conf_noint[,1,j] - est_true_value_conf_noint[,2,j])){
         coverage_ind_est[6,j] <- coverage_ind_est[6,j] + 1
       }
     }
-    if (all(is.na(bootstrap_treat_noint[10,1,i,j])) == F){
+    if (all(is.na(bootstrap_treat_noint[,1,i,j])) == F){
       success[7,j] <- success[7,j] + 1
-      if (all(bootstrap_treat_noint[10,1,i,j] < true_value_treat[10,1,j] - true_value_treat[10,2,j]) 
-          & all(bootstrap_treat_noint[10,2,i,j] > true_value_treat[10,1,j] - true_value_treat[10,2,j])){
+      if (all(bootstrap_treat_noint[,1,i,j] < true_value_treat[,1,j] - true_value_treat[,2,j]) 
+          & all(bootstrap_treat_noint[,2,i,j] > true_value_treat[,1,j] - true_value_treat[,2,j])){
         coverage_ind[7,j] <- coverage_ind[7,j] + 1
       }
-      if (all(bootstrap_treat_noint[10,1,i,j] < est_true_value_treat_noint[10,1,j] - est_true_value_treat_noint[10,2,j]) 
-          & all(bootstrap_treat_noint[10,2,i,j] > est_true_value_treat_noint[10,1,j] - est_true_value_treat_noint[10,2,j])){
+      if (all(bootstrap_treat_noint[,1,i,j] < est_true_value_treat_noint[,1,j] - est_true_value_treat_noint[,2,j]) 
+          & all(bootstrap_treat_noint[,2,i,j] > est_true_value_treat_noint[,1,j] - est_true_value_treat_noint[,2,j])){
         coverage_ind_est[7,j] <- coverage_ind_est[7,j] + 1
       }
     }
-    if (all(is.na(sandwich_treat_noint[10,1,i,j])) == F){
+    if (all(is.na(sandwich_treat_noint[,1,i,j])) == F){
       success[8,j] <- success[8,j] + 1
-      if (all(sandwich_treat_noint[10,1,i,j] < true_value_treat[10,1,j] - true_value_treat[10,2,j]) 
-          & all(sandwich_treat_noint[10,2,i,j] > true_value_treat[10,1,j] - true_value_treat[10,2,j])){
+      if (all(sandwich_treat_noint[,1,i,j] < true_value_treat[,1,j] - true_value_treat[,2,j]) 
+          & all(sandwich_treat_noint[,2,i,j] > true_value_treat[,1,j] - true_value_treat[,2,j])){
         coverage_ind[8,j] <- coverage_ind[8,j] + 1
       }
-      if (all(sandwich_treat_noint[10,1,i,j] < est_true_value_treat_noint[10,1,j] - est_true_value_treat_noint[10,2,j]) 
-          & all(sandwich_treat_noint[10,2,i,j] > est_true_value_treat_noint[10,1,j] - est_true_value_treat_noint[10,2,j])){
+      if (all(sandwich_treat_noint[,1,i,j] < est_true_value_treat_noint[,1,j] - est_true_value_treat_noint[,2,j]) 
+          & all(sandwich_treat_noint[,2,i,j] > est_true_value_treat_noint[,1,j] - est_true_value_treat_noint[,2,j])){
         coverage_ind_est[8,j] <- coverage_ind_est[8,j] + 1
       }
     }
   }
   for (j in 1:6){
     
-    if (all(is.na(bootstrap_size[10,1,i,j])) == F){
+    if (all(is.na(bootstrap_size[,1,i,j])) == F){
       success_size[1,j] <- success_size[1,j] + 1
-      if (all(bootstrap_size[10,1,i,j] < true_value_conf[10,1,5] - true_value_conf[10,2,5]) 
-          & all(bootstrap_size[10,2,i,j] > true_value_conf[10,1,j] - true_value_conf[10,2,j])){
+      if (all(bootstrap_size[,1,i,j] < true_value_conf[,1,5] - true_value_conf[,2,5]) 
+          & all(bootstrap_size[,2,i,j] > true_value_conf[,1,5] - true_value_conf[,2,5])){
         coverage_ind_size[1,j] <- coverage_ind_size[1,j] + 1
       }
-      if (all(bootstrap_size[10,1,i,j] < est_true_value_conf_full[10,1,5] - est_true_value_conf_full[10,2,5]) 
-          & all(bootstrap_size[10,2,i,j] > est_true_value_conf_full[10,1,5] - est_true_value_conf_full[10,2,5])){
+      if (all(bootstrap_size[,1,i,j] < est_true_value_conf_full[,1,5] - est_true_value_conf_full[,2,5]) 
+          & all(bootstrap_size[,2,i,j] > est_true_value_conf_full[,1,5] - est_true_value_conf_full[,2,5])){
         coverage_ind_est_size[1,j] <- coverage_ind_est_size[1,j] + 1
       }
     }
     
-    if (all(is.na(sandwich_size[10,1,i,j])) == F){
+    if (all(is.na(sandwich_size[,1,i,j])) == F){
       success_size[2,j] <- success_size[2,j] + 1
-      if (all(sandwich_size[10,1,i,j] < true_value_conf[10,1,5] - true_value_conf[10,2,5]) 
-          & all(sandwich_size[10,2,i,j] > true_value_conf[10,1,5] - true_value_conf[10,2,5])){
+      if (all(sandwich_size[,1,i,j] < true_value_conf[,1,5] - true_value_conf[,2,5]) 
+          & all(sandwich_size[,2,i,j] > true_value_conf[,1,5] - true_value_conf[,2,5])){
         coverage_ind_size[2,j] <- coverage_ind_size[2,j] + 1
       }
-      if (all(sandwich_size[10,1,i,j] < est_true_value_conf_full[10,1,5] - est_true_value_conf_full[10,2,5]) 
-          & all(sandwich_size[10,2,i,j] > est_true_value_conf_full[10,1,5] - est_true_value_conf_full[10,2,5])){
+      if (all(sandwich_size[,1,i,j] < est_true_value_conf_full[,1,5] - est_true_value_conf_full[,2,5]) 
+          & all(sandwich_size[,2,i,j] > est_true_value_conf_full[,1,5] - est_true_value_conf_full[,2,5])){
         coverage_ind_est_size[2,j] <- coverage_ind_est_size[2,j] + 1
       }
     }
     
-    if (all(is.na(bootstrap_size_noint[10,1,i,j])) == F){
+    if (all(is.na(bootstrap_size_noint[,1,i,j])) == F){
       success_size[3,j] <- success_size[3,j] + 1
-      if (all(bootstrap_size_noint[10,1,i,j] < true_value_conf[10,1,5] - true_value_conf[10,2,5]) 
-          & all(bootstrap_size_noint[10,2,i,j] > true_value_conf[10,1,j] - true_value_conf[10,2,j])){
+      if (all(bootstrap_size_noint[,1,i,j] < true_value_conf[,1,5] - true_value_conf[,2,5]) 
+          & all(bootstrap_size_noint[,2,i,j] > true_value_conf[,1,5] - true_value_conf[,2,5])){
         coverage_ind_size[3,j] <- coverage_ind_size[3,j] + 1
       }
-      if (all(bootstrap_size_noint[10,1,i,j] < est_true_value_conf_noint[10,1,5] - est_true_value_conf_noint[10,2,5]) 
-          & all(bootstrap_size_noint[10,2,i,j] > est_true_value_conf_noint[10,1,5] - est_true_value_conf_noint[10,2,5])){
+      if (all(bootstrap_size_noint[,1,i,j] < est_true_value_conf_noint[,1,5] - est_true_value_conf_noint[,2,5]) 
+          & all(bootstrap_size_noint[,2,i,j] > est_true_value_conf_noint[,1,5] - est_true_value_conf_noint[,2,5])){
         coverage_ind_est_size[3,j] <- coverage_ind_est_size[3,j] + 1
       }
     }
     
-    if (all(is.na(sandwich_size_noint[10,1,i,j])) == F){
+    if (all(is.na(sandwich_size_noint[,1,i,j])) == F){
       success_size[4,j] <- success_size[4,j] + 1
-      if (all(sandwich_size_noint[10,1,i,j] < true_value_conf[10,1,5] - true_value_conf[10,2,5]) 
-          & all(sandwich_size_noint[10,2,i,j] > true_value_conf[10,1,5] - true_value_conf[10,2,5])){
+      if (all(sandwich_size_noint[,1,i,j] < true_value_conf[,1,5] - true_value_conf[,2,5]) 
+          & all(sandwich_size_noint[,2,i,j] > true_value_conf[,1,5] - true_value_conf[,2,5])){
         coverage_ind_size[4,j] <- coverage_ind_size[4,j] + 1
       }
-      if (all(sandwich_size_noint[10,1,i,j] < est_true_value_conf_noint[10,1,5] - est_true_value_conf_noint[10,2,5]) 
-          & all(sandwich_size_noint[10,2,i,j] > est_true_value_conf_noint[10,1,5] - est_true_value_conf_noint[10,2,5])){
+      if (all(sandwich_size_noint[,1,i,j] < est_true_value_conf_noint[,1,5] - est_true_value_conf_noint[,2,5]) 
+          & all(sandwich_size_noint[,2,i,j] > est_true_value_conf_noint[,1,5] - est_true_value_conf_noint[,2,5])){
         coverage_ind_est_size[4,j] <- coverage_ind_est_size[4,j] + 1
       }
     }
