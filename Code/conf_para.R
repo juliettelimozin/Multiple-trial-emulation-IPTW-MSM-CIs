@@ -11,6 +11,7 @@ library(sandwich)
 library(doParallel)
 library(doRNG)
 
+#Function for bootstrap resampling of data with ID as resampling unit
 bootstrap_construct <- function(data){
   sampleindex<-sample(unique(data$ID), length(unique(data$ID)),replace=T)
   sampleindex<-sampleindex[order(sampleindex)]
@@ -29,10 +30,12 @@ bootstrap_construct <- function(data){
   return(bootdata)
 }
 
+#Number of MC iterations
 iters <- 1000
 CI_bootstrap_coefs_PP <- array(,dim = c(10,2,iters))
 CI_sandwich_coefs_PP <- array(, dim = c(10,2,iters))
 
+#Fetching array value from HPC parallelisation
 l <- as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
 j <- as.numeric(l/10)
 not_pos_def <- 0.0
@@ -42,10 +45,13 @@ data_direction <- paste("~/rds/hpc-work/data_",l,sep = "")
 # Set number of cores. 67 is sufficient for 200 cores.
 registerDoParallel(cores = 67)
 
+#Loop of MC simulations
 for (i in 1:iters){
   ##################### CONFOUNDING STRENGTH #######################################
+  #Catch error messages from non convergence or non positive definite matrix
   tryCatch({
     print(i)
+    #Generate simulated data with specific confounding strength
     simdata_censored_conf<-DATA_GEN_censored(1000, 10, conf = j)
     
     ################################### Bootstrap CI ###################################
@@ -59,11 +65,10 @@ for (i in 1:iters){
       boot_data_conf[[k]] <- bootstrap_construct(simdata_censored_conf)
     }
     
+    #Parallel calculation of survival probabilities for each bootstrap sample
     surv_PP_difference_boostrap_estimates_conf <- foreach(k = 1:bootstrap_iter, .combine=cbind, .export=c("boot_data_conf")) %dopar% {
       
-      ###########################################
-      
-      PP_boot_conf_prep <- RandomisedTrialsEmulation::data_preparation(boot_data_conf[[k]], id='ID', period='t', treatment='A', outcome='Y', eligible ='eligible', cense = 'C',
+    PP_boot_conf_prep <- RandomisedTrialsEmulation::data_preparation(boot_data_conf[[k]], id='ID', period='t', treatment='A', outcome='Y', eligible ='eligible', cense = 'C',
                                                                model_switchd =c( 'X1', 'X2', 'X3', 'X4', 'age_s'),
                                                                cov_switchd = c( 'X1', 'X2', 'X3', 'X4', 'age_s'),
                                                                outcomeCov_var=c('X1', 'X2', 'X3', 'X4', 'age_s'), outcomeCov =c('X1', 'X2','X3', 'X4', 'age_s'), model_var = c('assigned_treatment'),
@@ -137,6 +142,7 @@ for (i in 1:iters){
       
     }
     
+    #Calculate quantiles
     surv_PP_difference_boostrap_estimates_conf$lb <- apply(surv_PP_difference_boostrap_estimates_conf,
                                                             1,
                                                             quantile,
@@ -152,7 +158,7 @@ for (i in 1:iters){
     CI_bootstrap_coefs_PP[,2,i] <- surv_PP_difference_boostrap_estimates_conf$ub
     
     
-    ############################SANDWICH ######################################
+    ############################SANDWICH CI ######################################
     
     PP_prep <- RandomisedTrialsEmulation::data_preparation(simdata_censored_conf, id='ID', period='t', treatment='A', outcome='Y', eligible ='eligible', cense = 'C',
                                                            model_switchd =c( 'X1', 'X2', 'X3', 'X4', 'age_s'),
