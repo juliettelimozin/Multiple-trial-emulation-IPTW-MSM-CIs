@@ -13,7 +13,7 @@ library(doRNG)
 
 #Number of MC iterations
 iters <- 1000
-treat_PP <- array(,dim = c(10,iters))
+treat_PP <- matrix(,10,iters)
 
 #Fetching array value from HPC parallelisation
 l <- as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
@@ -105,9 +105,10 @@ for (i in 1:iters){
       dplyr::ungroup() %>% 
       dplyr::group_by(followup_time) %>% 
       dplyr::summarise(survival_treatment = mean(cum_hazard_treatment),
-                       survival_control = mean(cum_hazard_control))
+                       survival_control = mean(cum_hazard_control),
+                       survival_difference = survival_treatment - survival_control)
     
-    treat_PP[,i] <- predicted_probas_PP_sample[,2] - predicted_probas_PP_sample[,3]
+    treat_PP[,i] <- pull(predicted_probas_PP_sample, survival_difference)
     
   }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
 }

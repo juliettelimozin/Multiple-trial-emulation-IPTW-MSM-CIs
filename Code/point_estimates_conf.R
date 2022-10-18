@@ -13,12 +13,11 @@ library(doRNG)
 
 #Number of MC iterations
 iters <- 1000
-coefs_PP <- array(,dim = c(10,iters))
+coefs_PP <- matrix(,nrow = 10, ncol = iters)
 
 #Fetching array value from HPC parallelisation
 l <- as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
 j <- as.numeric(l/10)
-not_pos_def <- 0.0
 
 data_direction <- paste("~/rds/hpc-work/data_",l,sep = "")
 
@@ -30,7 +29,6 @@ for (i in 1:iters){
   ##################### CONFOUNDING STRENGTH #######################################
   #Catch error messages from non convergence or non positive definite matrix
   tryCatch({
-    print(i)
     #Generate simulated data with specific confounding strength
     simdata_censored_conf<-DATA_GEN_censored(1000, 10, conf = j)
     
@@ -106,9 +104,10 @@ for (i in 1:iters){
       dplyr::ungroup() %>% 
       dplyr::group_by(followup_time) %>% 
       dplyr::summarise(survival_treatment = mean(cum_hazard_treatment),
-                       survival_control = mean(cum_hazard_control))
+                       survival_control = mean(cum_hazard_control),
+                       survival_difference = survival_treatment - survival_control)
     
-    coefs_PP[,i] <- predicted_probas_PP_sample[,2] - predicted_probas_PP_sample[,3]
+    coefs_PP[,i] <- pull(predicted_probas_PP_sample, survival_difference)
     
   }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
 }

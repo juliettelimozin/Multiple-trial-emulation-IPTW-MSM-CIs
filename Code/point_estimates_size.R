@@ -13,7 +13,7 @@ library(doRNG)
 
 #Number of MC iterations
 iters <- 1000
-size_PP <- array(,dim = c(10,iters))
+size_PP <- matrix(,10,iters)
 
 #Fetching array value from HPC parallelisation
 l <- as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
@@ -57,7 +57,7 @@ for (i in 1:iters){
                                                     use_weight=1, use_censor=1, numCores = 1, quiet = TRUE, use_sample_weights =  F)
     
     #### Survival function point estimate for PP ####
-    design_mat <- expand.grid(id = 1:1000,
+    design_mat <- expand.grid(id = 1:j,
                               for_period = 0:9,
                               followup_time = 0:9) %>% 
       dplyr::mutate(followup_time2 = followup_time^2)
@@ -105,9 +105,10 @@ for (i in 1:iters){
       dplyr::ungroup() %>% 
       dplyr::group_by(followup_time) %>% 
       dplyr::summarise(survival_treatment = mean(cum_hazard_treatment),
-                       survival_control = mean(cum_hazard_control))
+                       survival_control = mean(cum_hazard_control),
+                       survival_difference = survival_treatment - survival_control)
     
-    size_PP[,i] <- predicted_probas_PP_sample[,2] - predicted_probas_PP_sample[,3]
+    size_PP[,i] <- pull(predicted_probas_PP_sample, survival_difference)
     
   }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
 }
