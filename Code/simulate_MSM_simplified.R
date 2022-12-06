@@ -46,7 +46,7 @@ DATA_GEN_censored_reduced<-function(ns, nv, conf = 0.5, treat_prev = 0, all_trea
     
     ########### Old formula: lpp<- as.numeric(treat_prev) + Ap[seqlist[[k]]]+0.5*X1[seqlist[[k]]]+as.numeric(conf)*X2[seqlist[[k]]]
     ###########                    -0.2*X3[seqlist[[k]]]+X4[seqlist[[k]]]-0.3*(age[seqlist[[k]]]-35)/12
-    lpp<- as.numeric(treat_prev) + Ap[seqlist[[k]]] +3*as.numeric(conf)*X2[seqlist[[k]]]-12*X4[seqlist[[k]]]
+    lpp<- as.numeric(treat_prev) + 0.05*Ap[seqlist[[k]]] + as.numeric(conf)*X2[seqlist[[k]]] + 0.2*X4[seqlist[[k]]]
     P0[[k]]<-1/(1+exp(-lpp))
     
     if (all_treat == TRUE){
@@ -90,7 +90,7 @@ DATA_GEN_censored_reduced<-function(ns, nv, conf = 0.5, treat_prev = 0, all_trea
   
   ##censoring
   if (censor == T){
-    Dprob<-1/(1+exp(1+Ap+0.5*X2+0.2*X4)) ##Probability of dropout
+    Dprob<-1/(1+exp(2.5 + Ap-0.5*X2-0.2*X4)) ##Probability of dropout
     
     DATA$C<-rbinom(nv*ns,1,Dprob) ##C=0 is remain in the study
     

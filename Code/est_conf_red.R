@@ -34,14 +34,15 @@ for (i in 1:iters){
     
     ############################SANDWICH CI ######################################
     
-    PP_prep <- RandomisedTrialsEmulation::data_preparation(simdata_censored_conf, id='ID', period='t', treatment='A', outcome='Y', eligible ='eligible', cense = 'C',
-                                                           model_switchd =c( 'X2', 'X4'),
-                                                           cov_switchd = c( 'X2', 'X4'),
-                                                           outcomeCov_var=c('X2', 'X4'), outcomeCov =c('X2', 'X4'), model_var = c('assigned_treatment'),
-                                                           cov_censed = c( 'X2', 'X4'), model_censed =c( 'X2', 'X4'), pool_cense=1,
-                                                           include_expansion_time_case = 0, include_followup_time_case = 0, include_regime_length = 0,
-                                                           use_weight=1, use_censor=1, data_dir = data_direction, numCores = 1, quiet = T)
-    switch_data <- PP_prep$switch_data %>% 
+    PP_prep <- RandomisedTrialsEmulation::data_preparation(simdata_censored_conf, id='ID', period='t', treatment='A', outcome='Y', 
+                                                           eligible ='eligible',cense = 'C',
+                                                           switch_d_cov = ~X2 + X4,
+                                                           outcome_cov = ~X2 + X4, model_var = c('assigned_treatment'),
+                                                           cense_d_cov = ~X2 + X4,
+                                                           include_expansion_time_case = ~1, include_followup_time_case = ~1, 
+                                                           include_regime_length = F,
+                                                           use_weight=1, use_censor=1, numCores = 1, quiet = T)
+    switch_data <- PP_prep$data %>% 
       dplyr::mutate(t_1 = ifelse(followup_time == 1,1,0),
                     t_2 = ifelse(followup_time == 2,1,0),
                     t_3 = ifelse(followup_time == 3,1,0),
@@ -59,20 +60,15 @@ for (i in 1:iters){
                     t_3X4 = t_3*X4,
                     t_4X4 = t_4*X4)
 
-    PP <- RandomisedTrialsEmulation::data_modelling(switch_data = switch_data,
-                                                    outcomeCov_var=c('X2', 'X4', 
-                                                                     't_1','t_2', 't_3', 't_4',
-                                                                     't_1A','t_2A', 't_3A', 't_4A',
-                                                                     't_1X2','t_2X2', 't_3X2', 't_4X2',
-                                                                     't_1X4','t_2X4', 't_3X4', 't_4X4'
-                                                                     ),
-                                                    outcomeCov =c('X2', 'X4', 
-                                                                  't_1','t_2', 't_3', 't_4',
-                                                                  't_1A','t_2A', 't_3A', 't_4A',
-                                                                  't_1X2','t_2X2', 't_3X2', 't_4X2',
-                                                                  't_1X4','t_2X4', 't_3X4', 't_4X4'
-                                                    ), model_var = c('assigned_treatment'),
-                                                    include_expansion_time_case = 0, include_followup_time_case = 0,
+    PP <- RandomisedTrialsEmulation::data_modelling(data = switch_data,
+                                                    outcome_cov = ~ X2 + X4+ assigned_treatment+
+                                                                  t_1 + t_2 + t_3 + t_4 +
+                                                                  t_1A + t_2A + t_3A + t_4A + 
+                                                                  t_1X2 + t_2X2 + t_3X2 + t_4X2 + 
+                                                                  t_1X4 + t_2X4 + t_3X4 + t_4X4,
+                                                    model_var = c('assigned_treatment'),
+                                                    glm_function = 'glm',
+                                                    include_expansion_time_case = ~1, include_followup_time_case = ~1,
                                                     use_weight=1, use_censor=1, numCores = 1, quiet = T, use_sample_weights =  F)
     
     #### Survival function point estimate for PP ####

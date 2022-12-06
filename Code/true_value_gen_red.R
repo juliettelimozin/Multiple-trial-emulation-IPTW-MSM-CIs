@@ -2,6 +2,7 @@ library(modelr)
 library(tidyverse)
 library(tidyr)
 source("simulate_MSM_simplified.R")
+setwd('~/rds/hpc-work')
 set.seed(20222022)
 library(MASS)
 library(survival)
@@ -11,6 +12,8 @@ library(ggplot2)
 library(pammtools)
 
 conf <- 1:9/10
+treat <- c(-1,-0.8,-0.5,-0.2,0,0.2,0.5,0.8,1)
+
 true_value_conf_red <- array(,dim = c(5,2,9))
 true_value_treat_red <- array(,dim = c(5,2,9))
 
@@ -30,11 +33,14 @@ for (i in conf){
   
   f2 <- survfit(Surv(t, status) ~ 1, data = surv_data_control)
   
-  true_value_conf_modified[,1,10*i] <- f1$surv
-  true_value_conf_modified[,2,10*i] <- f2$surv
-  
-  simdata_censored_treat_treat<-DATA_GEN_censored_modified(1000000, 5, treat_prev = i, all_treat = T, censor = F)
-  simdata_censored_treat_control<-DATA_GEN_censored_modified(1000000, 5, treat_prev = i, all_control = T, censor = F)
+  true_value_conf_red[,1,10*i] <- f1$surv
+  true_value_conf_red[,2,10*i] <- f2$surv
+}
+save(true_value_conf_red, file = "true_value_conf_red.rda")
+
+for (i in 1:9){
+  simdata_censored_treat_treat<-DATA_GEN_censored_reduced(1000000, 5, treat_prev = treat[i], all_treat = T, censor = F)
+  simdata_censored_treat_control<-DATA_GEN_censored_reduced(1000000, 5, treat_prev = treat[i], all_control = T, censor = F)
   
   surv_data_treat <- simdata_censored_treat_treat[ !duplicated(simdata_censored_treat_treat[, c("ID")], fromLast=T),] %>% 
     dplyr::mutate(status = Y) %>% 
@@ -48,9 +54,9 @@ for (i in conf){
   
   f2 <- survfit(Surv(t, status) ~ 1, data = surv_data_control)
   
-  true_value_treat_modified[,1,10*i] <- f1$surv
-  true_value_treat_modified[,2,10*i] <- f2$surv
+  true_value_treat_red[,1,i] <- f1$surv
+  true_value_treat_red[,2,i] <- f2$surv
+  
 }
 
-save(true_value_conf_modified, file = "true_value_conf_modified.rda")
-save(true_value_treat_modified, file = "true_value_treat_modified.rda")
+save(true_value_treat_red, file = "true_value_treat_red.rda")
