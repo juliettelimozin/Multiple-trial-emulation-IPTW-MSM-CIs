@@ -11,16 +11,15 @@ library(lubridate)
 library(ggplot2)
 library(matlib)
 library(pammtools)
-library(RandomisedTrialsEmulation)
+library(TrialEmulation)
 
 #### Generate overall weights and LEF U(\hat beta)
 data <- DATA_GEN_censored_reduced(1000,5, treat_prev = 0)
-PP_prep <- RandomisedTrialsEmulation::data_preparation(data, id='ID', period='t', treatment='A', outcome='Y', 
+PP_prep <- TrialEmulation::data_preparation(data, id='ID', period='t', treatment='A', outcome='Y', 
                                                        eligible ='eligible',cense = 'C',
                                                        switch_d_cov = ~X2 + X4,
                                                        outcome_cov = ~X2 + X4, model_var = c('assigned_treatment'),
                                                        cense_d_cov = ~X2 + X4,
-                                                       include_expansion_time_case = ~1, include_followup_time_case = ~1, 
                                                        include_regime_length = F,
                                                        use_weight=1, use_censor=1, quiet = T,
                                                        save_weight_models = T,
@@ -43,7 +42,7 @@ switch_data <- PP_prep$data %>%
                 t_3X4 = t_3*X4,
                 t_4X4 = t_4*X4)
 
-PP <- RandomisedTrialsEmulation::data_modelling(data = switch_data,
+PP <- TrialEmulation::data_modelling(data = switch_data,
                                                 outcome_cov = ~ X2 + X4+ assigned_treatment+
                                                   t_1 + t_2 + t_3 + t_4 +
                                                   t_1A + t_2A + t_3A + t_4A + 
@@ -51,7 +50,7 @@ PP <- RandomisedTrialsEmulation::data_modelling(data = switch_data,
                                                   t_1X4 + t_2X4 + t_3X4 + t_4X4,
                                                 model_var = c('assigned_treatment'),
                                                 glm_function = 'glm',
-                                                include_expansion_time_case = ~1, include_followup_time_case = ~1,
+                                                include_expansion_time = ~1, include_followup_time = ~1,
                                                 use_weight=1, use_censor=1, quiet = T, use_sample_weights =  F)
 switch_data$p_i <- predict.glm(PP$model, switch_data,type = 'response')
 

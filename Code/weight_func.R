@@ -108,7 +108,7 @@ weight_func_bootstrap <- function(data,
                                   quiet = FALSE) {
   
   
-  if (!is.na(boot_idx)){
+  if (all(!is.na(boot_idx), na.rm = TRUE)){
     weight_model_d0_data <- weight_model_d0$data[id %in% boot_idx]
     weight_model_n0_data <- weight_model_n0$data[id %in% boot_idx]
     weight_model_d1_data <- weight_model_d1$data[id %in% boot_idx]
