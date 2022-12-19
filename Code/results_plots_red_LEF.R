@@ -1,116 +1,174 @@
-library(modelr)
 library(tidyverse)
 library(tidyr)
 setwd("/Users/juliette/Documents/MPhil PHS 21-22/MPhil-dissertation/Code")
-source("simulate_MSM.R")
-set.seed(20222022)
-library(RandomisedTrialsEmulation)
-library(MASS)
-library(sandwich)
-library(foreach)
-library(doParallel)
-library(parallel)
-library(survival)
-library(survminer)
-library(lubridate)
 library(ggplot2)
-library(pammtools)
-library(doRNG)
 
 load("HPC output/true_value_conf_red.rda")
 load("HPC output/true_value_treat_red.rda")
 
-bootstrap_coefs <- array(,dim = c(10,2,1000,9))
-sandwich_coefs <- array(,dim = c(10,2,1000,9))
-bootstrap_treat <- array(,dim = c(10,2,1000,9))
-sandwich_treat <- array(,dim = c(10,2,1000,9))
-bootstrap_size <- array(,dim = c(10,2,1000,6))
-sandwich_size <- array(,dim = c(10,2,1000,6))
+bootstrap_coefs <- array(,dim = c(5,2,1000,9))
+LEF_outcome_coefs <- array(,dim = c(5,2,1000,9))
+LEF_both_coefs <- array(,dim = c(5,2,1000,9))
+sandwich_coefs <- array(,dim = c(5,2,1000,9))
+time_coefs <- array(,dim = c(4,1000,9))
+
+bootstrap_treat <- array(,dim = c(5,2,1000,9))
+LEF_outcome_treat <- array(,dim = c(5,2,1000,9))
+LEF_both_treat <- array(,dim = c(5,2,1000,9))
+sandwich_treat <- array(,dim = c(5,2,1000,9))
+time_treat <- array(,dim = c(4,1000,9))
+
+bootstrap_size <- array(,dim = c(5,2,1000,7))
+LEF_outcome_size <- array(,dim = c(5,2,1000,7))
+LEF_both_size <- array(,dim = c(5,2,1000,7))
+sandwich_size <- array(,dim = c(5,2,1000,7))
+time_size <- array(,dim = c(4,1000,7))
+
+bootstrap_coefs_big <- array(,dim = c(5,2,1000,9))
+LEF_outcome_coefs_big <- array(,dim = c(5,2,1000,9))
+LEF_both_coefs_big <- array(,dim = c(5,2,1000,9))
+sandwich_coefs_big <- array(,dim = c(5,2,1000,9))
+time_coefs_big <- array(,dim = c(4,1000,9))
+
+bootstrap_treat_big <- array(,dim = c(5,2,1000,9))
+LEF_outcome_treat_big <- array(,dim = c(5,2,1000,9))
+LEF_both_treat_big <- array(,dim = c(5,2,1000,9))
+sandwich_treat_big <- array(,dim = c(5,2,1000,9))
+time_treat_big <-  array(,dim = c(4,1000,9))
 
 for (i in 1:9){
-  load(paste0("HPC output/CI_bootstrap_coefs_PP_", i, ".rda"))
-  load(paste0("HPC output/CI_sandwich_coefs_PP_", i, ".rda"))
-  load(paste0("HPC output/CI_bootstrap_treat_PP_", i, ".rda"))
-  load(paste0("HPC output/CI_sandwich_treat_PP_", i, ".rda"))
-  bootstrap_coefs[,,,i] <- CI_bootstrap_coefs_PP
-  sandwich_coefs[,,,i] <- CI_sandwich_coefs_PP
-  bootstrap_treat[,,,i] <- CI_bootstrap_treat_PP
-  sandwich_treat[,,,i] <- CI_sandwich_treat_PP
+  load(paste0("HPC output/CI_bootstrap_coefs_PP_red_", i, ".rda"))
+  load(paste0("HPC output/CI_LEF_outcome_coefs_PP_red_", i, ".rda"))
+  load(paste0("HPC output/CI_LEF_both_coefs_PP_red_", i, ".rda"))
+  load(paste0("HPC output/CI_sandwich_coefs_PP_red_", i, ".rda"))
+  load(paste0("HPC output/computation_time_coefs_", i, ".rda"))
+  
+  load(paste0("HPC output/CI_bootstrap_treat_PP_red_", i, ".rda"))
+  load(paste0("HPC output/CI_LEF_outcome_treat_PP_red_", i, ".rda"))
+  load(paste0("HPC output/CI_LEF_both_treat_PP_red_", i, ".rda"))
+  load(paste0("HPC output/CI_sandwich_treat_PP_red_", i, ".rda"))
+  load(paste0("HPC output/computation_time_treat_", i, ".rda"))
+  
+  bootstrap_coefs[,,,i] <- CI_bootstrap_coefs_PP_red
+  LEF_outcome_coefs[,,,i] <- CI_LEF_outcome_coefs_PP_red
+  LEF_both_coefs[,,,i] <- CI_LEF_both_coefs_PP_red
+  sandwich_coefs[,,,i] <- CI_sandwich_coefs_PP_red
+  time_coefs[,,i] <- computation_time_coefs
+  
+  bootstrap_treat[,,,i] <- CI_bootstrap_treat_PP_red
+  LEF_outcome_treat[,,,i] <- CI_LEF_outcome_treat_PP_red
+  LEF_both_treat[,,,i] <- CI_LEF_both_treat_PP_red
+  sandwich_treat[,,,i] <- CI_sandwich_treat_PP_red
+  time_treat[,,i] <- computation_time_treat
+  
+  load(paste0("HPC output/CI_bootstrap_coefs_PP_red_big_", i, ".rda"))
+  load(paste0("HPC output/CI_LEF_outcome_coefs_PP_red_big_", i, ".rda"))
+  load(paste0("HPC output/CI_LEF_both_coefs_PP_red_big_", i, ".rda"))
+  load(paste0("HPC output/CI_sandwich_coefs_PP_red_big_", i, ".rda"))
+  load(paste0("HPC output/computation_time_coefs_big_", i, ".rda"))
+  
+  load(paste0("HPC output/CI_bootstrap_treat_PP_red_big_", i, ".rda"))
+  load(paste0("HPC output/CI_LEF_outcome_treat_PP_red_big_", i, ".rda"))
+  load(paste0("HPC output/CI_LEF_both_treat_PP_red_big_", i, ".rda"))
+  load(paste0("HPC output/CI_sandwich_treat_PP_red_big_", i, ".rda"))
+  load(paste0("HPC output/computation_time_treat_big_", i, ".rda"))
+  
+  bootstrap_coefs_big[,,,i] <- CI_bootstrap_coefs_PP_red_big
+  LEF_outcome_coefs_big[,,,i] <- CI_LEF_outcome_coefs_PP_red_big
+  LEF_both_coefs_big[,,,i] <- CI_LEF_both_coefs_PP_red_big
+  sandwich_coefs_big[,,,i] <- CI_sandwich_coefs_PP_red_big
+  time_coefs_big[,,i] <- computation_time_coefs_big
+  
+  bootstrap_treat_big[,,,i] <- CI_bootstrap_treat_PP_red_big
+  LEF_outcome_treat_big[,,,i] <- CI_LEF_outcome_treat_PP_red_big
+  LEF_both_treat_big[,,,i] <- CI_LEF_both_treat_PP_red_big
+  sandwich_treat_big[,,,i] <- CI_sandwich_treat_PP_red_big
+  time_treat_big[,,i] <- computation_time_treat_big
+  
 }
 
-sizes <- c(2,5,8,10,25,50)
-for (i in 1:6){
-  load(paste0("HPC output/CI_bootstrap_size_PP_", sizes[i], ".rda"))
-  load(paste0("HPC output/CI_sandwich_size_PP_", sizes[i], ".rda"))
-  bootstrap_size[,,,i] <- CI_bootstrap_size_PP
-  sandwich_size[,,,i] <- CI_sandwich_size_PP
+sizes <- c(2,5,8,10,25,50,100)
+for (i in 1:7){
+  load(paste0("HPC output/CI_bootstrap_size_PP_red_", sizes[i], ".rda"))
+  load(paste0("HPC output/CI_LEF_outcome_size_PP_red_", sizes[i], ".rda"))
+  load(paste0("HPC output/CI_LEF_both_size_PP_red_", sizes[i], ".rda"))
+  load(paste0("HPC output/CI_sandwich_size_PP_red_", sizes[i], ".rda"))
+  load(paste0("HPC output/computation_time_size_", sizes[i], ".rda"))
+  
+  bootstrap_size[,,,i] <- CI_bootstrap_size_PP_red
+  LEF_outcome_size[,,,i] <- CI_LEF_outcome_size_PP_red
+  LEF_both_size[,,,i] <- CI_LEF_both_size_PP_red
+  sandwich_size[,,,i] <- CI_sandwich_size_PP_red
+  time_size[,,i] <- computation_time_size
 }
 
-bootstrap_coefs_noint <- array(,dim = c(10,2,1000,9))
-sandwich_coefs_noint <- array(,dim = c(10,2,1000,9))
-bootstrap_treat_noint <- array(,dim = c(10,2,1000,9))
-sandwich_treat_noint <- array(,dim = c(10,2,1000,9))
-bootstrap_size_noint <- array(,dim = c(10,2,1000,6))
-sandwich_size_noint <- array(,dim = c(10,2,1000,6))
+mean_lengths_coefs <- matrix(0, nrow = 4, ncol = 9)
+mean_lengths_treat <- matrix(0, nrow = 8, ncol = 9)
+mean_lengths_size <- matrix(0, nrow = 8, ncol = 7)
+
+sd_lengths_coefs <- matrix(0, nrow = 4, ncol = 9)
+sd_lengths_treat <- matrix(0, nrow = 8, ncol = 9)
+sd_lengths_size <- matrix(0, nrow = 8, ncol = 7)
+
+mean_lengths_coefs_big <- matrix(0, nrow = 4, ncol = 9)
+mean_lengths_treat_big <- matrix(0, nrow = 8, ncol = 9)
+
+sd_lengths_coefs_big <- matrix(0, nrow = 4, ncol = 9)
+sd_lengths_treat_big <- matrix(0, nrow = 8, ncol = 9)
 
 for (i in 1:9){
-  load(paste0("HPC output/CI_bootstrap_coefs_PP_noint_", i, ".rda"))
-  load(paste0("HPC output/CI_sandwich_coefs_PP_noint_", i, ".rda"))
-  load(paste0("HPC output/CI_bootstrap_treat_PP_noint_", i, ".rda"))
-  load(paste0("HPC output/CI_sandwich_treat_PP_noint_", i, ".rda"))
-  bootstrap_coefs_noint[,,,i] <- CI_bootstrap_coefs_PP
-  sandwich_coefs_noint[,,,i] <- CI_sandwich_coefs_PP
-  bootstrap_treat_noint[,,,i] <- CI_bootstrap_treat_PP
-  sandwich_treat_noint[,,,i] <- CI_sandwich_treat_PP
+  mean_lengths_coefs[1,i] <- mean(rowMeans(bootstrap_coefs[,2,,i]- bootstrap_coefs[,1,,i], na.rm = TRUE))
+  mean_lengths_coefs[2,i] <- mean(rowMeans(LEF_outcome_coefs[,2,,i]- LEF_outcome_coefs[,1,,i], na.rm = TRUE))
+  mean_lengths_coefs[3,i] <- mean(rowMeans(LEF_both_coefs[,2,,i]- LEF_both_coefs[,1,,i], na.rm = TRUE))
+  mean_lengths_coefs[4,i] <- mean(rowMeans(sandwich_coefs[,2,,i]- sandwich_coefs[,1,,i], na.rm = TRUE))
+  
+  mean_lengths_treat[1,i] <- mean(rowMeans(bootstrap_treat[,2,,i]- bootstrap_treat[,1,,i], na.rm = TRUE))
+  mean_lengths_treat[2,i] <- mean(rowMeans(LEF_outcome_treat[,2,,i]- LEF_outcome_treat[,1,,i], na.rm = TRUE))
+  mean_lengths_treat[3,i] <- mean(rowMeans(LEF_both_treat[,2,,i]- LEF_both_treat[,1,,i], na.rm = TRUE))
+  mean_lengths_treat[4,i] <- mean(rowMeans(sandwich_treat[,2,,i]- sandwich_treat[,1,,i], na.rm = TRUE))
+  
+  sd_lengths_coefs[1,i] <- sd(rowMeans(bootstrap_coefs[,2,,i]- bootstrap_coefs[,1,,i], na.rm = TRUE))
+  sd_lengths_coefs[2,i] <- sd(rowMeans(LEF_outcome_coefs[,2,,i]- LEF_outcome_coefs[,1,,i], na.rm = TRUE))
+  sd_lengths_coefs[3,i] <- sd(rowMeans(LEF_both_coefs[,2,,i]- LEF_both_coefs[,1,,i], na.rm = TRUE))
+  sd_lengths_coefs[4,i] <- sd(rowMeans(sandwich_coefs[,2,,i]- sandwich_coefs[,1,,i], na.rm = TRUE))
+  
+  sd_lengths_treat[1,i] <- sd(rowMeans(bootstrap_treat[,2,,i]- bootstrap_treat[,1,,i], na.rm = TRUE))
+  sd_lengths_treat[2,i] <- sd(rowMeans(LEF_outcome_treat[,2,,i]- LEF_outcome_treat[,1,,i], na.rm = TRUE))
+  sd_lengths_treat[3,i] <- sd(rowMeans(LEF_both_treat[,2,,i]- LEF_both_treat[,1,,i], na.rm = TRUE))
+  sd_lengths_treat[4,i] <- sd(rowMeans(sandwich_treat[,2,,i]- sandwich_treat[,1,,i], na.rm = TRUE))
+  
+  mean_lengths_coefs_big[1,i] <- mean(rowMeans(bootstrap_coefs_big[,2,,i]- bootstrap_coefs_big[,1,,i], na.rm = TRUE))
+  mean_lengths_coefs_big[2,i] <- mean(rowMeans(LEF_outcome_coefs_big[,2,,i]- LEF_outcome_coefs_big[,1,,i], na.rm = TRUE))
+  mean_lengths_coefs_big[3,i] <- mean(rowMeans(LEF_both_coefs_big[,2,,i]- LEF_both_coefs_big[,1,,i], na.rm = TRUE))
+  mean_lengths_coefs_big[4,i] <- mean(rowMeans(sandwich_coefs_big[,2,,i]- sandwich_coefs_big[,1,,i], na.rm = TRUE))
+  
+  mean_lengths_treat_big[1,i] <- mean(rowMeans(bootstrap_treat_big[,2,,i]- bootstrap_treat_big[,1,,i], na.rm = TRUE))
+  mean_lengths_treat_big[2,i] <- mean(rowMeans(LEF_outcome_treat_big[,2,,i]- LEF_outcome_treat_big[,1,,i], na.rm = TRUE))
+  mean_lengths_treat_big[3,i] <- mean(rowMeans(LEF_both_treat_big[,2,,i]- LEF_both_treat_big[,1,,i], na.rm = TRUE))
+  mean_lengths_treat_big[4,i] <- mean(rowMeans(sandwich_treat_big[,2,,i]- sandwich_treat_big[,1,,i], na.rm = TRUE))
+  
+  sd_lengths_coefs_big[1,i] <- sd(rowMeans(bootstrap_coefs_big[,2,,i]- bootstrap_coefs_big[,1,,i], na.rm = TRUE))
+  sd_lengths_coefs_big[2,i] <- sd(rowMeans(LEF_outcome_coefs_big[,2,,i]- LEF_outcome_coefs_big[,1,,i], na.rm = TRUE))
+  sd_lengths_coefs_big[3,i] <- sd(rowMeans(LEF_both_coefs_big[,2,,i]- LEF_both_coefs_big[,1,,i], na.rm = TRUE))
+  sd_lengths_coefs_big[4,i] <- sd(rowMeans(sandwich_coefs_big[,2,,i]- sandwich_coefs_big[,1,,i], na.rm = TRUE))
+  
+  sd_lengths_treat_big[1,i] <- sd(rowMeans(bootstrap_treat_big[,2,,i]- bootstrap_treat_big[,1,,i], na.rm = TRUE))
+  sd_lengths_treat_big[2,i] <- sd(rowMeans(LEF_outcome_treat_big[,2,,i]- LEF_outcome_treat_big[,1,,i], na.rm = TRUE))
+  sd_lengths_treat_big[3,i] <- sd(rowMeans(LEF_both_treat_big[,2,,i]- LEF_both_treat_big[,1,,i], na.rm = TRUE))
+  sd_lengths_treat_big[4,i] <- sd(rowMeans(sandwich_treat_big[,2,,i]- sandwich_treat_big[,1,,i], na.rm = TRUE))
+  
 }
 
-for (i in 1:6){
-  load(paste0("HPC output/CI_bootstrap_size_PP_noint_", sizes[i], ".rda"))
-  load(paste0("HPC output/CI_sandwich_size_PP_noint_", sizes[i], ".rda"))
-  bootstrap_size_noint[,,,i] <- CI_bootstrap_size_PP
-  sandwich_size_noint[,,,i] <- CI_sandwich_size_PP
-}
-
-mean_lengths <- matrix(0, nrow = 8, ncol = 9)
-
-for (i in 1:9){
-  mean_lengths[1,i] <- mean(rowMeans(bootstrap_coefs[,2,,i]- bootstrap_coefs[,1,,i], na.rm = TRUE))
-  mean_lengths[2,i] <- mean(rowMeans(sandwich_coefs[,2,,i]- sandwich_coefs[,1,,i], na.rm = TRUE))
-  mean_lengths[3,i] <- mean(rowMeans(bootstrap_treat[,2,,i]- bootstrap_treat[,1,,i], na.rm = TRUE))
-  mean_lengths[4,i] <- mean(rowMeans(sandwich_treat[,2,,i]- sandwich_treat[,1,,i], na.rm = TRUE))
-  mean_lengths[5,i] <- mean(rowMeans(bootstrap_coefs_noint[,2,,i]- bootstrap_coefs_noint[,1,,i], na.rm = TRUE))
-  mean_lengths[6,i] <- mean(rowMeans(sandwich_coefs_noint[,2,,i]- sandwich_coefs_noint[,1,,i], na.rm = TRUE))
-  mean_lengths[7,i] <- mean(rowMeans(bootstrap_treat_noint[,2,,i]- bootstrap_treat_noint[,1,,i], na.rm = TRUE))
-  mean_lengths[8,i] <- mean(rowMeans(sandwich_treat_noint[,2,,i]- sandwich_treat_noint[,1,,i], na.rm = TRUE))
-}
-
-sd_lengths <- matrix(0, nrow = 8, ncol = 9)
-
-for (i in 1:9){
-  sd_lengths[1,i] <- sd(rowMeans(bootstrap_coefs[,2,,i]- bootstrap_coefs[,1,,i], na.rm = TRUE))
-  sd_lengths[2,i] <- sd(rowMeans(sandwich_coefs[,2,,i]- sandwich_coefs[,1,,i], na.rm = TRUE))
-  sd_lengths[3,i] <- sd(rowMeans(bootstrap_treat[,2,,i]- bootstrap_treat[,1,,i], na.rm = TRUE))
-  sd_lengths[4,i] <- sd(rowMeans(sandwich_treat[,2,,i]- sandwich_treat[,1,,i], na.rm = TRUE))
-  sd_lengths[5,i] <- sd(rowMeans(bootstrap_coefs_noint[,2,,i]- bootstrap_coefs_noint[,1,,i], na.rm = TRUE))
-  sd_lengths[6,i] <- sd(rowMeans(sandwich_coefs_noint[,2,,i]- sandwich_coefs_noint[,1,,i], na.rm = TRUE))
-  sd_lengths[7,i] <- sd(rowMeans(bootstrap_treat_noint[,2,,i]- bootstrap_treat_noint[,1,,i], na.rm = TRUE))
-  sd_lengths[8,i] <- sd(rowMeans(sandwich_treat_noint[,2,,i]- sandwich_treat_noint[,1,,i], na.rm = TRUE))
-}
-
-mean_lengths_size <- matrix(0,nrow = 4, ncol = 6)
-for (i in 1:6){
+for (i in 1:7){
   mean_lengths_size[1,i] <- mean(rowMeans(bootstrap_size[,2,,i]- bootstrap_size[,1,,i], na.rm = TRUE))
-  mean_lengths_size[2,i] <- mean(rowMeans(sandwich_size[,2,,i]- sandwich_size[,1,,i], na.rm = TRUE))
-  mean_lengths_size[3,i] <- mean(rowMeans(bootstrap_size_noint[,2,,i]- bootstrap_size_noint[,1,,i], na.rm = TRUE))
-  mean_lengths_size[4,i] <- mean(rowMeans(sandwich_size_noint[,2,,i]- sandwich_size_noint[,1,,i], na.rm = TRUE))
-}
-
-sd_lengths_size <- matrix(0,nrow = 4, ncol = 6)
-for (i in 1:6){
+  mean_lengths_size[2,i] <- mean(rowMeans(LEF_outcome_size[,2,,i]- LEF_outcome_size[,1,,i], na.rm = TRUE))
+  mean_lengths_size[3,i] <- mean(rowMeans(LEF_both_size[,2,,i]- LEF_both_size[,1,,i], na.rm = TRUE))
+  mean_lengths_size[4,i] <- mean(rowMeans(sandwich_size[,2,,i]- sandwich_size[,1,,i], na.rm = TRUE))
+  
   sd_lengths_size[1,i] <- sd(rowMeans(bootstrap_size[,2,,i]- bootstrap_size[,1,,i], na.rm = TRUE))
-  sd_lengths_size[2,i] <- sd(rowMeans(sandwich_size[,2,,i]- sandwich_size[,1,,i], na.rm = TRUE))
-  sd_lengths_size[3,i] <- sd(rowMeans(bootstrap_size_noint[,2,,i]- bootstrap_size_noint[,1,,i], na.rm = TRUE))
-  sd_lengths_size[4,i] <- sd(rowMeans(sandwich_size_noint[,2,,i]- sandwich_size_noint[,1,,i], na.rm = TRUE))
+  sd_lengths_size[2,i] <- sd(rowMeans(LEF_outcome_size[,2,,i]- LEF_outcome_size[,1,,i], na.rm = TRUE))
+  sd_lengths_size[3,i] <- sd(rowMeans(LEF_both_size[,2,,i]- LEF_both_size[,1,,i], na.rm = TRUE))
+  sd_lengths_size[4,i] <- sd(rowMeans(sandwich_size[,2,,i]- sandwich_size[,1,,i], na.rm = TRUE))
 }
 
 p1 <- ggplot() +
