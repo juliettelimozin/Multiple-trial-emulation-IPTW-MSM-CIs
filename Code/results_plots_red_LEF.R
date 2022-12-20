@@ -909,14 +909,14 @@ p25 <- ggplot() +
        y = "Monte Carlo SE") +ylim(0,0.02)+ theme(aspect.ratio = 1, axis.title = element_text(size = 10))
 
 p26 <- ggplot() +
-  geom_line(aes(x = 1:9/10, y = rowMeans(SE_treat[1,,]), colour = "Bootstrap")) +
-  geom_point(aes(x = 1:9/10, y = rowMeans(SE_treat[1,,]), colour = "Bootstrap")) +
-  geom_line(aes(x = 1:9/10, y = rowMeans(SE_treat[2,,]), colour = "LEF outcome")) +
-  geom_point(aes(x = 1:9/10, y = rowMeans(SE_treat[2,,]), colour = "LEF outcome")) +
-  geom_line(aes(x = 1:9/10, y = rowMeans(SE_treat[3,,]), colour = "LEF both")) +
-  geom_point(aes(x = 1:9/10, y = rowMeans(SE_treat[3,,]), colour = "LEF both")) +
-  geom_line(aes(x = 1:9/10, y = rowMeans(SE_treat[4,,]), colour = "Sandwich")) +
-  geom_point(aes(x = 1:9/10, y = rowMeans(SE_treat[4,,]), colour = "Sandwich")) +
+  geom_line(aes(x = treat_pos, y = rowMeans(SE_treat[1,,]), colour = "Bootstrap")) +
+  geom_point(aes(x = treat_pos, y = rowMeans(SE_treat[1,,]), colour = "Bootstrap")) +
+  geom_line(aes(x = treat_pos, y = rowMeans(SE_treat[2,,]), colour = "LEF outcome")) +
+  geom_point(aes(x = treat_pos, y = rowMeans(SE_treat[2,,]), colour = "LEF outcome")) +
+  geom_line(aes(x = treat_pos, y = rowMeans(SE_treat[3,,]), colour = "LEF both")) +
+  geom_point(aes(x = treat_pos, y = rowMeans(SE_treat[3,,]), colour = "LEF both")) +
+  geom_line(aes(x = treat_pos, y = rowMeans(SE_treat[4,,]), colour = "Sandwich")) +
+  geom_point(aes(x = treat_pos, y = rowMeans(SE_treat[4,,]), colour = "Sandwich")) +
   scale_color_manual(name = "CI type", values = c("Bootstrap"= "red", "Sandwich" = "blue", 
                                                   "LEF outcome" = "green", "LEF both" = "purple"))+
   labs(x = 'Treatment prevalence\n(N = 1000, Confounding = 0.5)', 
@@ -955,17 +955,17 @@ p28 <- ggplot() +
        y = "Monte Carlo SE") +ylim(0,0.02)+ theme(aspect.ratio = 1, axis.title = element_text(size = 10))
 
 p29 <- ggplot() +
-  geom_line(aes(x = 1:9/10, y = rowMeans(SE_treat_big[1,,]), colour = "Bootstrap")) +
-  geom_point(aes(x = 1:9/10, y = rowMeans(SE_treat_big[1,,]), colour = "Bootstrap")) +
-  geom_line(aes(x = 1:9/10, y = rowMeans(SE_treat_big[2,,]), colour = "LEF outcome")) +
-  geom_point(aes(x = 1:9/10, y = rowMeans(SE_treat_big[2,,]), colour = "LEF outcome")) +
-  geom_line(aes(x = 1:9/10, y = rowMeans(SE_treat_big[3,,]), colour = "LEF both")) +
-  geom_point(aes(x = 1:9/10, y = rowMeans(SE_treat_big[3,,]), colour = "LEF both")) +
-  geom_line(aes(x = 1:9/10, y = rowMeans(SE_treat_big[4,,]), colour = "Sandwich")) +
-  geom_point(aes(x = 1:9/10, y = rowMeans(SE_treat_big[4,,]), colour = "Sandwich")) +
+  geom_line(aes(x = treat_pos, y = rowMeans(SE_treat_big[1,,]), colour = "Bootstrap")) +
+  geom_point(aes(x = treat_pos, y = rowMeans(SE_treat_big[1,,]), colour = "Bootstrap")) +
+  geom_line(aes(x = treat_pos, y = rowMeans(SE_treat_big[2,,]), colour = "LEF outcome")) +
+  geom_point(aes(x =treat_pos, y = rowMeans(SE_treat_big[2,,]), colour = "LEF outcome")) +
+  geom_line(aes(x = treat_pos, y = rowMeans(SE_treat_big[3,,]), colour = "LEF both")) +
+  geom_point(aes(x = treat_pos, y = rowMeans(SE_treat_big[3,,]), colour = "LEF both")) +
+  geom_line(aes(x = treat_pos, y = rowMeans(SE_treat_big[4,,]), colour = "Sandwich")) +
+  geom_point(aes(x = treat_pos, y = rowMeans(SE_treat_big[4,,]), colour = "Sandwich")) +
   scale_color_manual(name = "CI type", values = c("Bootstrap"= "red", "Sandwich" = "blue", 
                                                   "LEF outcome" = "green", "LEF both" = "purple"))+
-  labs(x = 'Treatment prevalence\n(N = 1000, Confounding = 0.5)', 
+  labs(x = 'Treatment prevalence\n(N = 5000, Confounding = 0.5)', 
        y = "Monte Carlo SE") +ylim(0,0.02)+ theme(aspect.ratio = 1, axis.title = element_text(size = 10))
 
 
