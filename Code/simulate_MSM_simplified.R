@@ -59,8 +59,8 @@ DATA_GEN_censored_reduced<-function(ns, nv, conf = 0.5, treat_prev = 0, all_trea
     }
     ##Generate outcome
     
-    ##### Old formula: intercept was -7 
-    lp<- -3.7 -0.5*A[seqlist[[k]]]+as.numeric(conf)*X2[seqlist[[k]]]+X4[seqlist[[k]]]
+    ##### Old formula: intercept was -7 -3.7
+    lp<- -4.5 -0.5*A[seqlist[[k]]]+as.numeric(conf)*X2[seqlist[[k]]]+X4[seqlist[[k]]]
     
     Yp[seqlist[[k]]]<-Y[seqlist[[k-1]]]
     Y[seqlist[[k]]]<-(rbinom(ns,1,1/(1+exp(-lp))))*as.numeric(Yp[seqlist[[k]]]==0)+as.numeric(Yp[seqlist[[k]]]==1)

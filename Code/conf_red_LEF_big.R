@@ -20,6 +20,8 @@ CI_sandwich_coefs_PP_red_big <- array(, dim = c(5,2,iters))
 CI_LEF_outcome_coefs_PP_red_big <- array(, dim = c(5,2,iters))
 CI_LEF_both_coefs_PP_red_big <- array(, dim = c(5,2,iters))
 
+est_conf_big <- array(, dim = c(5,iters))
+
 computation_time_coefs_big <- array(,dim = c(4,iters))
 
 l <- as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
@@ -493,12 +495,32 @@ for (i in 1:iters){
     CI_sandwich_coefs_PP_red_big[,1,i] <- surv_PP_difference_sandwich_estimates$lb
     CI_sandwich_coefs_PP_red_big[,2,i] <- surv_PP_difference_sandwich_estimates$ub
     
+    Y_pred_PP_treatment <- predict.glm(PP$model, 
+                                            fitting_data_treatment, 
+                                            type = "response")
+    Y_pred_PP_control <- predict.glm(PP$model, 
+                                          fitting_data_control,
+                                          type = "response")
+    predicted_probas_PP <- fitting_data_treatment %>% 
+      dplyr::mutate(predicted_proba_treatment = Y_pred_PP_treatment,
+                    predicted_proba_control = Y_pred_PP_control) %>% 
+      dplyr::group_by(id, for_period) %>% 
+      dplyr::mutate(cum_hazard_treatment = cumprod(1-predicted_proba_treatment),
+                    cum_hazard_control = cumprod(1-predicted_proba_control)) %>% 
+      dplyr::ungroup() %>% 
+      dplyr::group_by(followup_time) %>% 
+      dplyr::summarise(survival_treatment = mean(cum_hazard_treatment),
+                       survival_control = mean(cum_hazard_control),
+                       survival_difference = survival_treatment - survival_control)
+    
+    est_conf_big[,i] <- pull(predicted_probas_PP,survival_difference)
     
   }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
 }
 print(paste0("% not pos def: ", not_pos_def*100/iters))
-save(CI_bootstrap_coefs_PP_red_big, file = paste("CI_bootstrap_coefs_PP_red_big_",as.character(l),".rda", sep = ""))
-save(CI_sandwich_coefs_PP_red_big, file = paste("CI_sandwich_coefs_PP_red_big_",as.character(l),".rda", sep = ""))
-save(CI_LEF_outcome_coefs_PP_red_big, file = paste("CI_LEF_outcome_coefs_PP_red_big_",as.character(l),".rda", sep = ""))
-save(CI_LEF_both_coefs_PP_red_big, file = paste("CI_LEF_both_coefs_PP_red_big_",as.character(l),".rda", sep = ""))
-save(computation_time_coefs_big, file = paste("computation_time_coefs_big_",as.character(l),".rda", sep = ""))
+save(CI_bootstrap_coefs_PP_red_big, file = paste("CI_bootstrap_coefs_PP_red_big_low_",as.character(l),".rda", sep = ""))
+save(CI_sandwich_coefs_PP_red_big, file = paste("CI_sandwich_coefs_PP_red_big_low_",as.character(l),".rda", sep = ""))
+save(CI_LEF_outcome_coefs_PP_red_big, file = paste("CI_LEF_outcome_coefs_PP_red_big_low_",as.character(l),".rda", sep = ""))
+save(CI_LEF_both_coefs_PP_red_big, file = paste("CI_LEF_both_coefs_PP_red_big_low_",as.character(l),".rda", sep = ""))
+save(computation_time_coefs_big, file = paste("computation_time_coefs_big_low_",as.character(l),".rda", sep = ""))
+save(est_conf_big, file = paste("est_conf_red_big_low_", as.character(l), ".rda", sep = ""))

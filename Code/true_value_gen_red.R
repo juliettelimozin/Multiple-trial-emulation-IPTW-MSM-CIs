@@ -36,7 +36,7 @@ for (i in conf){
   true_value_conf_red[,1,10*i] <- f1$surv
   true_value_conf_red[,2,10*i] <- f2$surv
 }
-save(true_value_conf_red, file = "true_value_conf_red.rda")
+save(true_value_conf_red, file = "true_value_conf_red_low.rda")
 
 for (i in 1:9){
   simdata_censored_treat_treat<-DATA_GEN_censored_reduced(1000000, 5, treat_prev = treat[i], all_treat = T, censor = F)
@@ -59,4 +59,4 @@ for (i in 1:9){
   
 }
 
-save(true_value_treat_red, file = "true_value_treat_red.rda")
+save(true_value_treat_red, file = "true_value_treat_red_low.rda")
