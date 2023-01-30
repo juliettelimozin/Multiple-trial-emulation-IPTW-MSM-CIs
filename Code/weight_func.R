@@ -113,19 +113,23 @@ weight_func_bootstrap <- function(data,
     weight_model_n0_data <- weight_model_n0$data[id %in% boot_idx]
     weight_model_d1_data <- weight_model_d1$data[id %in% boot_idx]
     weight_model_n1_data <- weight_model_n1$data[id %in% boot_idx]
-    cense_model_d0_data <- cense_model_d0$data[id %in% boot_idx]
-    cense_model_n0_data <- cense_model_n0$data[id %in% boot_idx]
-    cense_model_d1_data <- cense_model_d1$data[id %in% boot_idx]
-    cense_model_n1_data <- cense_model_n1$data[id %in% boot_idx]
+    if(!is.na(cense)){
+      cense_model_d0_data <- cense_model_d0$data[id %in% boot_idx]
+      cense_model_n0_data <- cense_model_n0$data[id %in% boot_idx]
+      cense_model_d1_data <- cense_model_d1$data[id %in% boot_idx]
+      cense_model_n1_data <- cense_model_n1$data[id %in% boot_idx]
+    }
   } else {
     weight_model_d0_data <- weight_model_d0$data
     weight_model_n0_data <- weight_model_n0$data
     weight_model_d1_data <- weight_model_d1$data
     weight_model_n1_data <- weight_model_n1$data
-    cense_model_d0_data <- cense_model_d0$data
-    cense_model_n0_data <- cense_model_n0$data
-    cense_model_d1_data <- cense_model_d1$data
-    cense_model_n1_data <- cense_model_n1$data
+    if (!is.na(cense)){
+      cense_model_d0_data <- cense_model_d0$data
+      cense_model_n0_data <- cense_model_n0$data
+      cense_model_d1_data <- cense_model_d1$data
+      cense_model_n1_data <- cense_model_n1$data
+    }
   }
   
   eligible0 <- eligible1 <- ID <- t <- eligible0.y <- eligible1.y <- am_1 <-

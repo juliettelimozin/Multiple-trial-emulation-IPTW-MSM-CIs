@@ -2,7 +2,10 @@
 ## simulate data for testing TrialEmulation package, using the algorithm in Young and Tchetgen Tchetgen (2014) 
 
 
-DATA_GEN_censored_reduced<-function(ns, nv, conf = 0.5, treat_prev = 0, all_treat = FALSE, all_control = FALSE, censor = TRUE){   # ns= number of subjects, nv=no of visits including baseline visit
+DATA_GEN_censored_reduced<-function(ns, nv, conf = 0.5, treat_prev = 0, 
+                                    outcome_prev = -3.8, all_treat = FALSE, 
+                                    all_control = FALSE, censor = TRUE){   
+  # ns= number of subjects, nv=no of visits including baseline visit
   
   
   nvisit<-nv+1
@@ -60,7 +63,7 @@ DATA_GEN_censored_reduced<-function(ns, nv, conf = 0.5, treat_prev = 0, all_trea
     ##Generate outcome
     
     ##### Old formula: intercept was -7 -3.7
-    lp<- -4.5 -0.5*A[seqlist[[k]]]+as.numeric(conf)*X2[seqlist[[k]]]+X4[seqlist[[k]]]
+    lp<- as.numeric(outcome_prev) -0.5*A[seqlist[[k]]]+as.numeric(conf)*X2[seqlist[[k]]]+X4[seqlist[[k]]]
     
     Yp[seqlist[[k]]]<-Y[seqlist[[k-1]]]
     Y[seqlist[[k]]]<-(rbinom(ns,1,1/(1+exp(-lp))))*as.numeric(Yp[seqlist[[k]]]==0)+as.numeric(Yp[seqlist[[k]]]==1)
@@ -108,6 +111,7 @@ DATA_GEN_censored_reduced<-function(ns, nv, conf = 0.5, treat_prev = 0, all_trea
     
     DATA[RL==0 & DATA$Yp==0 & eligCum>0,] #remove observations after event occurrence and censoring, and not eligible
   } else {
+    DATA$C <- 0
     eligCum<-ave(DATA$eligible,DATA$ID,FUN=cumsum)
     
     DATA[DATA$Yp==0 & eligCum>0,] 
