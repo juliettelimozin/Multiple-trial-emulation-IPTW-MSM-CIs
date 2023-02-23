@@ -35,7 +35,7 @@ l <- as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
 
 not_pos_def <- 0.0
 
-data_direction <- paste("~/rds/hpc-work/models_scenario_",l,sep = "")
+data_direction <- paste("~/rds/hpc-work/models_scenario_low_",l,sep = "")
 # Set number of cores. 67 is sufficient for 200 cores.
 registerDoParallel(cores = 67)
 
@@ -51,7 +51,7 @@ for (i in 1:iters){
                                                 switch_d_cov = ~X2 + X4,
                                                 outcome_cov = ~X2 + X4, model_var = c('assigned_treatment'),
                                                 include_regime_length = F,
-                                                use_weight=1, use_censor=0, quiet = T,
+                                                use_weight=1, use_censor=1, quiet = T,
                                                 save_weight_models = T,
                                                 data_dir = data_direction)
     switch_data <- PP_prep$data %>% 
@@ -81,7 +81,7 @@ for (i in 1:iters){
                                          model_var = c('assigned_treatment'),
                                          glm_function = 'glm',
                                          include_expansion_time = ~1, include_followup_time = ~1,
-                                         use_weight=1, use_censor=0, quiet = T, use_sample_weights =  F)
+                                         use_weight=1, use_censor=1, quiet = T, use_sample_weights =  F)
     switch_data$p_i <- predict.glm(PP$model, switch_data,type = 'response')
     
     switch_d0 <- readRDS(paste(data_direction,'/weight_model_switch_d0.rds', sep = ""))
@@ -130,6 +130,26 @@ for (i in 1:iters){
                     t_2A = t_2*0,
                     t_3A = t_3*0,
                     t_4A = t_4*0)
+    
+    Y_pred_PP_treatment <- predict.glm(PP$model, 
+                                       fitting_data_treatment, 
+                                       type = "response")
+    Y_pred_PP_control <- predict.glm(PP$model, 
+                                     fitting_data_control,
+                                     type = "response")
+    predicted_probas_PP <- fitting_data_treatment %>% 
+      dplyr::mutate(predicted_proba_treatment = Y_pred_PP_treatment,
+                    predicted_proba_control = Y_pred_PP_control) %>% 
+      dplyr::group_by(id, for_period) %>% 
+      dplyr::mutate(cum_hazard_treatment = cumprod(1-predicted_proba_treatment),
+                    cum_hazard_control = cumprod(1-predicted_proba_control)) %>% 
+      dplyr::ungroup() %>% 
+      dplyr::group_by(followup_time) %>% 
+      dplyr::summarise(survival_treatment = mean(cum_hazard_treatment),
+                       survival_control = mean(cum_hazard_control),
+                       survival_difference = survival_treatment - survival_control)
+    
+    estimates[,i] <- pull(predicted_probas_PP,survival_difference)
     ################################### Bootstrap C I ###################################
     
     # Move the call to bootstrap_construct outside the for loop to avoid problems with random numbers 
@@ -171,7 +191,7 @@ for (i in 1:iters){
                                                 model_var = c('assigned_treatment'),
                                                 glm_function = 'glm',
                                                 include_expansion_time = ~1, include_followup_time = ~1,
-                                                use_weight=1, use_censor=0, quiet = T, use_sample_weights =  F)
+                                                use_weight=1, use_censor=1, quiet = T, use_sample_weights =  F)
       
       design_mat <- expand.grid(id = 1:tail(boot_design_data$id, n = 1), 
                                 for_period = 0:4,
@@ -468,26 +488,6 @@ for (i in 1:iters){
     computation_time[4,i] <- (proc.time() - time)[[3]]
     CI_sandwich_PP_red[,1,i] <- surv_PP_difference_sandwich_estimates$lb
     CI_sandwich_PP_red[,2,i] <- surv_PP_difference_sandwich_estimates$ub
-    
-    Y_pred_PP_treatment <- predict.glm(PP$model, 
-                                       fitting_data_treatment, 
-                                       type = "response")
-    Y_pred_PP_control <- predict.glm(PP$model, 
-                                     fitting_data_control,
-                                     type = "response")
-    predicted_probas_PP <- fitting_data_treatment %>% 
-      dplyr::mutate(predicted_proba_treatment = Y_pred_PP_treatment,
-                    predicted_proba_control = Y_pred_PP_control) %>% 
-      dplyr::group_by(id, for_period) %>% 
-      dplyr::mutate(cum_hazard_treatment = cumprod(1-predicted_proba_treatment),
-                    cum_hazard_control = cumprod(1-predicted_proba_control)) %>% 
-      dplyr::ungroup() %>% 
-      dplyr::group_by(followup_time) %>% 
-      dplyr::summarise(survival_treatment = mean(cum_hazard_treatment),
-                       survival_control = mean(cum_hazard_control),
-                       survival_difference = survival_treatment - survival_control)
-    
-    estimates[,i] <- pull(predicted_probas_PP,survival_difference)
   }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
 }
 print(paste0("% not pos def: ", not_pos_def*100/iters))

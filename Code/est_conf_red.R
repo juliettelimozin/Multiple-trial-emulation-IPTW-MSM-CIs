@@ -39,7 +39,8 @@ for (i in 1:iters){
                                                            switch_d_cov = ~X2 + X4,
                                                            outcome_cov = ~X2 + X4, model_var = c('assigned_treatment'),
                                                            cense_d_cov = ~X2 + X4,
-                                                           include_expansion_time_case = ~1, include_followup_time_case = ~1, 
+                                                           include_expansion_time_case = ~1, 
+                                                           include_followup_time_case = ~1, 
                                                            include_regime_length = F,
                                                            use_weight=1, use_censor=1, numCores = 1, quiet = T)
     switch_data <- PP_prep$data %>% 

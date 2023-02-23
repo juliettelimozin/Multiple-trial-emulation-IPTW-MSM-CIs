@@ -1,0 +1,814 @@
+library(tidyverse)
+library(tidyr)
+setwd("/Users/juliette/Documents/MPhil PHS 21-22/Multiple-trial-emulation-IPTW-MSM-CIs/Code")
+library(ggplot2)
+library(ggpubr)
+load("HPC output/true_value_red_newsimus.rda")
+library(modelr)
+library(tidyverse)
+library(tidyr)
+library(MASS)
+library(sandwich)
+library(foreach)
+library(doParallel)
+library(parallel)
+library(survival)
+library(survminer)
+library(lubridate)
+library(ggplot2)
+library(pammtools)
+library(doRNG)
+library(matrixStats)
+
+bootstrap <- array(,dim = c(5,2,1000,27,3))
+LEF_outcome <- array(,dim = c(5,2,1000,27,3))
+LEF_both <- array(,dim = c(5,2,1000,27,3))
+sandwich <- array(,dim = c(5,2,1000,27,3))
+time <- array(,dim = c(4,1000,27,3))
+est <- array(,dim = c(5,1000,27,3))
+treat_pos <- c(-1,-0.8,-0.5,-0.2,0,0.2,0.5,0.8,1)
+outcomes <- c("low", 'med', 'high')
+
+
+size <- c(200,1000,5000)
+treat <- c(-1,0,1)
+conf <- c(0.1,0.5,0.9)
+
+scenarios <- as.data.frame(tidyr::crossing(size,conf, treat))
+
+bias_point <- array(,dim = c(5,27,3))
+sd_point <- array(,dim = c(5,27,3))
+mean_time <- data.frame(matrix(,nrow = 0, ncol = 8))
+
+
+for (i in 1:27){
+  for (j in 1:3){
+    load(paste0("HPC output/CI_bootstrap_PP_red_",outcomes[j],'_', i, ".rda"))
+    load(paste0("HPC output/CI_LEF_outcome_PP_red_",outcomes[j],'_', i, ".rda"))
+    load(paste0("HPC output/CI_LEF_both_PP_red_",outcomes[j],'_', i, ".rda"))
+    load(paste0("HPC output/CI_sandwich_PP_red_",outcomes[j],'_', i, ".rda"))
+    load(paste0("HPC output/computation_time_",outcomes[j],'_', i, ".rda"))
+    load(paste0('HPC output/estimates_red_',outcomes[j],'_',i, '.rda'))
+    bootstrap[,,,i,j] <- CI_bootstrap_PP_red
+    LEF_outcome[,,,i,j] <- CI_LEF_outcome_PP_red
+    LEF_both[,,,i,j] <- CI_LEF_both_PP_red
+    sandwich[,,,i,j] <- CI_sandwich_PP_red
+    mean_time <- rbind(mean_time, c(outcomes[j], scenarios[i,1], scenarios[i,2],scenarios[i,3], rowMeans(computation_time, na.rm = TRUE)))
+    scenario <- i%%9
+    est[,,i,j] <- estimates
+    if (scenario ==0){scenario <- 9}
+    bias_point[,i,j] <- rowMeans(estimates, na.rm = TRUE) - true_value_red[,scenario,j]
+    sd_point[,i,j] <- rowSds(estimates, na.rm = TRUE)
+  }
+}
+
+colnames(mean_time) <- c('Outcome prevalemce', 'Sample size', 'Confounding', 'Treatment prevalence', 'Bootstrap', 'LEF outcome',
+                         'LEF both', 'Sandwich')
+
+################BIAS, SD, MSE PLOTS ###################
+bias_plots_low <- lapply(1:27, function(i){
+  ggplot() +
+    geom_line(aes(x = 0:4, y = bias_point[,i,1])) +
+    geom_point(aes(x = 0:4, y = bias_point[,i,1])) +
+    labs(x = paste0('N = ', scenarios[i,1], ',\nConfounding = ', scenarios[i,2], ', \nTreat. prev. = ',scenarios[i,3]),
+         y = "Empirical bias") + theme(aspect.ratio = 1, axis.title = element_text(size = 10)) +  
+    ylim(-0.1,0.3)
+})
+annotate_figure(ggarrange(plotlist = bias_plots_low[1:27], nrow = 3, ncol = 9), top = 'Low event rate')
+
+bias_plots_med <- lapply(1:27, function(i){
+  ggplot() +
+    geom_line(aes(x = 0:4, y = bias_point[,i,2])) +
+    geom_point(aes(x = 0:4, y = bias_point[,i,2])) +
+    labs(x = paste0('N = ', scenarios[i,1], ',\nConfounding = ', scenarios[i,2], ', \nTreat. prev. = ',scenarios[i,3]),
+         y = "Empirical bias") + theme(aspect.ratio = 1, axis.title = element_text(size = 10))+  
+    ylim(-0.1,0.3)
+})
+annotate_figure(ggarrange(plotlist = bias_plots_med[1:27], nrow = 3, ncol = 9), top = 'Medium event rate')
+
+bias_plots_high <- lapply(1:27, function(i){
+  ggplot() +
+    geom_line(aes(x = 0:4, y = bias_point[,i,3])) +
+    geom_point(aes(x = 0:4, y = bias_point[,i,3])) +
+    labs(x = paste0('N = ', scenarios[i,1], ',\nConfounding = ', scenarios[i,2], ', \nTreat. prev. = ',scenarios[i,3]),
+         y = "Empirical bias") + theme(aspect.ratio = 1, axis.title = element_text(size = 10))+  
+    ylim(-0.1,0.3)
+})
+annotate_figure(ggarrange(plotlist = bias_plots_high[1:27], nrow = 3, ncol = 9), top = 'High event rate')
+
+sd_plots_low <- lapply(1:27, function(i){
+  ggplot() +
+    geom_line(aes(x = 0:4, y = sd_point[,i,1])) +
+    geom_point(aes(x = 0:4, y = sd_point[,i,1])) +
+    labs(x = paste0('N = ', scenarios[i,1], ',\nConfounding = ', scenarios[i,2], ', \nTreat. prev. = ',scenarios[i,3]),
+         y = "Empirical SD") + theme(aspect.ratio = 1, axis.title = element_text(size = 10)) +  ylim(0,0.3)
+})
+annotate_figure(ggarrange(plotlist = sd_plots_low[1:27], nrow = 3, ncol = 9), top = 'Low event rate')
+
+sd_plots_med <- lapply(1:27, function(i){
+  ggplot() +
+    geom_line(aes(x = 0:4, y = sd_point[,i,2])) +
+    geom_point(aes(x = 0:4, y = sd_point[,i,2])) +
+    labs(x = paste0('N = ', scenarios[i,1], ',\nConfounding = ', scenarios[i,2], ', \nTreat. prev. = ',scenarios[i,3]),
+         y = "Empirical SD") + theme(aspect.ratio = 1, axis.title = element_text(size = 10))+  ylim(0,0.3)
+})
+annotate_figure(ggarrange(plotlist = sd_plots_med[1:27], nrow = 3, ncol = 9), top = 'Medium event rate')
+
+sd_plots_high <- lapply(1:27, function(i){
+  ggplot() +
+    geom_line(aes(x = 0:4, y = sd_point[,i,3])) +
+    geom_point(aes(x = 0:4, y = sd_point[,i,3])) +
+    labs(x = paste0('N = ', scenarios[i,1], ',\nConfounding = ', scenarios[i,2], ', \nTreat. prev. = ',scenarios[i,3]),
+         y = "Empirical SD") + theme(aspect.ratio = 1, axis.title = element_text(size = 10))+ ylim(0,0.3)
+})
+annotate_figure(ggarrange(plotlist = sd_plots_high[1:27], nrow = 3, ncol = 9), top = 'High event rate')
+
+mse_plots_low <- lapply(1:27, function(i){
+  ggplot() +
+    geom_line(aes(x = 0:4, y = bias_point[,i,1]^2 + sd_point[,i,1]^2)) +
+    geom_point(aes(x = 0:4, y = bias_point[,i,1]^2 + sd_point[,i,1]^2)) +
+    labs(x = paste0('N = ', scenarios[i,1], ',\nConfounding = ', scenarios[i,2], 
+                    ',\nTreat. prev. = ',scenarios[i,3]),
+         y = "MSE") + theme(aspect.ratio = 1, axis.title = element_text(size = 10)) +  ylim(0,0.5)
+})
+annotate_figure(ggarrange(plotlist = mse_plots_low[1:27], nrow = 3, ncol = 9), top = 'Low event rate')
+
+mse_plots_med <- lapply(1:27, function(i){
+  ggplot() +
+    geom_line(aes(x = 0:4, y = bias_point[,i,2]^2 + sd_point[,i,2]^2)) +
+    geom_point(aes(x = 0:4, y = bias_point[,i,2]^2 + sd_point[,i,2]^2)) +
+    labs(x = paste0('N = ', scenarios[i,1], ',\nConfounding = ', scenarios[i,2], ',\nTreat. prev. = ',scenarios[i,3]),
+         y = "MSE") + theme(aspect.ratio = 1, axis.title = element_text(size = 10))+  ylim(0,0.5)
+})
+annotate_figure(ggarrange(plotlist = mse_plots_med[1:27], nrow = 3, ncol = 9), top = 'Medium event rate')
+
+mse_plots_high <- lapply(1:27, function(i){
+  ggplot() +
+    geom_line(aes(x = 0:4, y = bias_point[,i,3]^2 + sd_point[,i,3]^2)) +
+    geom_point(aes(x = 0:4, y = bias_point[,i,3]^2 + sd_point[,i,3]^2)) +
+    labs(x = paste0('N = ', scenarios[i,1], ',\nConfounding = ', scenarios[i,2], ',\nTreat. prev. = ',scenarios[i,3]),
+         y = "MSE") + theme(aspect.ratio = 1, axis.title = element_text(size = 10))+  ylim(0,0.5)
+})
+annotate_figure(ggarrange(plotlist = mse_plots_high[1:27], nrow = 3, ncol = 9), top = 'High event rate')
+
+############# COVERAGE #####################
+
+coverage_ind <- array(0,dim = c(4,5,27,3))
+success <- array(0,dim = c(4,5,27,3))
+
+for (i in 1:1000){
+  for (k in 1:5){
+    for (j in 1:27){
+      for (l in 1:3){
+        scenario <- j%%9
+        if (scenario ==0){scenario <- 9}
+        
+        if (is.na(bootstrap[k,1,i,j,l]) == F){
+          success[1,k,j,l] <- success[1,k,j,l] + 1
+          if (all(bootstrap[k,1,i,j,l] <= true_value_red[k,scenario, l])
+              & all(bootstrap[k,2,i,j,l] >= true_value_red[k,scenario, l])){
+            coverage_ind[1,k,j,l] <- coverage_ind[1,k,j,l] + 1
+          }
+        }
+        
+        if (is.na(LEF_outcome[k,1,i,j,l]) == F){
+          success[2,k,j,l] <- success[2,k,j,l] + 1
+          if (all(LEF_outcome[k,1,i,j,l] <= true_value_red[k,scenario, l])
+              & all(LEF_outcome[k,2,i,j,l] >= true_value_red[k,scenario, l])){
+            coverage_ind[2,k,j,l] <- coverage_ind[2,k,j,l] + 1
+          }
+        }
+        
+        if (is.na(LEF_both[k,1,i,j,l]) == F){
+          success[3,k,j,l] <- success[3,k,j,l] + 1
+          if (all(LEF_both[k,1,i,j,l] <= true_value_red[k,scenario, l])
+              & all(LEF_both[k,2,i,j,l] >= true_value_red[k,scenario, l])){
+            coverage_ind[3,k,j,l] <- coverage_ind[3,k,j,l] + 1
+          }
+        }
+        
+        if (all(is.na(sandwich[k,1,i,j,l])) == F){
+          success[4,k,j,l] <- success[4,k,j,l] + 1
+          if (all(sandwich[k,1,i,j,l] <= true_value_red[k,scenario, l])
+              & all(sandwich[k,2,i,j,l] >= true_value_red[k,scenario, l])){
+            coverage_ind[4,k,j,l]<- coverage_ind[4,k,j,l]+ 1
+          }
+        }
+      }
+    }
+  }
+}
+
+coverage_ind <- coverage_ind/success
+
+bias_elim_coverage_ind <- array(0,dim = c(4,5,27,3))
+bias_elim_success <- array(0,dim = c(4,5,27,3))
+
+for (i in 1:1000){
+  for (k in 1:5){
+    for (j in 1:27){
+      for (l in 1:3){
+        scenario <- j%%9
+        if (scenario ==0){scenario <- 9}
+        
+        if (is.na(bootstrap[k,1,i,j,l]) == F){
+          bias_elim_success[1,k,j,l] <- bias_elim_success[1,k,j,l] + 1
+          if (all(bootstrap[k,1,i,j,l] <= bias_point[k,j,l] + true_value_red[k,scenario, l])
+              & all(bootstrap[k,2,i,j,l] >= bias_point[k,j,l] + true_value_red[k,scenario, l])){
+            bias_elim_coverage_ind[1,k,j,l] <- bias_elim_coverage_ind[1,k,j,l] + 1
+          }
+        }
+        
+        if (is.na(LEF_outcome[k,1,i,j,l]) == F){
+          bias_elim_success[2,k,j,l] <- bias_elim_success[2,k,j,l] + 1
+          if (all(LEF_outcome[k,1,i,j,l] <= bias_point[k,j,l] +true_value_red[k,scenario, l])
+              & all(LEF_outcome[k,2,i,j,l] >= bias_point[k,j,l] +true_value_red[k,scenario, l])){
+            bias_elim_coverage_ind[2,k,j,l] <- bias_elim_coverage_ind[2,k,j,l] + 1
+          }
+        }
+        
+        if (is.na(LEF_both[k,1,i,j,l]) == F){
+          bias_elim_success[3,k,j,l] <- bias_elim_success[3,k,j,l] + 1
+          if (all(LEF_both[k,1,i,j,l] <= bias_point[k,j,l] +true_value_red[k,scenario, l])
+              & all(LEF_both[k,2,i,j,l] >= bias_point[k,j,l] +true_value_red[k,scenario, l])){
+            bias_elim_coverage_ind[3,k,j,l] <- bias_elim_coverage_ind[3,k,j,l] + 1
+          }
+        }
+        
+        if (all(is.na(sandwich[k,1,i,j,l])) == F){
+          bias_elim_success[4,k,j,l] <- bias_elim_success[4,k,j,l] + 1
+          if (all(sandwich[k,1,i,j,l] <= bias_point[k,j,l] +true_value_red[k,scenario, l])
+              & all(sandwich[k,2,i,j,l] >= bias_point[k,j,l] +true_value_red[k,scenario, l])){
+            bias_elim_coverage_ind[4,k,j,l]<- bias_elim_coverage_ind[4,k,j,l]+ 1
+          }
+        }
+      }
+    }
+  }
+}
+
+bias_elim_coverage_ind <- bias_elim_coverage_ind/bias_elim_success
+
+pivot_coverage_ind <- array(0,dim = c(4,5,27,3))
+pivot_success <- array(0,dim = c(4,5,27,3))
+
+for (i in 1:1000){
+  for (k in 1:5){
+    for (j in 1:27){
+      for (l in 1:3){
+        scenario <- j%%9
+        if (scenario ==0){scenario <- 9}
+        
+        if (is.na(bootstrap[k,1,i,j,l]) == F){
+          pivot_success[1,k,j,l] <- pivot_success[1,k,j,l] + 1
+          if (all(2*est[k,i,j,l] - bootstrap[k,2,i,j,l] <= true_value_red[k,scenario, l])
+              & all(2*est[k,i,j,l] - bootstrap[k,1,i,j,l] >= true_value_red[k,scenario, l])){
+            pivot_coverage_ind[1,k,j,l] <- pivot_coverage_ind[1,k,j,l] + 1
+          }
+        }
+        
+        if (is.na(LEF_outcome[k,1,i,j,l]) == F){
+          pivot_success[2,k,j,l] <- pivot_success[2,k,j,l] + 1
+          if (all(2*est[k,i,j,l] - LEF_outcome[k,2,i,j,l] <= true_value_red[k,scenario, l])
+              & all(2*est[k,i,j,l] - LEF_outcome[k,1,i,j,l] >= true_value_red[k,scenario, l])){
+            pivot_coverage_ind[2,k,j,l] <- pivot_coverage_ind[2,k,j,l] + 1
+          }
+        }
+        
+        if (is.na(LEF_both[k,1,i,j,l]) == F){
+          pivot_success[3,k,j,l] <- pivot_success[3,k,j,l] + 1
+          if (all(2*est[k,i,j,l] - LEF_both[k,2,i,j,l] <= true_value_red[k,scenario, l])
+              & all(2*est[k,i,j,l] - LEF_both[k,1,i,j,l] >= true_value_red[k,scenario, l])){
+            pivot_coverage_ind[3,k,j,l] <- pivot_coverage_ind[3,k,j,l] + 1
+          }
+        }
+        
+        if (all(is.na(sandwich[k,1,i,j,l])) == F){
+          pivot_success[4,k,j,l] <- pivot_success[4,k,j,l] + 1
+          if (all(sandwich[k,1,i,j,l] <= true_value_red[k,scenario, l])
+              & all(sandwich[k,2,i,j,l] >= true_value_red[k,scenario, l])){
+            pivot_coverage_ind[4,k,j,l]<- pivot_coverage_ind[4,k,j,l]+ 1
+          }
+        }
+      }
+    }
+  }
+}
+
+pivot_coverage_ind <- pivot_coverage_ind/pivot_success
+
+bias_elim_pivot_coverage_ind <- array(0,dim = c(4,5,27,3))
+bias_elim_pivot_success <- array(0,dim = c(4,5,27,3))
+
+for (i in 1:1000){
+  for (k in 1:5){
+    for (j in 1:27){
+      for (l in 1:3){
+        scenario <- j%%9
+        if (scenario ==0){scenario <- 9}
+        
+        if (is.na(bootstrap[k,1,i,j,l]) == F){
+          bias_elim_pivot_success[1,k,j,l] <- bias_elim_pivot_success[1,k,j,l] + 1
+          if (all(2*est[k,i,j,l] - bootstrap[k,2,i,j,l] <= bias_point[k,j,l] +true_value_red[k,scenario, l])
+              & all(2*est[k,i,j,l] - bootstrap[k,1,i,j,l] >= bias_point[k,j,l] +true_value_red[k,scenario, l])){
+            bias_elim_pivot_coverage_ind[1,k,j,l] <- bias_elim_pivot_coverage_ind[1,k,j,l] + 1
+          }
+        }
+        
+        if (is.na(LEF_outcome[k,1,i,j,l]) == F){
+          bias_elim_pivot_success[2,k,j,l] <- bias_elim_pivot_success[2,k,j,l] + 1
+          if (all(2*est[k,i,j,l] - LEF_outcome[k,2,i,j,l] <= bias_point[k,j,l] +true_value_red[k,scenario, l])
+              & all(2*est[k,i,j,l] - LEF_outcome[k,1,i,j,l] >= bias_point[k,j,l] +true_value_red[k,scenario, l])){
+            bias_elim_pivot_coverage_ind[2,k,j,l] <- bias_elim_pivot_coverage_ind[2,k,j,l] + 1
+          }
+        }
+        
+        if (is.na(LEF_both[k,1,i,j,l]) == F){
+          bias_elim_pivot_success[3,k,j,l] <- bias_elim_pivot_success[3,k,j,l] + 1
+          if (all(2*est[k,i,j,l] - LEF_both[k,2,i,j,l] <= bias_point[k,j,l] +true_value_red[k,scenario, l])
+              & all(2*est[k,i,j,l] - LEF_both[k,1,i,j,l] >= bias_point[k,j,l] +true_value_red[k,scenario, l])){
+            bias_elim_pivot_coverage_ind[3,k,j,l] <- bias_elim_pivot_coverage_ind[3,k,j,l] + 1
+          }
+        }
+        
+        if (all(is.na(sandwich[k,1,i,j,l])) == F){
+          bias_elim_pivot_success[4,k,j,l] <- bias_elim_pivot_success[4,k,j,l] + 1
+          if (all(sandwich[k,1,i,j,l] <= bias_point[k,j,l] +true_value_red[k,scenario, l])
+              & all(sandwich[k,2,i,j,l] >= bias_point[k,j,l] +true_value_red[k,scenario, l])){
+            bias_elim_pivot_coverage_ind[4,k,j,l]<- bias_elim_pivot_coverage_ind[4,k,j,l]+ 1
+          }
+        }
+      }
+    }
+  }
+}
+
+bias_elim_pivot_coverage_ind <- bias_elim_pivot_coverage_ind/bias_elim_pivot_success
+
+coverage_low <-  lapply(1:27, function(i){
+  ggplot() +
+  geom_line(aes(x = 0:4, y = coverage_ind[1,,i,1], colour = "Bootstrap")) +
+  geom_point(aes(x = 0:4, y = coverage_ind[1,,i,1], colour = "Bootstrap")) +
+  geom_line(aes(x = 0:4, y = coverage_ind[2,,i,1], colour = "LEF outcome")) +
+  geom_point(aes(x = 0:4, y = coverage_ind[2,,i,1], colour = "LEF outcome")) +
+  geom_line(aes(x = 0:4, y = coverage_ind[3,,i,1], colour = "LEF both")) +
+  geom_point(aes(x = 0:4, y = coverage_ind[3,,i,1], colour = "LEF both")) +
+  geom_line(aes(x = 0:4, y = coverage_ind[4,,i,1], colour = "Sandwich")) +
+  geom_point(aes(x = 0:4, y = coverage_ind[4,,i,1], colour = "Sandwich")) +
+  scale_color_manual(name = "CI type", values = c("Bootstrap"= "red", "Sandwich" = "blue",
+                                                  "LEF outcome" = "green", "LEF both" = "purple")) +
+  geom_hline(yintercept = 0.95, linetype = "dashed") +
+  labs(x = 'Follow up time',
+       y = "Empirical coverage rate",
+       title = paste("N =", scenarios[i,1],
+                     '\nConfounding =',scenarios[i,2],
+                     '\nTreat. prev. =', scenarios[i,3]))+ ylim(0.3,1) + 
+    theme(plot.title = element_text(size=10))+ theme(aspect.ratio = 1, axis.title = element_text(size = 10))
+  }
+)
+annotate_figure(ggarrange(plotlist = coverage_low[1:27], nrow = 3, ncol = 9, common.legend = T,
+                          legend = 'bottom'), top = 'Low event rate')
+
+coverage_med <-  lapply(1:27, function(i){
+  ggplot() +
+    geom_line(aes(x = 0:4, y = coverage_ind[1,,i,2], colour = "Bootstrap")) +
+    geom_point(aes(x = 0:4, y = coverage_ind[1,,i,2], colour = "Bootstrap")) +
+    geom_line(aes(x = 0:4, y = coverage_ind[2,,i,2], colour = "LEF outcome")) +
+    geom_point(aes(x = 0:4, y = coverage_ind[2,,i,2], colour = "LEF outcome")) +
+    geom_line(aes(x = 0:4, y = coverage_ind[3,,i,2], colour = "LEF both")) +
+    geom_point(aes(x = 0:4, y = coverage_ind[3,,i,2], colour = "LEF both")) +
+    geom_line(aes(x = 0:4, y = coverage_ind[4,,i,2], colour = "Sandwich")) +
+    geom_point(aes(x = 0:4, y = coverage_ind[4,,i,2], colour = "Sandwich")) +
+    scale_color_manual(name = "CI type", values = c("Bootstrap"= "red", "Sandwich" = "blue",
+                                                    "LEF outcome" = "green", "LEF both" = "purple")) +
+    geom_hline(yintercept = 0.95, linetype = "dashed") +
+    labs(x = 'Follow up time',
+         y = "Empirical coverage rate",
+         title = paste("N =", scenarios[i,1],
+                       '\nConfounding =',scenarios[i,2],
+                       '\nTreat. prev. =', scenarios[i,3]))+ ylim(0.3,1) + 
+    theme(plot.title = element_text(size=10))+ theme(aspect.ratio = 1, axis.title = element_text(size = 10))
+}
+)
+annotate_figure(ggarrange(plotlist = coverage_med[1:27], nrow = 3, ncol = 9, common.legend = T,
+                          legend = 'bottom'), top = 'Medium event rate')
+
+coverage_high <-  lapply(1:27, function(i){
+  ggplot() +
+    geom_line(aes(x = 0:4, y = coverage_ind[1,,i,3], colour = "Bootstrap")) +
+    geom_point(aes(x = 0:4, y = coverage_ind[1,,i,3], colour = "Bootstrap")) +
+    geom_line(aes(x = 0:4, y = coverage_ind[2,,i,3], colour = "LEF outcome")) +
+    geom_point(aes(x = 0:4, y = coverage_ind[2,,i,3], colour = "LEF outcome")) +
+    geom_line(aes(x = 0:4, y = coverage_ind[3,,i,3], colour = "LEF both")) +
+    geom_point(aes(x = 0:4, y = coverage_ind[3,,i,3], colour = "LEF both")) +
+    geom_line(aes(x = 0:4, y = coverage_ind[4,,i,3], colour = "Sandwich")) +
+    geom_point(aes(x = 0:4, y = coverage_ind[4,,i,3], colour = "Sandwich")) +
+    scale_color_manual(name = "CI type", values = c("Bootstrap"= "red", "Sandwich" = "blue",
+                                                    "LEF outcome" = "green", "LEF both" = "purple")) +
+    geom_hline(yintercept = 0.95, linetype = "dashed") +
+    labs(x = 'Follow up time',
+         y = "Empirical coverage rate",
+         title = paste("N =", scenarios[i,1],
+                       '\nConfounding =',scenarios[i,2],
+                       '\nTreat. prev. =', scenarios[i,3]))+ ylim(0.3,1) + 
+    theme(plot.title = element_text(size=10))+ theme(aspect.ratio = 1, axis.title = element_text(size = 10))
+}
+)
+annotate_figure(ggarrange(plotlist = coverage_high[1:27], nrow = 3, ncol = 9, common.legend = T,
+                          legend = 'bottom'), top = 'High event rate')
+
+######################BIAS ELIM COVERAGE PLOTS #################
+coverage_low <-  lapply(1:27, function(i){
+  ggplot() +
+    geom_line(aes(x = 0:4, y = bias_elim_coverage_ind[1,,i,1], colour = "Bootstrap")) +
+    geom_point(aes(x = 0:4, y = bias_elim_coverage_ind[1,,i,1], colour = "Bootstrap")) +
+    geom_line(aes(x = 0:4, y = bias_elim_coverage_ind[2,,i,1], colour = "LEF outcome")) +
+    geom_point(aes(x = 0:4, y = bias_elim_coverage_ind[2,,i,1], colour = "LEF outcome")) +
+    geom_line(aes(x = 0:4, y = bias_elim_coverage_ind[3,,i,1], colour = "LEF both")) +
+    geom_point(aes(x = 0:4, y = bias_elim_coverage_ind[3,,i,1], colour = "LEF both")) +
+    geom_line(aes(x = 0:4, y = bias_elim_coverage_ind[4,,i,1], colour = "Sandwich")) +
+    geom_point(aes(x = 0:4, y = bias_elim_coverage_ind[4,,i,1], colour = "Sandwich")) +
+    scale_color_manual(name = "CI type", values = c("Bootstrap"= "red", "Sandwich" = "blue",
+                                                    "LEF outcome" = "green", "LEF both" = "purple")) +
+    geom_hline(yintercept = 0.95, linetype = "dashed") +
+    labs(x = 'Follow up time',
+         y = "Bias-eliminated coverage",
+         title = paste("N =", scenarios[i,1],
+                       '\nConfounding =',scenarios[i,2],
+                       '\nTreat. prev. =', scenarios[i,3]))+ ylim(0.3,1) + 
+    theme(plot.title = element_text(size=10))+ theme(aspect.ratio = 1, axis.title = element_text(size = 10))
+}
+)
+annotate_figure(ggarrange(plotlist = coverage_low[1:27], nrow = 3, ncol = 9, common.legend = T,
+                          legend = 'bottom'), top = 'Low event rate')
+
+coverage_med <-  lapply(1:27, function(i){
+  ggplot() +
+    geom_line(aes(x = 0:4, y = bias_elim_coverage_ind[1,,i,2], colour = "Bootstrap")) +
+    geom_point(aes(x = 0:4, y = bias_elim_coverage_ind[1,,i,2], colour = "Bootstrap")) +
+    geom_line(aes(x = 0:4, y = bias_elim_coverage_ind[2,,i,2], colour = "LEF outcome")) +
+    geom_point(aes(x = 0:4, y = bias_elim_coverage_ind[2,,i,2], colour = "LEF outcome")) +
+    geom_line(aes(x = 0:4, y = bias_elim_coverage_ind[3,,i,2], colour = "LEF both")) +
+    geom_point(aes(x = 0:4, y = bias_elim_coverage_ind[3,,i,2], colour = "LEF both")) +
+    geom_line(aes(x = 0:4, y = bias_elim_coverage_ind[4,,i,2], colour = "Sandwich")) +
+    geom_point(aes(x = 0:4, y = bias_elim_coverage_ind[4,,i,2], colour = "Sandwich")) +
+    scale_color_manual(name = "CI type", values = c("Bootstrap"= "red", "Sandwich" = "blue",
+                                                    "LEF outcome" = "green", "LEF both" = "purple")) +
+    geom_hline(yintercept = 0.95, linetype = "dashed") +
+    labs(x = 'Follow up time',
+         y = "Bias-eliminated coverage",
+         title = paste("N =", scenarios[i,1],
+                       '\nConfounding =',scenarios[i,2],
+                       '\nTreat. prev. =', scenarios[i,3]))+ ylim(0.3,1) + 
+    theme(plot.title = element_text(size=10))+ theme(aspect.ratio = 1, axis.title = element_text(size = 10))
+}
+)
+annotate_figure(ggarrange(plotlist = coverage_med[1:27], nrow = 3, ncol = 9, common.legend = T,
+                          legend = 'bottom'), top = 'Medium event rate')
+
+coverage_high <-  lapply(1:27, function(i){
+  ggplot() +
+    geom_line(aes(x = 0:4, y = bias_elim_coverage_ind[1,,i,3], colour = "Bootstrap")) +
+    geom_point(aes(x = 0:4, y = bias_elim_coverage_ind[1,,i,3], colour = "Bootstrap")) +
+    geom_line(aes(x = 0:4, y = bias_elim_coverage_ind[2,,i,3], colour = "LEF outcome")) +
+    geom_point(aes(x = 0:4, y = bias_elim_coverage_ind[2,,i,3], colour = "LEF outcome")) +
+    geom_line(aes(x = 0:4, y = bias_elim_coverage_ind[3,,i,3], colour = "LEF both")) +
+    geom_point(aes(x = 0:4, y = bias_elim_coverage_ind[3,,i,3], colour = "LEF both")) +
+    geom_line(aes(x = 0:4, y = bias_elim_coverage_ind[4,,i,3], colour = "Sandwich")) +
+    geom_point(aes(x = 0:4, y = bias_elim_coverage_ind[4,,i,3], colour = "Sandwich")) +
+    scale_color_manual(name = "CI type", values = c("Bootstrap"= "red", "Sandwich" = "blue",
+                                                    "LEF outcome" = "green", "LEF both" = "purple")) +
+    geom_hline(yintercept = 0.95, linetype = "dashed") +
+    labs(x = 'Follow up time',
+         y = "Bias-eliminated coverage",
+         title = paste("N =", scenarios[i,1],
+                       '\nConfounding =',scenarios[i,2],
+                       '\nTreat. prev. =', scenarios[i,3]))+ ylim(0.3,1) + 
+    theme(plot.title = element_text(size=10))+ theme(aspect.ratio = 1, axis.title = element_text(size = 10))
+}
+)
+annotate_figure(ggarrange(plotlist = coverage_high[1:27], nrow = 3, ncol = 9, common.legend = T,
+                          legend = 'bottom'), top = 'High event rate')
+############### PIVOT COVERAGE #######################
+coverage_low <-  lapply(1:27, function(i){
+  ggplot() +
+    geom_line(aes(x = 0:4, y = pivot_coverage_ind[1,,i,1], colour = "Pivot Bootstrap")) +
+    geom_point(aes(x = 0:4, y = pivot_coverage_ind[1,,i,1], colour = "Pivot Bootstrap")) +
+    geom_line(aes(x = 0:4, y = pivot_coverage_ind[2,,i,1], colour = "Pivot LEF outcome")) +
+    geom_point(aes(x = 0:4, y = pivot_coverage_ind[2,,i,1], colour = "Pivot LEF outcome")) +
+    geom_line(aes(x = 0:4, y = pivot_coverage_ind[3,,i,1], colour = "Pivot LEF both")) +
+    geom_point(aes(x = 0:4, y = pivot_coverage_ind[3,,i,1], colour = "Pivot LEF both")) +
+    geom_line(aes(x = 0:4, y = pivot_coverage_ind[4,,i,1], colour = "Sandwich")) +
+    geom_point(aes(x = 0:4, y = pivot_coverage_ind[4,,i,1], colour = "Sandwich")) +
+    scale_color_manual(name = "CI type", values = c("Pivot Bootstrap"= "red", "Sandwich" = "blue",
+                                                    "Pivot LEF outcome" = "green", "Pivot LEF both" = "purple")) +
+    geom_hline(yintercept = 0.95, linetype = "dashed") +
+    labs(x = 'Follow up time',
+         y = "Empirical coverage rate",
+         title = paste("N =", scenarios[i,1],
+                       '\nConfounding =',scenarios[i,2],
+                       '\nTreat. prev. =', scenarios[i,3]))+ ylim(0.3,1) + 
+    theme(plot.title = element_text(size=10))+ theme(aspect.ratio = 1, axis.title = element_text(size = 10))
+}
+)
+annotate_figure(ggarrange(plotlist = coverage_low[1:27], nrow = 3, ncol = 9, common.legend = T,
+                          legend = 'bottom'), top = 'Low event rate')
+
+coverage_med <-  lapply(1:27, function(i){
+  ggplot() +
+    geom_line(aes(x = 0:4, y = pivot_coverage_ind[1,,i,2], colour = "Pivot Bootstrap")) +
+    geom_point(aes(x = 0:4, y = pivot_coverage_ind[1,,i,2], colour = "Pivot Bootstrap")) +
+    geom_line(aes(x = 0:4, y = pivot_coverage_ind[2,,i,2], colour = "Pivot LEF outcome")) +
+    geom_point(aes(x = 0:4, y = pivot_coverage_ind[2,,i,2], colour = "Pivot LEF outcome")) +
+    geom_line(aes(x = 0:4, y = pivot_coverage_ind[3,,i,2], colour = "Pivot LEF both")) +
+    geom_point(aes(x = 0:4, y = pivot_coverage_ind[3,,i,2], colour = "Pivot LEF both")) +
+    geom_line(aes(x = 0:4, y = pivot_coverage_ind[4,,i,2], colour = "Sandwich")) +
+    geom_point(aes(x = 0:4, y = pivot_coverage_ind[4,,i,2], colour = "Sandwich")) +
+    scale_color_manual(name = "CI type", values = c("Pivot Bootstrap"= "red", "Sandwich" = "blue",
+                                                    "Pivot LEF outcome" = "green", "Pivot LEF both" = "purple")) +
+    geom_hline(yintercept = 0.95, linetype = "dashed") +
+    labs(x = 'Follow up time',
+         y = "Empirical coverage rate",
+         title = paste("N =", scenarios[i,1],
+                       '\nConfounding =',scenarios[i,2],
+                       '\nTreat. prev. =', scenarios[i,3]))+ ylim(0.3,1) + 
+    theme(plot.title = element_text(size=10))+ theme(aspect.ratio = 1, axis.title = element_text(size = 10))
+}
+)
+annotate_figure(ggarrange(plotlist = coverage_med[1:27], nrow = 3, ncol = 9, common.legend = T,
+                          legend = 'bottom'), top = 'Medium event rate')
+
+coverage_high <-  lapply(1:27, function(i){
+  ggplot() +
+    geom_line(aes(x = 0:4, y = pivot_coverage_ind[1,,i,3], colour = "Pivot Bootstrap")) +
+    geom_point(aes(x = 0:4, y = pivot_coverage_ind[1,,i,3], colour = "Pivot Bootstrap")) +
+    geom_line(aes(x = 0:4, y = pivot_coverage_ind[2,,i,3], colour = "Pivot LEF outcome")) +
+    geom_point(aes(x = 0:4, y = pivot_coverage_ind[2,,i,3], colour = "Pivot LEF outcome")) +
+    geom_line(aes(x = 0:4, y = pivot_coverage_ind[3,,i,3], colour = "Pivot LEF both")) +
+    geom_point(aes(x = 0:4, y = pivot_coverage_ind[3,,i,3], colour = "Pivot LEF both")) +
+    geom_line(aes(x = 0:4, y = pivot_coverage_ind[4,,i,3], colour = "Sandwich")) +
+    geom_point(aes(x = 0:4, y = pivot_coverage_ind[4,,i,3], colour = "Sandwich")) +
+    scale_color_manual(name = "CI type", values = c("Pivot Bootstrap"= "red", "Sandwich" = "blue",
+                                                    "Pivot LEF outcome" = "green", "Pivot LEF both" = "purple")) +
+    geom_hline(yintercept = 0.95, linetype = "dashed") +
+    labs(x = 'Follow up time',
+         y = "Empirical coverage rate",
+         title = paste("N =", scenarios[i,1],
+                       '\nConfounding =',scenarios[i,2],
+                       '\nTreat. prev. =', scenarios[i,3]))+ ylim(0.3,1) + 
+    theme(plot.title = element_text(size=10))+ theme(aspect.ratio = 1, axis.title = element_text(size = 10))
+}
+)
+annotate_figure(ggarrange(plotlist = coverage_high[1:27], nrow = 3, ncol = 9, common.legend = T,
+                          legend = 'bottom'), top = 'High event rate')
+
+######################   BIAS ELIM PIVOT COVERAGE ########################
+coverage_low <-  lapply(1:27, function(i){
+  ggplot() +
+    geom_line(aes(x = 0:4, y = bias_elim_pivot_coverage_ind[1,,i,1], colour = "Pivot Bootstrap")) +
+    geom_point(aes(x = 0:4, y = bias_elim_pivot_coverage_ind[1,,i,1], colour = "Pivot Bootstrap")) +
+    geom_line(aes(x = 0:4, y = bias_elim_pivot_coverage_ind[2,,i,1], colour = "Pivot LEF outcome")) +
+    geom_point(aes(x = 0:4, y = bias_elim_pivot_coverage_ind[2,,i,1], colour = "Pivot LEF outcome")) +
+    geom_line(aes(x = 0:4, y = bias_elim_pivot_coverage_ind[3,,i,1], colour = "Pivot LEF both")) +
+    geom_point(aes(x = 0:4, y = bias_elim_pivot_coverage_ind[3,,i,1], colour = "Pivot LEF both")) +
+    geom_line(aes(x = 0:4, y = bias_elim_pivot_coverage_ind[4,,i,1], colour = "Sandwich")) +
+    geom_point(aes(x = 0:4, y = bias_elim_pivot_coverage_ind[4,,i,1], colour = "Sandwich")) +
+    scale_color_manual(name = "CI type", values = c("Pivot Bootstrap"= "red", "Sandwich" = "blue",
+                                                    "Pivot LEF outcome" = "green", "Pivot LEF both" = "purple")) +
+    geom_hline(yintercept = 0.95, linetype = "dashed") +
+    labs(x = 'Follow up time',
+         y = "Empirical coverage rate",
+         title = paste("N =", scenarios[i,1],
+                       '\nConfounding =',scenarios[i,2],
+                       '\nTreat. prev. =', scenarios[i,3]))+ ylim(0.3,1) + 
+    theme(plot.title = element_text(size=10))+ theme(aspect.ratio = 1, axis.title = element_text(size = 10))
+}
+)
+annotate_figure(ggarrange(plotlist = coverage_low[1:27], nrow = 3, ncol = 9, common.legend = T,
+                          legend = 'bottom'), top = 'Low event rate')
+
+coverage_med <-  lapply(1:27, function(i){
+  ggplot() +
+    geom_line(aes(x = 0:4, y = bias_elim_pivot_coverage_ind[1,,i,2], colour = "Pivot Bootstrap")) +
+    geom_point(aes(x = 0:4, y = bias_elim_pivot_coverage_ind[1,,i,2], colour = "Pivot Bootstrap")) +
+    geom_line(aes(x = 0:4, y = bias_elim_pivot_coverage_ind[2,,i,2], colour = "Pivot LEF outcome")) +
+    geom_point(aes(x = 0:4, y = bias_elim_pivot_coverage_ind[2,,i,2], colour = "Pivot LEF outcome")) +
+    geom_line(aes(x = 0:4, y = bias_elim_pivot_coverage_ind[3,,i,2], colour = "Pivot LEF both")) +
+    geom_point(aes(x = 0:4, y = bias_elim_pivot_coverage_ind[3,,i,2], colour = "Pivot LEF both")) +
+    geom_line(aes(x = 0:4, y = bias_elim_pivot_coverage_ind[4,,i,2], colour = "Sandwich")) +
+    geom_point(aes(x = 0:4, y = bias_elim_pivot_coverage_ind[4,,i,2], colour = "Sandwich")) +
+    scale_color_manual(name = "CI type", values = c("Pivot Bootstrap"= "red", "Sandwich" = "blue",
+                                                    "Pivot LEF outcome" = "green", "Pivot LEF both" = "purple")) +
+    geom_hline(yintercept = 0.95, linetype = "dashed") +
+    labs(x = 'Follow up time',
+         y = "Empirical coverage rate",
+         title = paste("N =", scenarios[i,1],
+                       '\nConfounding =',scenarios[i,2],
+                       '\nTreat. prev. =', scenarios[i,3]))+ ylim(0.3,1) + 
+    theme(plot.title = element_text(size=10))+ theme(aspect.ratio = 1, axis.title = element_text(size = 10))
+}
+)
+annotate_figure(ggarrange(plotlist = coverage_med[1:27], nrow = 3, ncol = 9, common.legend = T,
+                          legend = 'bottom'), top = 'Medium event rate')
+
+coverage_high <-  lapply(1:27, function(i){
+  ggplot() +
+    geom_line(aes(x = 0:4, y = bias_elim_pivot_coverage_ind[1,,i,3], colour = "Pivot Bootstrap")) +
+    geom_point(aes(x = 0:4, y = bias_elim_pivot_coverage_ind[1,,i,3], colour = "Pivot Bootstrap")) +
+    geom_line(aes(x = 0:4, y = bias_elim_pivot_coverage_ind[2,,i,3], colour = "Pivot LEF outcome")) +
+    geom_point(aes(x = 0:4, y = bias_elim_pivot_coverage_ind[2,,i,3], colour = "Pivot LEF outcome")) +
+    geom_line(aes(x = 0:4, y = bias_elim_pivot_coverage_ind[3,,i,3], colour = "Pivot LEF both")) +
+    geom_point(aes(x = 0:4, y = bias_elim_pivot_coverage_ind[3,,i,3], colour = "Pivot LEF both")) +
+    geom_line(aes(x = 0:4, y = bias_elim_pivot_coverage_ind[4,,i,3], colour = "Sandwich")) +
+    geom_point(aes(x = 0:4, y = bias_elim_pivot_coverage_ind[4,,i,3], colour = "Sandwich")) +
+    scale_color_manual(name = "CI type", values = c("Pivot Bootstrap"= "red", "Sandwich" = "blue",
+                                                    "Pivot LEF outcome" = "green", "Pivot LEF both" = "purple")) +
+    geom_hline(yintercept = 0.95, linetype = "dashed") +
+    labs(x = 'Follow up time',
+         y = "Empirical coverage rate",
+         title = paste("N =", scenarios[i,1],
+                       '\nConfounding =',scenarios[i,2],
+                       '\nTreat. prev. =', scenarios[i,3]))+ ylim(0.3,1) + 
+    theme(plot.title = element_text(size=10))+ theme(aspect.ratio = 1, axis.title = element_text(size = 10))
+}
+)
+annotate_figure(ggarrange(plotlist = coverage_high[1:27], nrow = 3, ncol = 9, common.legend = T,
+                          legend = 'bottom'), top = 'High event rate')
+################ MC SE PLOTS #######################
+MC_SE<- array(, dim = c(4,5,27,3))
+for (i in 1:27){
+  for (j in 1:3){
+    MC_SE[,,i,j] <- sqrt((coverage_ind[,,i,j]*(1-coverage_ind[,,i,j]))/1000)
+  }
+}
+
+MC_SE_pivot<- array(, dim = c(4,5,27,3))
+for (i in 1:27){
+  for (j in 1:3){
+    MC_SE_pivot[,,i,j] <- sqrt((pivot_coverage_ind[,,i,j]*(1-pivot_coverage_ind[,,i,j]))/1000)
+  }
+}
+
+MCSE_low <-  lapply(1:27, function(i){
+  ggplot() +
+    geom_line(aes(x = 0:4, y = MC_SE[1,,i,1], colour = "Bootstrap")) +
+    geom_point(aes(x = 0:4, y = MC_SE[1,,i,1], colour = "Bootstrap")) +
+    geom_line(aes(x = 0:4, y = MC_SE[2,,i,1], colour = "LEF outcome")) +
+    geom_point(aes(x = 0:4, y = MC_SE[2,,i,1], colour = "LEF outcome")) +
+    geom_line(aes(x = 0:4, y = MC_SE[3,,i,1], colour = "LEF both")) +
+    geom_point(aes(x = 0:4, y = MC_SE[3,,i,1], colour = "LEF both")) +
+    geom_line(aes(x = 0:4, y = MC_SE[4,,i,1], colour = "Sandwich")) +
+    geom_point(aes(x = 0:4, y = MC_SE[4,,i,1], colour = "Sandwich")) +
+    scale_color_manual(name = "CI type", values = c("Bootstrap"= "red", "Sandwich" = "blue",
+                                                    "LEF outcome" = "green", "LEF both" = "purple")) +
+    labs(x = 'Follow up time',
+         y = "MC SE",
+         title = paste("N =", scenarios[i,1],
+                       '\nConfounding =',scenarios[i,2],
+                       '\nTreat. prev. =', scenarios[i,3]))+ ylim(0,0.03) + 
+    theme(plot.title = element_text(size=10))+ theme(aspect.ratio = 1, axis.title = element_text(size = 10))
+}
+)
+annotate_figure(ggarrange(plotlist = MCSE_low[1:27], nrow = 3, ncol = 9, common.legend = T,
+                          legend = 'bottom'), top = 'Low event rate')
+
+MCSE_med <-  lapply(1:27, function(i){
+  ggplot() +
+    geom_line(aes(x = 0:4, y = MC_SE[1,,i,2], colour = "Bootstrap")) +
+    geom_point(aes(x = 0:4, y = MC_SE[1,,i,2], colour = "Bootstrap")) +
+    geom_line(aes(x = 0:4, y = MC_SE[2,,i,2], colour = "LEF outcome")) +
+    geom_point(aes(x = 0:4, y = MC_SE[2,,i,2], colour = "LEF outcome")) +
+    geom_line(aes(x = 0:4, y = MC_SE[3,,i,2], colour = "LEF both")) +
+    geom_point(aes(x = 0:4, y = MC_SE[3,,i,2], colour = "LEF both")) +
+    geom_line(aes(x = 0:4, y = MC_SE[4,,i,2], colour = "Sandwich")) +
+    geom_point(aes(x = 0:4, y = MC_SE[4,,i,2], colour = "Sandwich")) +
+    scale_color_manual(name = "CI type", values = c("Bootstrap"= "red", "Sandwich" = "blue",
+                                                    "LEF outcome" = "green", "LEF both" = "purple")) +
+    labs(x = 'Follow up time',
+         y = "MC SE",
+         title = paste("N =", scenarios[i,1],
+                       '\nConfounding =',scenarios[i,2],
+                       '\nTreat. prev. =', scenarios[i,3]))+ ylim(0,0.03) + 
+    theme(plot.title = element_text(size=10))+ theme(aspect.ratio = 1, axis.title = element_text(size = 10))
+}
+)
+annotate_figure(ggarrange(plotlist = MCSE_med[1:27], nrow = 3, ncol = 9, common.legend = T,
+                          legend = 'bottom'), top = 'Medium event rate')
+
+MCSE_high <-  lapply(1:27, function(i){
+  ggplot() +
+    geom_line(aes(x = 0:4, y = MC_SE[1,,i,3], colour = "Bootstrap")) +
+    geom_point(aes(x = 0:4, y = MC_SE[1,,i,3], colour = "Bootstrap")) +
+    geom_line(aes(x = 0:4, y = MC_SE[2,,i,3], colour = "LEF outcome")) +
+    geom_point(aes(x = 0:4, y = MC_SE[2,,i,3], colour = "LEF outcome")) +
+    geom_line(aes(x = 0:4, y = MC_SE[3,,i,3], colour = "LEF both")) +
+    geom_point(aes(x = 0:4, y = MC_SE[3,,i,3], colour = "LEF both")) +
+    geom_line(aes(x = 0:4, y = MC_SE[4,,i,3], colour = "Sandwich")) +
+    geom_point(aes(x = 0:4, y = MC_SE[4,,i,3], colour = "Sandwich")) +
+    scale_color_manual(name = "CI type", values = c("Bootstrap"= "red", "Sandwich" = "blue",
+                                                    "LEF outcome" = "green", "LEF both" = "purple")) +
+    labs(x = 'Follow up time',
+         y = "MC SE",
+         title = paste("N =", scenarios[i,1],
+                       '\nConfounding =',scenarios[i,2],
+                       '\nTreat. prev. =', scenarios[i,3]))+ ylim(0,0.03) + 
+    theme(plot.title = element_text(size=10))+ theme(aspect.ratio = 1, axis.title = element_text(size = 10))
+}
+)
+annotate_figure(ggarrange(plotlist = MCSE_high[1:27], nrow = 3, ncol = 9, common.legend = T,
+                          legend = 'bottom'), top = 'High event rate')
+
+MCSE_low <-  lapply(1:27, function(i){
+  ggplot() +
+    geom_line(aes(x = 0:4, y = MC_SE_pivot[1,,i,1], colour = "Pivot Bootstrap")) +
+    geom_point(aes(x = 0:4, y = MC_SE_pivot[1,,i,1], colour = "Pivot Bootstrap")) +
+    geom_line(aes(x = 0:4, y = MC_SE_pivot[2,,i,1], colour = "Pivot LEF outcome")) +
+    geom_point(aes(x = 0:4, y = MC_SE_pivot[2,,i,1], colour = "Pivot LEF outcome")) +
+    geom_line(aes(x = 0:4, y = MC_SE_pivot[3,,i,1], colour = "Pivot LEF both")) +
+    geom_point(aes(x = 0:4, y = MC_SE_pivot[3,,i,1], colour = "Pivot LEF both")) +
+    geom_line(aes(x = 0:4, y = MC_SE_pivot[4,,i,1], colour = "Sandwich")) +
+    geom_point(aes(x = 0:4, y = MC_SE_pivot[4,,i,1], colour = "Sandwich")) +
+    scale_color_manual(name = "CI type", values = c("Pivot Bootstrap"= "red", "Sandwich" = "blue",
+                                                    "Pivot LEF outcome" = "green", "Pivot LEF both" = "purple")) +
+    labs(x = 'Follow up time',
+         y = "MC SE",
+         title = paste("N =", scenarios[i,1],
+                       '\nConfounding =',scenarios[i,2],
+                       '\nTreat. prev. =', scenarios[i,3]))+ ylim(0,0.03) + 
+    theme(plot.title = element_text(size=10))+ theme(aspect.ratio = 1, axis.title = element_text(size = 10))
+}
+)
+annotate_figure(ggarrange(plotlist = MCSE_low[1:27], nrow = 3, ncol = 9, common.legend = T,
+                          legend = 'bottom'), top = 'Low event rate')
+
+MCSE_med <-  lapply(1:27, function(i){
+  ggplot() +
+    geom_line(aes(x = 0:4, y = MC_SE_pivot[1,,i,2], colour = "Pivot Bootstrap")) +
+    geom_point(aes(x = 0:4, y = MC_SE_pivot[1,,i,2], colour = "Pivot Bootstrap")) +
+    geom_line(aes(x = 0:4, y = MC_SE_pivot[2,,i,2], colour = "Pivot LEF outcome")) +
+    geom_point(aes(x = 0:4, y = MC_SE_pivot[2,,i,2], colour = "Pivot LEF outcome")) +
+    geom_line(aes(x = 0:4, y = MC_SE_pivot[3,,i,2], colour = "Pivot LEF both")) +
+    geom_point(aes(x = 0:4, y = MC_SE_pivot[3,,i,2], colour = "Pivot LEF both")) +
+    geom_line(aes(x = 0:4, y = MC_SE_pivot[4,,i,2], colour = "Sandwich")) +
+    geom_point(aes(x = 0:4, y = MC_SE_pivot[4,,i,2], colour = "Sandwich")) +
+    scale_color_manual(name = "CI type", values = c("Pivot Bootstrap"= "red", "Sandwich" = "blue",
+                                                    "Pivot LEF outcome" = "green", "Pivot LEF both" = "purple")) +
+    labs(x = 'Follow up time',
+         y = "MC SE",
+         title = paste("N =", scenarios[i,1],
+                       '\nConfounding =',scenarios[i,2],
+                       '\nTreat. prev. =', scenarios[i,3]))+ ylim(0,0.03) + 
+    theme(plot.title = element_text(size=10))+ theme(aspect.ratio = 1, axis.title = element_text(size = 10))
+}
+)
+annotate_figure(ggarrange(plotlist = MCSE_med[1:27], nrow = 3, ncol = 9, common.legend = T,
+                          legend = 'bottom'), top = 'Medium event rate')
+
+MCSE_high <-  lapply(1:27, function(i){
+  ggplot() +
+    geom_line(aes(x = 0:4, y = MC_SE_pivot[1,,i,3], colour = "Pivot Bootstrap")) +
+    geom_point(aes(x = 0:4, y = MC_SE_pivot[1,,i,3], colour = "Pivot Bootstrap")) +
+    geom_line(aes(x = 0:4, y = MC_SE_pivot[2,,i,3], colour = "Pivot LEF outcome")) +
+    geom_point(aes(x = 0:4, y = MC_SE_pivot[2,,i,3], colour = "Pivot LEF outcome")) +
+    geom_line(aes(x = 0:4, y = MC_SE_pivot[3,,i,3], colour = "Pivot LEF both")) +
+    geom_point(aes(x = 0:4, y = MC_SE_pivot[3,,i,3], colour = "Pivot LEF both")) +
+    geom_line(aes(x = 0:4, y = MC_SE_pivot[4,,i,3], colour = "Sandwich")) +
+    geom_point(aes(x = 0:4, y = MC_SE_pivot[4,,i,3], colour = "Sandwich")) +
+    scale_color_manual(name = "CI type", values = c("Pivot Bootstrap"= "red", "Sandwich" = "blue",
+                                                    "Pivot LEF outcome" = "green", "Pivot LEF both" = "purple")) +
+    labs(x = 'Follow up time',
+         y = "MC SE",
+         title = paste("N =", scenarios[i,1],
+                       '\nConfounding =',scenarios[i,2],
+                       '\nTreat. prev. =', scenarios[i,3]))+ ylim(0,0.03) + 
+    theme(plot.title = element_text(size=10))+ theme(aspect.ratio = 1, axis.title = element_text(size = 10))
+}
+)
+annotate_figure(ggarrange(plotlist = MCSE_high[1:27], nrow = 3, ncol = 9, common.legend = T,
+                          legend = 'bottom'), top = 'High event rate')
+
+weights_low <- lapply(1:27, function(i){
+  simdata_censored<-DATA_GEN_censored_reduced(as.numeric(scenarios[i,1]), 5, 
+                                              conf = as.numeric(scenarios[i,2]), 
+                                              treat_prev = as.numeric(scenarios[i,3]),
+                                              outcome_prev = -4.7,
+                                              censor = F)
+  PP_prep <- TrialEmulation::data_preparation(simdata_censored, id='ID', period='t', treatment='A', outcome='Y', 
+                                              eligible ='eligible',
+                                              switch_d_cov = ~X2 + X4,
+                                              outcome_cov = ~X2 + X4, model_var = c('assigned_treatment'),
+                                              use_weight=T, use_censor=T, quiet = T,
+                                              save_weight_models = F,
+                                              data_dir = data_direction)
+  ggplot() +
+    geom_histogram(aes(x = PP_prep$data$weight),bins = 50) +
+    labs(x = 'IP weights',
+         y = "Count",
+         title = paste("N =", scenarios[i,1],
+                       '\nConfounding =',scenarios[i,2],
+                       '\nTreat. prev. =', scenarios[i,3])) + 
+    theme(plot.title = element_text(size=10))+ theme(aspect.ratio = 1, axis.title = element_text(size = 10))
+})
+annotate_figure(ggarrange(plotlist = weights_low[1:27], nrow = 3, ncol = 9), top = 'Low event rate')
+
+
