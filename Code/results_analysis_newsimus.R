@@ -802,7 +802,7 @@ weights_low <- lapply(1:27, function(i){
                                               data_dir = data_direction)
   ggplot() +
     geom_histogram(aes(x = PP_prep$data$weight),bins = 50) +
-    labs(x = 'IP weights',
+    labs(x =   paste0('Max weight = ',round(max(PP_prep$data$weight),2)),
          y = "Count",
          title = paste("N =", scenarios[i,1],
                        '\nConfounding =',scenarios[i,2],
@@ -811,4 +811,57 @@ weights_low <- lapply(1:27, function(i){
 })
 annotate_figure(ggarrange(plotlist = weights_low[1:27], nrow = 3, ncol = 9), top = 'Low event rate')
 
+weights_med <- lapply(1:27, function(i){
+  simdata_censored<-DATA_GEN_censored_reduced(as.numeric(scenarios[i,1]), 5, 
+                                              conf = as.numeric(scenarios[i,2]), 
+                                              treat_prev = as.numeric(scenarios[i,3]),
+                                              outcome_prev = -3.8,
+                                              censor = F)
+  PP_prep <- TrialEmulation::data_preparation(simdata_censored, id='ID', period='t', treatment='A', outcome='Y', 
+                                              eligible ='eligible',
+                                              switch_d_cov = ~X2 + X4,
+                                              outcome_cov = ~X2 + X4, model_var = c('assigned_treatment'),
+                                              use_weight=T, use_censor=T, quiet = T,
+                                              save_weight_models = F,
+                                              data_dir = data_direction)
+  ggplot() +
+    geom_histogram(aes(x = PP_prep$data$weight),bins = 50) +
+    labs(x =  paste0('Max weight = ',round(max(PP_prep$data$weight),2)),
+         y = "Count",
+         title = paste("N =", scenarios[i,1],
+                       '\nConfounding =',scenarios[i,2],
+                       '\nTreat. prev. =', scenarios[i,3])) + 
+    theme(plot.title = element_text(size=10))+ theme(aspect.ratio = 1, axis.title = element_text(size = 10))
+})
+annotate_figure(ggarrange(plotlist = weights_med[1:27], nrow = 3, ncol = 9), top = 'Medium event rate')
 
+weights_high <- lapply(1:27, function(i){
+  simdata_censored<-DATA_GEN_censored_reduced(as.numeric(scenarios[i,1]), 5, 
+                                              conf = as.numeric(scenarios[i,2]), 
+                                              treat_prev = as.numeric(scenarios[i,3]),
+                                              outcome_prev = -3,
+                                              censor = F)
+  PP_prep <- TrialEmulation::data_preparation(simdata_censored, id='ID', period='t', treatment='A', outcome='Y', 
+                                              eligible ='eligible',
+                                              switch_d_cov = ~X2 + X4,
+                                              outcome_cov = ~X2 + X4, model_var = c('assigned_treatment'),
+                                              use_weight=T, use_censor=T, quiet = T,
+                                              save_weight_models = F,
+                                              data_dir = data_direction)
+  ggplot() +
+    geom_histogram(aes(x = PP_prep$data$weight),bins = 50) +
+    labs(x =  paste0('Max weight = ',round(max(PP_prep$data$weight),2)),
+         y = "Count",
+         title = paste("N =", scenarios[i,1],
+                       '\nConfounding =',scenarios[i,2],
+                       '\nTreat. prev. =', scenarios[i,3])) + 
+    theme(plot.title = element_text(size=10))+ theme(aspect.ratio = 1, axis.title = element_text(size = 10))
+})
+annotate_figure(ggarrange(plotlist = weights_high[1:27], nrow = 3, ncol = 9), top = 'High event rate')
+
+
+simdata_censored<-DATA_GEN_censored_reduced(1000, 5, 
+                                            conf = 0.5, 
+                                            treat_prev = 0,
+                                            outcome_prev = -3,
+                                            censor = F) 

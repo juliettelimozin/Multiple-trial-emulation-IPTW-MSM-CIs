@@ -11,6 +11,7 @@ library(sandwich)
 library(doParallel)
 library(doRNG)
 
+############# DATA PREPARATION ##################
 HERS$Y <- as.factor(HERS$Y)
 HERS$t <- HERS$visit - 8
 HERS$SITE1 <- as.factor(HERS$SITE1)
@@ -18,17 +19,32 @@ HERS$SITE2 <- as.factor(HERS$SITE2)
 HERS$SITE3 <- as.factor(HERS$SITE3)
 HERS$WHITE <- as.factor(HERS$WHITE)
 HERS$OTHER <- as.factor(HERS$OTHER)
-HERS$CD4_count <- sqrt(as.numeric(HERS$CD4))
-HERS$eligible <- as.numeric(HERS$haart_1 == 0 & HERS$haart_2 == 0)
+
+HERS$CD4 <- (sqrt(as.numeric(HERS$CD4)) - mean(sqrt(HERS$CD4)))/sd(sqrt(HERS$CD4))
+HERS$CD4_1 <- (sqrt(as.numeric(HERS$CD4_1)) - mean(sqrt(HERS$CD4_1)))/sd(sqrt(HERS$CD4_1))
+HERS$CD4_2 <- (sqrt(as.numeric(HERS$CD4_2)) - mean(sqrt(HERS$CD4_2)))/sd(sqrt(HERS$CD4_2))
+
+HERS$viral <- (log10(HERS$viral) - mean(log10(HERS$viral)))/sd(log10(HERS$viral))
+HERS$viral_1 <- (log10(HERS$viral_1) - mean(log10(HERS$viral_1)))/sd(log10(HERS$viral_1))
+HERS$viral_2 <- (log10(HERS$viral_2) - mean(log10(HERS$viral_2)))/sd(log10(HERS$viral_2))
+
+HERS <- HERS %>% 
+  dplyr::arrange(id,t) %>% 
+  dplyr::group_by(id) %>% 
+  dplyr::mutate(CAp = cumsum(haart_1)) %>% 
+  dplyr::ungroup()
+
 HERS$A <- HERS$haart
 HERS$Ap <- HERS$haart_1
 HERS$App <- HERS$haart_2
 HERS[,'ID'] <- HERS$id
 HERS <- HERS %>% 
-  dplyr::select(ID, t, A, Ap, App, CD4, CD4_1,CD4_2, CD4_count,
+  dplyr::select(ID, t, A, Ap, App,CAp, CD4, CD4_1,CD4_2,
          viral,viral_1,viral_2,HIVsym,HIVsym_1,HIVsym_2,
-         SITE1, SITE2, SITE3, WHITE, OTHER, Y, eligible, C)
+         SITE1, SITE2, SITE3, WHITE, OTHER, Y, C)
+HERS$eligible <- as.numeric(HERS$CAp == 0)
 
+#################IPW AND MSM #########################
 PP_prep <- TrialEmulation::data_preparation(data = HERS, id='ID', period='t', treatment='A', outcome='Y', 
                                             eligible ='eligible', cense = 'C',
                                             switch_d_cov = ~ CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE1 + SITE2 + SITE3 + WHITE + OTHER,
@@ -38,7 +54,6 @@ PP_prep <- TrialEmulation::data_preparation(data = HERS, id='ID', period='t', tr
                                             use_weight=TRUE, use_censor=TRUE, quiet = F,
                                             save_weight_models = T,
                                             data_dir = data_direction)
-View(PP_prep$data)
 switch_data <- PP_prep$data %>% 
   dplyr::mutate(haartCD4_1 = assigned_treatment*CD4_1)
 
@@ -123,7 +138,7 @@ for (k in 1:500){
     dplyr::mutate(weight_boot = length(boot_data_conf[[k]][boot_data_conf[[k]] == id])) #bootstrap weight is number of times they were sampled
   IP_model <- weight_func_bootstrap(data = HERS, expanded_data = switch_data, 
                                     treatment = 'A',
-                                    switch_d_cov = ~CD4_1 + CD4 + CD4_2 + viral+ viral_1 + viral_2 +HIVsym+ HIVsym_1+ SITE1 + SITE2 + SITE3 + WHITE + OTHER,
+                                    switch_d_cov = ~CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE1 + SITE2 + SITE3 + WHITE + OTHER,
                                     cense_d_cov = ~CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE1 + SITE2 + SITE3 + WHITE + OTHER,
                                     cense = 'C',
                                     weight_model_d0 = switch_d0,
@@ -208,10 +223,9 @@ surv_PP_difference_boostrap_estimates_conf$ub <- apply(surv_PP_difference_boostr
                                                        quantile,
                                                        probs = c(0.975))
 CI_bootstrap_coefs_PP_red <- array(, dim = c(5,2))
-CI_bootstrap_coefs_PP_red[,1] <- surv_PP_difference_boostrap_estimates_conf$lb
-CI_bootstrap_coefs_PP_red[,2] <- surv_PP_difference_boostrap_estimates_conf$ub
+CI_bootstrap_coefs_PP_red[,1] <- 2*pull(predicted_probas_PP,survival_difference) - surv_PP_difference_boostrap_estimates_conf$ub
+CI_bootstrap_coefs_PP_red[,2] <- 2*pull(predicted_probas_PP,survival_difference) - surv_PP_difference_boostrap_estimates_conf$lb
 
-time <- proc.time()
 ################### LEF OUTCOME ONLY ##################################
 X <- model.matrix(PP$model)
 e <- PP$model$y - PP$model$fitted.values
@@ -224,7 +238,7 @@ for (k in 1:500){
     dplyr::mutate(weight_boot = length(boot_data_conf[[k]][boot_data_conf[[k]] == id])) #bootstrap weight is number of times they were sampled
   
   IP_model <- weight_func_bootstrap(data = HERS, expanded_data = switch_data, 
-                                    switch_d_cov = ~CD4_1 + CD4 + CD4_2 + viral+ viral_1 + viral_2 +HIVsym+ HIVsym_1+ SITE1 + SITE2 + SITE3 + WHITE + OTHER,
+                                    switch_d_cov = ~CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE1 + SITE2 + SITE3 + WHITE + OTHER,
                                     cense_d_cov = ~CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE1 + SITE2 + SITE3 + WHITE + OTHER,
                                     cense = 'C',
                                     weight_model_d0 = switch_d0,
@@ -280,10 +294,10 @@ surv_PP_difference_LEF_outcome_estimates_conf$ub <- apply(surv_PP_difference_LEF
                                                           quantile,
                                                           probs = c(0.975))
 
-
+CI_LEF_outcome_coefs_PP_red <- array(,dim = c(5,2))
 computation_time_coefs[2,i] <- (proc.time() - time)[[3]]
-CI_LEF_outcome_coefs_PP_red[,1,i] <- surv_PP_difference_LEF_outcome_estimates_conf$lb
-CI_LEF_outcome_coefs_PP_red[,2,i] <- surv_PP_difference_LEF_outcome_estimates_conf$ub
+CI_LEF_outcome_coefs_PP_red[,1] <- 2*pull(predicted_probas_PP,survival_difference) - surv_PP_difference_LEF_outcome_estimates_conf$ub
+CI_LEF_outcome_coefs_PP_red[,2] <- 2*pull(predicted_probas_PP,survival_difference) - surv_PP_difference_LEF_outcome_estimates_conf$lb
 
 time <- proc.time()
 #################### LEF WEIGHT AND OUTCOME  ##############################
@@ -312,8 +326,9 @@ X_c_n1 <- model.matrix(cense_n1)
 e_c_n1 <- cense_n1$y - cense_n1$fitted.values
 
 surv_PP_difference_LEF_both_estimates_conf <- as.data.frame(matrix(,5,500))
-surv_PP_difference_LEF_both_estimates_conf <- foreach(k = 1:500, .combine=cbind) %dopar% {
-  weights_table_boot <- data.frame(id = 1:1000) %>% 
+for (k in 1:500){
+  print(k)
+  weights_table_boot <- data.frame(id = 1:609) %>% 
     rowwise() %>% 
     dplyr::mutate(weight_boot = length(boot_data_conf[[k]][boot_data_conf[[k]] == id])) #bootstrap weight is number of times they were sampled
   
@@ -339,7 +354,10 @@ surv_PP_difference_LEF_both_estimates_conf <- foreach(k = 1:500, .combine=cbind)
   beta_c_d1 <- cense_d1$coefficients + vcov(cense_d1)%*%LEF_c_d1_boot
   beta_c_n1 <- cense_n1$coefficients + vcov(cense_n1)%*%LEF_c_n1_boot
   
-  IP_model <- weight_func_bootstrap(data = simdata_censored_conf, expanded_data = switch_data, switch_d_cov = ~ X2 + X4, cense = 'C', cense_d_cov = ~ X2 + X4,
+  IP_model <- weight_func_bootstrap(data = HERS, expanded_data = switch_data, 
+                                    switch_d_cov = ~CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE1 + SITE2 + SITE3 + WHITE + OTHER,
+                                    cense_d_cov = ~CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE1 + SITE2 + SITE3 + WHITE + OTHER,
+                                    cense = 'C',
                                     weight_model_d0 = switch_d0,
                                     weight_model_n0 = switch_n0,
                                     weight_model_d1 = switch_d1,
@@ -362,7 +380,8 @@ surv_PP_difference_LEF_both_estimates_conf <- foreach(k = 1:500, .combine=cbind)
   
   boot_design_data <- IP_model$data %>%
     merge(weights_table_boot, by = 'id', all.y = TRUE) %>% 
-    dplyr::mutate(weight = ifelse(weight_boot !=0,weight*weight_boot,0))
+    dplyr::mutate(weight = ifelse(weight_boot !=0,weight*weight_boot,0))%>% 
+    dplyr::filter(!is.na(for_period))
   
   LEFs <- t(X)%*%(boot_design_data$weight*e)
   LEFs[is.na(LEFs)] <- 0
@@ -389,9 +408,10 @@ surv_PP_difference_LEF_both_estimates_conf <- foreach(k = 1:500, .combine=cbind)
     dplyr::ungroup() %>% 
     dplyr::group_by(followup_time) %>% 
     dplyr::summarise(survival_treatment = mean(cum_hazard_treatment),
-                     survival_control = mean(cum_hazard_control))
+                     survival_control = mean(cum_hazard_control),
+                     survival_difference = survival_treatment - survival_control)
   
-  predicted_probas_PP_boot[,2] - predicted_probas_PP_boot[,3]
+  surv_PP_difference_LEF_both_estimates_conf[,k] <- pull(predicted_probas_PP_boot, survival_difference)
 }
 surv_PP_difference_LEF_both_estimates_conf$lb <-apply(surv_PP_difference_LEF_both_estimates_conf,
                                                       1,
@@ -403,13 +423,10 @@ surv_PP_difference_LEF_both_estimates_conf$ub <- apply(surv_PP_difference_LEF_bo
                                                        probs = c(0.975))
 
 
+CI_LEF_both_coefs_PP_red <- array(,dim = c(5,2))
+CI_LEF_both_coefs_PP_red[,1] <- 2*pull(predicted_probas_PP, survival_difference) - surv_PP_difference_LEF_both_estimates_conf$ub
+CI_LEF_both_coefs_PP_red[,2] <- 2*pull(predicted_probas_PP, survival_difference) - surv_PP_difference_LEF_both_estimates_conf$lb
 
-computation_time_coefs[3,i] <- (proc.time() - time)[[3]]
-CI_LEF_both_coefs_PP_red[,1,i] <- surv_PP_difference_LEF_both_estimates_conf$lb
-CI_LEF_both_coefs_PP_red[,2,i] <- surv_PP_difference_LEF_both_estimates_conf$ub
-
-
-time <- proc.time()
 ############################SANDWICH #######################################
 covariance_mat <-PP$robust$matrix
 if (all(eigen(covariance_mat)$values > 0) == F){
@@ -417,11 +434,11 @@ if (all(eigen(covariance_mat)$values > 0) == F){
   next
 }
 #Step 1 of algorithm  -- sampling Y_n1, ..., Y_nB ~ MN(coeffs,sandwich covariance)
-sampling_size <- 200
+sampling_size <- 500
 coeffs_sample <- mvrnorm(sampling_size,PP$model$coefficients, covariance_mat)
-
-surv_PP_difference_sandwich_estimates <- foreach(k = 1:sampling_size, .combine=cbind) %dopar% {
-  
+surv_PP_difference_sandwich_estimates <- as.data.frame(matrix(,5,500))
+for (k in 1:500){
+  print(k)
   #Step 1 of algorithm -- same model with new coeffs = one point from MVN sample
   fit_sample <- PP
   fit_sample$model$coefficients <- coeffs_sample[k,]
@@ -443,9 +460,10 @@ surv_PP_difference_sandwich_estimates <- foreach(k = 1:sampling_size, .combine=c
     dplyr::ungroup() %>% 
     dplyr::group_by(followup_time) %>% 
     dplyr::summarise(survival_treatment = mean(cum_hazard_treatment),
-                     survival_control = mean(cum_hazard_control))
+                     survival_control = mean(cum_hazard_control),
+                     survival_difference = survival_treatment - survival_control)
   
-  predicted_probas_PP_sample[,2] - predicted_probas_PP_sample[,3]
+  surv_PP_difference_sandwich_estimates[,k] <- pull(predicted_probas_PP_sample, survival_difference)
 }
 
 #Step 3 -- calculating lower and upper bounds by 2.5% and 97.5% quantiles
@@ -458,17 +476,22 @@ surv_PP_difference_sandwich_estimates$ub <- apply(surv_PP_difference_sandwich_es
                                                   quantile,
                                                   probs = c(0.975))
 
-
-computation_time_coefs[4,i] <- (proc.time() - time)[[3]]
-CI_sandwich_coefs_PP_red[,1,i] <- surv_PP_difference_sandwich_estimates$lb
-CI_sandwich_coefs_PP_red[,2,i] <- surv_PP_difference_sandwich_estimates$ub
-
+CI_sandwich_coefs_PP_red <- array(, dim = c(5,2))
+CI_sandwich_coefs_PP_red[,1] <- surv_PP_difference_sandwich_estimates$lb
+CI_sandwich_coefs_PP_red[,2] <- surv_PP_difference_sandwich_estimates$ub
+#
+#################### CURVE PLOT AND CIS ##################################
 ggplot(data = predicted_probas_PP, aes(followup_time)) +
   geom_step(aes(y = survival_difference)) +
-  geom_stepribbon(aes(ymin = survival_difference_lb_LEF_point, 
-                      ymax = survival_difference_ub_LEF_point, color = "LEF percentile"), alpha = 0.1) +
-  geom_stepribbon(aes(ymin = survival_difference_lb_boostrap, 
-                      ymax = survival_difference_ub_boostrap, color = "Direct Boot."), alpha = 0.3) +
-  scale_color_manual(name = "CI method", values = c("LEF percentile"= "red", "Direct Boot." = "blue")) +
+  geom_stepribbon(aes(ymin = CI_LEF_outcome_coefs_PP_red[,1],
+                      ymax = CI_LEF_outcome_coefs_PP_red[,2], color = "LEF outcome"), alpha = 0.1) +
+  geom_stepribbon(aes(ymin = CI_LEF_both_coefs_PP_red[,1],
+                      ymax = CI_LEF_both_coefs_PP_red[,2], color = "LEF both"), alpha = 0.1) +
+  geom_stepribbon(aes(ymin = CI_sandwich_coefs_PP_red[,1],
+                      ymax = CI_sandwich_coefs_PP_red[,2], color = "Sandwich"), alpha = 0.1) +
+  geom_stepribbon(aes(ymin = CI_bootstrap_coefs_PP_red[,1], 
+                      ymax = CI_bootstrap_coefs_PP_red[,2], color = "Direct Boot."), alpha = 0.1) +
+  scale_color_manual(name = "CI method", values = c("LEF outcome"= "green", "Direct Boot." = "red", "LEF both" = 'purple', "Sandwich" = 'blue')) +
   labs(x = 'Follow-up time', 
-       y = "Marginal risk difference", title = "PP analysis- CIs")
+       y = "Marginal risk difference", title = "HERS data analysis")
+$
