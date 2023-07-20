@@ -35,11 +35,10 @@ treat <- c(-1,0,1)
 conf <- c(0.1,0.5,0.9)
 
 scenarios <- as.data.frame(tidyr::crossing(size,conf, treat))
-
 bias_point <- array(,dim = c(5,27,3))
 sd_point <- array(,dim = c(5,27,3))
 mean_time <- data.frame(matrix(,nrow = 0, ncol = 8))
-
+true_value_red <- -true_value_red
 
 for (i in 1:27){
   for (j in 1:3){
@@ -55,15 +54,28 @@ for (i in 1:27){
     sandwich[,,,i,j] <- CI_sandwich_PP_red
     mean_time <- rbind(mean_time, c(outcomes[j], scenarios[i,1], scenarios[i,2],scenarios[i,3], rowMeans(computation_time, na.rm = TRUE)))
     scenario <- i%%9
-    est[,,i,j] <- estimates
+    est[,,i,j] <- -estimates
     if (scenario ==0){scenario <- 9}
-    bias_point[,i,j] <- rowMeans(estimates, na.rm = TRUE) - true_value_red[,scenario,j]
-    sd_point[,i,j] <- rowSds(estimates, na.rm = TRUE)
+    bias_point[,i,j] <- rowMeans(-estimates, na.rm = TRUE) - true_value_red[,scenario,j]
+    sd_point[,i,j] <- rowSds(-estimates, na.rm = TRUE)
   }
 }
 
-colnames(mean_time) <- c('Outcome prevalemce', 'Sample size', 'Confounding', 'Treatment prevalence', 'Bootstrap', 'LEF outcome',
-                         'LEF both', 'Sandwich')
+colnames(mean_time) <- c('Outcome_prevalence', 'Sample_size', 'Confounding', 'Treatment_prevalence', 'Bootstrap', 'LEF_outcome',
+                         'LEF_both', 'Sandwich')
+mean_time <- mean_time %>% 
+  dplyr::mutate(Sample_size = as.numeric(Sample_size),
+                Confounding = as.numeric(Confounding),
+                Treatment_prevalence = as.numeric(Treatment_prevalence),
+                Bootstrap = as.numeric(Bootstrap)/as.numeric(Sandwich),
+                LEF_outcome = as.numeric(LEF_outcome)/as.numeric(Sandwich),
+                LEF_both = as.numeric(LEF_both)/as.numeric(Sandwich),
+                Sandwich = 1) %>% 
+  dplyr::group_by(Outcome_prevalence,Sample_size) %>% 
+  dplyr::summarise(Bootstrap = mean(Bootstrap),
+                    LEF_outcome = mean(LEF_outcome),
+                    LEF_both = mean(LEF_both),
+                    sandwich = 1)
 
 ################BIAS, SD, MSE PLOTS ###################
 bias_plots_low <- lapply(1:27, function(i){
@@ -125,29 +137,29 @@ annotate_figure(ggarrange(plotlist = sd_plots_high[1:27], nrow = 3, ncol = 9), t
 
 mse_plots_low <- lapply(1:27, function(i){
   ggplot() +
-    geom_line(aes(x = 0:4, y = bias_point[,i,1]^2 + sd_point[,i,1]^2)) +
-    geom_point(aes(x = 0:4, y = bias_point[,i,1]^2 + sd_point[,i,1]^2)) +
+    geom_line(aes(x = 0:4, y = sqrt(bias_point[,i,1]^2 + sd_point[,i,1]^2))) +
+    geom_point(aes(x = 0:4, y = sqrt(bias_point[,i,1]^2 + sd_point[,i,1]^2))) +
     labs(x = paste0('N = ', scenarios[i,1], ',\nConfounding = ', scenarios[i,2], 
                     ',\nTreat. prev. = ',scenarios[i,3]),
-         y = "MSE") + theme(aspect.ratio = 1, axis.title = element_text(size = 10)) +  ylim(0,0.5)
+         y = "root MSE") + theme(aspect.ratio = 1, axis.title = element_text(size = 10)) +  ylim(0,0.5)
 })
 annotate_figure(ggarrange(plotlist = mse_plots_low[1:27], nrow = 3, ncol = 9), top = 'Low event rate')
 
 mse_plots_med <- lapply(1:27, function(i){
   ggplot() +
-    geom_line(aes(x = 0:4, y = bias_point[,i,2]^2 + sd_point[,i,2]^2)) +
-    geom_point(aes(x = 0:4, y = bias_point[,i,2]^2 + sd_point[,i,2]^2)) +
+    geom_line(aes(x = 0:4, y = sqrt(bias_point[,i,2]^2 + sd_point[,i,2]^2))) +
+    geom_point(aes(x = 0:4, y = sqrt(bias_point[,i,2]^2 + sd_point[,i,2]^2))) +
     labs(x = paste0('N = ', scenarios[i,1], ',\nConfounding = ', scenarios[i,2], ',\nTreat. prev. = ',scenarios[i,3]),
-         y = "MSE") + theme(aspect.ratio = 1, axis.title = element_text(size = 10))+  ylim(0,0.5)
+         y = "Root MSE") + theme(aspect.ratio = 1, axis.title = element_text(size = 10))+  ylim(0,0.5)
 })
 annotate_figure(ggarrange(plotlist = mse_plots_med[1:27], nrow = 3, ncol = 9), top = 'Medium event rate')
 
 mse_plots_high <- lapply(1:27, function(i){
   ggplot() +
-    geom_line(aes(x = 0:4, y = bias_point[,i,3]^2 + sd_point[,i,3]^2)) +
-    geom_point(aes(x = 0:4, y = bias_point[,i,3]^2 + sd_point[,i,3]^2)) +
+    geom_line(aes(x = 0:4, y = sqrt(bias_point[,i,3]^2 + sd_point[,i,3]^2))) +
+    geom_point(aes(x = 0:4, y = sqrt(bias_point[,i,3]^2 + sd_point[,i,3]^2))) +
     labs(x = paste0('N = ', scenarios[i,1], ',\nConfounding = ', scenarios[i,2], ',\nTreat. prev. = ',scenarios[i,3]),
-         y = "MSE") + theme(aspect.ratio = 1, axis.title = element_text(size = 10))+  ylim(0,0.5)
+         y = "Root MSE") + theme(aspect.ratio = 1, axis.title = element_text(size = 10))+  ylim(0,0.5)
 })
 annotate_figure(ggarrange(plotlist = mse_plots_high[1:27], nrow = 3, ncol = 9), top = 'High event rate')
 
@@ -249,6 +261,7 @@ for (i in 1:1000){
 
 bias_elim_coverage_ind <- bias_elim_coverage_ind/bias_elim_success
 
+
 pivot_coverage_ind <- array(0,dim = c(4,5,27,3))
 pivot_success <- array(0,dim = c(4,5,27,3))
 
@@ -345,6 +358,7 @@ for (i in 1:1000){
 
 bias_elim_pivot_coverage_ind <- bias_elim_pivot_coverage_ind/bias_elim_pivot_success
 
+###############COVERAGE PLOTS ####################
 coverage_low <-  lapply(1:27, function(i){
   ggplot() +
   geom_line(aes(x = 0:4, y = coverage_ind[1,,i,1], colour = "Bootstrap")) +
@@ -490,7 +504,7 @@ coverage_high <-  lapply(1:27, function(i){
 annotate_figure(ggarrange(plotlist = coverage_high[1:27], nrow = 3, ncol = 9, common.legend = T,
                           legend = 'bottom'), top = 'High event rate')
 ############### PIVOT COVERAGE #######################
-coverage_low <-  lapply(1:27, function(i){
+coverage_low <-  lapply(c(1,2,3,7,8,9,19,20,21,25,26,27), function(i){
   ggplot() +
     geom_line(aes(x = 0:4, y = pivot_coverage_ind[1,,i,1], colour = "Pivot Bootstrap")) +
     geom_point(aes(x = 0:4, y = pivot_coverage_ind[1,,i,1], colour = "Pivot Bootstrap")) +
@@ -511,7 +525,7 @@ coverage_low <-  lapply(1:27, function(i){
     theme(plot.title = element_text(size=10))+ theme(aspect.ratio = 1, axis.title = element_text(size = 10))
 }
 )
-annotate_figure(ggarrange(plotlist = coverage_low[1:27], nrow = 3, ncol = 9, common.legend = T,
+annotate_figure(ggarrange(plotlist = coverage_low, nrow = 2, ncol = 6, common.legend = T,
                           legend = 'bottom'), top = 'Low event rate')
 
 coverage_med <-  lapply(1:27, function(i){
@@ -538,7 +552,7 @@ coverage_med <-  lapply(1:27, function(i){
 annotate_figure(ggarrange(plotlist = coverage_med[1:27], nrow = 3, ncol = 9, common.legend = T,
                           legend = 'bottom'), top = 'Medium event rate')
 
-coverage_high <-  lapply(1:27, function(i){
+coverage_high <-  lapply(c(1,2,3,7,8,9,19,20,21,25,26,27), function(i){
   ggplot() +
     geom_line(aes(x = 0:4, y = pivot_coverage_ind[1,,i,3], colour = "Pivot Bootstrap")) +
     geom_point(aes(x = 0:4, y = pivot_coverage_ind[1,,i,3], colour = "Pivot Bootstrap")) +
@@ -559,11 +573,11 @@ coverage_high <-  lapply(1:27, function(i){
     theme(plot.title = element_text(size=10))+ theme(aspect.ratio = 1, axis.title = element_text(size = 10))
 }
 )
-annotate_figure(ggarrange(plotlist = coverage_high[1:27], nrow = 3, ncol = 9, common.legend = T,
+annotate_figure(ggarrange(plotlist = coverage_high, nrow = 2, ncol = 6, common.legend = T,
                           legend = 'bottom'), top = 'High event rate')
 
 ######################   BIAS ELIM PIVOT COVERAGE ########################
-coverage_low <-  lapply(1:27, function(i){
+coverage_low <-  lapply(c(1,2,3,7,8,9,19,20,21,25,26,27), function(i){
   ggplot() +
     geom_line(aes(x = 0:4, y = bias_elim_pivot_coverage_ind[1,,i,1], colour = "Pivot Bootstrap")) +
     geom_point(aes(x = 0:4, y = bias_elim_pivot_coverage_ind[1,,i,1], colour = "Pivot Bootstrap")) +
@@ -580,11 +594,11 @@ coverage_low <-  lapply(1:27, function(i){
          y = "Empirical coverage rate",
          title = paste("N =", scenarios[i,1],
                        '\nConfounding =',scenarios[i,2],
-                       '\nTreat. prev. =', scenarios[i,3]))+ ylim(0.3,1) + 
+                       '\nTreat. prev. =', scenarios[i,3]))+ ylim(0.2,1) + 
     theme(plot.title = element_text(size=10))+ theme(aspect.ratio = 1, axis.title = element_text(size = 10))
 }
 )
-annotate_figure(ggarrange(plotlist = coverage_low[1:27], nrow = 3, ncol = 9, common.legend = T,
+annotate_figure(ggarrange(plotlist = coverage_low, nrow = 2, ncol = 6, common.legend = T,
                           legend = 'bottom'), top = 'Low event rate')
 
 coverage_med <-  lapply(1:27, function(i){
@@ -604,14 +618,14 @@ coverage_med <-  lapply(1:27, function(i){
          y = "Empirical coverage rate",
          title = paste("N =", scenarios[i,1],
                        '\nConfounding =',scenarios[i,2],
-                       '\nTreat. prev. =', scenarios[i,3]))+ ylim(0.3,1) + 
+                       '\nTreat. prev. =', scenarios[i,3]))+ ylim(0.2,1) + 
     theme(plot.title = element_text(size=10))+ theme(aspect.ratio = 1, axis.title = element_text(size = 10))
 }
 )
 annotate_figure(ggarrange(plotlist = coverage_med[1:27], nrow = 3, ncol = 9, common.legend = T,
                           legend = 'bottom'), top = 'Medium event rate')
 
-coverage_high <-  lapply(1:27, function(i){
+coverage_high <-  lapply(c(1,2,3,7,8,9,19,20,21,25,26,27), function(i){
   ggplot() +
     geom_line(aes(x = 0:4, y = bias_elim_pivot_coverage_ind[1,,i,3], colour = "Pivot Bootstrap")) +
     geom_point(aes(x = 0:4, y = bias_elim_pivot_coverage_ind[1,,i,3], colour = "Pivot Bootstrap")) +
@@ -628,12 +642,31 @@ coverage_high <-  lapply(1:27, function(i){
          y = "Empirical coverage rate",
          title = paste("N =", scenarios[i,1],
                        '\nConfounding =',scenarios[i,2],
-                       '\nTreat. prev. =', scenarios[i,3]))+ ylim(0.3,1) + 
+                       '\nTreat. prev. =', scenarios[i,3]))+ ylim(0.2,1) + 
     theme(plot.title = element_text(size=10))+ theme(aspect.ratio = 1, axis.title = element_text(size = 10))
 }
 )
-annotate_figure(ggarrange(plotlist = coverage_high[1:27], nrow = 3, ncol = 9, common.legend = T,
+annotate_figure(ggarrange(plotlist = coverage_high, nrow = 2, ncol = 6, common.legend = T,
                           legend = 'bottom'), top = 'High event rate')
+
+######################PIVOT FAILURE RATE #######################
+failure_table <- data.frame(matrix(,nrow = 0, ncol = 8))
+for (i in 1:27){
+  for (j in 1:3){
+    failure_table <- rbind(failure_table, c(outcomes[j], scenarios[i,1], scenarios[i,2],scenarios[i,3], 
+                                            (1000 - pivot_success[,1,i,j])/1000))
+  }
+}
+colnames(failure_table) <- c('Outcome_prevalence', 'Sample_size', 'Confounding', 'Treatment_prevalence', 'Bootstrap', 'LEF_outcome',
+                         'LEF_both', 'Sandwich')
+failure_table$Sample_size <- as.numeric(failure_table$Sample_size)
+failure_table <- failure_table %>% 
+  dplyr::group_by(Outcome_prevalence, Sample_size, Confounding, Treatment_prevalence) %>% 
+  dplyr::summarise(Bootstrap = mean(as.numeric(Bootstrap)),
+                   LEF_outcome = mean(as.numeric(LEF_outcome)),
+                   LEF_both = mean(as.numeric(LEF_both)),
+                   Sandwich = mean(as.numeric(Sandwich)))
+
 ################ MC SE PLOTS #######################
 MC_SE<- array(, dim = c(4,5,27,3))
 for (i in 1:27){
@@ -757,7 +790,7 @@ MCSE_med <-  lapply(1:27, function(i){
          y = "MC SE",
          title = paste("N =", scenarios[i,1],
                        '\nConfounding =',scenarios[i,2],
-                       '\nTreat. prev. =', scenarios[i,3]))+ ylim(0,0.03) + 
+                       '\nTreat. prev. =', scenarios[i,3])) + 
     theme(plot.title = element_text(size=10))+ theme(aspect.ratio = 1, axis.title = element_text(size = 10))
 }
 )
@@ -787,6 +820,7 @@ MCSE_high <-  lapply(1:27, function(i){
 annotate_figure(ggarrange(plotlist = MCSE_high[1:27], nrow = 3, ncol = 9, common.legend = T,
                           legend = 'bottom'), top = 'High event rate')
 
+################WEIGHTS########################
 weights_low <- lapply(1:27, function(i){
   simdata_censored<-DATA_GEN_censored_reduced(as.numeric(scenarios[i,1]), 5, 
                                               conf = as.numeric(scenarios[i,2]), 
@@ -801,12 +835,13 @@ weights_low <- lapply(1:27, function(i){
                                               save_weight_models = F,
                                               data_dir = data_direction)
   ggplot() +
-    geom_histogram(aes(x = PP_prep$data$weight),bins = 50) +
+    geom_density(aes(x = PP_prep$data$weight)) +
     labs(x =   paste0('Max weight = ',round(max(PP_prep$data$weight),2)),
-         y = "Count",
+         y = "Density",
          title = paste("N =", scenarios[i,1],
                        '\nConfounding =',scenarios[i,2],
                        '\nTreat. prev. =', scenarios[i,3])) + 
+      xlim(-1,3) + 
     theme(plot.title = element_text(size=10))+ theme(aspect.ratio = 1, axis.title = element_text(size = 10))
 })
 annotate_figure(ggarrange(plotlist = weights_low[1:27], nrow = 3, ncol = 9), top = 'Low event rate')
@@ -825,12 +860,13 @@ weights_med <- lapply(1:27, function(i){
                                               save_weight_models = F,
                                               data_dir = data_direction)
   ggplot() +
-    geom_histogram(aes(x = PP_prep$data$weight),bins = 50) +
-    labs(x =  paste0('Max weight = ',round(max(PP_prep$data$weight),2)),
-         y = "Count",
+    geom_density(aes(x = PP_prep$data$weight)) +
+    labs(x =   paste0('Max weight = ',round(max(PP_prep$data$weight),2)),
+         y = "Density",
          title = paste("N =", scenarios[i,1],
                        '\nConfounding =',scenarios[i,2],
                        '\nTreat. prev. =', scenarios[i,3])) + 
+    xlim(-1,3) + 
     theme(plot.title = element_text(size=10))+ theme(aspect.ratio = 1, axis.title = element_text(size = 10))
 })
 annotate_figure(ggarrange(plotlist = weights_med[1:27], nrow = 3, ncol = 9), top = 'Medium event rate')
@@ -849,12 +885,13 @@ weights_high <- lapply(1:27, function(i){
                                               save_weight_models = F,
                                               data_dir = data_direction)
   ggplot() +
-    geom_histogram(aes(x = PP_prep$data$weight),bins = 50) +
-    labs(x =  paste0('Max weight = ',round(max(PP_prep$data$weight),2)),
-         y = "Count",
+    geom_density(aes(x = PP_prep$data$weight)) +
+    labs(x =   paste0('Max weight = ',round(max(PP_prep$data$weight),2)),
+         y = "Density",
          title = paste("N =", scenarios[i,1],
                        '\nConfounding =',scenarios[i,2],
                        '\nTreat. prev. =', scenarios[i,3])) + 
+    xlim(-1,3) + 
     theme(plot.title = element_text(size=10))+ theme(aspect.ratio = 1, axis.title = element_text(size = 10))
 })
 annotate_figure(ggarrange(plotlist = weights_high[1:27], nrow = 3, ncol = 9), top = 'High event rate')

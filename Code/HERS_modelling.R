@@ -1,5 +1,6 @@
 load('hers.Rdata')
 library(modelr)
+library(reshape2)
 library(tidyverse)
 library(tidyr)
 source("simulate_MSM_simplified.R")
@@ -10,6 +11,7 @@ library(MASS)
 library(sandwich)
 library(doParallel)
 library(doRNG)
+library(pammtools)
 
 ############# DATA PREPARATION ##################
 HERS$Y <- as.factor(HERS$Y)
@@ -56,6 +58,14 @@ PP_prep <- TrialEmulation::data_preparation(data = HERS, id='ID', period='t', tr
                                             data_dir = data_direction)
 switch_data <- PP_prep$data %>% 
   dplyr::mutate(haartCD4_1 = assigned_treatment*CD4_1)
+
+summary_trial0 <- switch_data %>% 
+  dplyr::filter(for_period == 4,followup_time == 0) %>% 
+  dplyr::count(assigned_treatment)
+
+summary_trial0 <- HERS %>% 
+  dplyr::group_by(t) %>% 
+  dplyr::count(A)
 
 PP <- TrialEmulation::data_modelling(data = switch_data,
                                      outcome_cov = ~ CD4_1 + CD4_2 + viral_1 + viral_2 + SITE1 + SITE2 + SITE3 + WHITE + OTHER + assigned_treatment+
@@ -118,10 +128,10 @@ predicted_probas_PP <- fitting_data_treatment %>%
   dplyr::group_by(followup_time) %>% 
   dplyr::summarise(survival_treatment = mean(cum_hazard_treatment),
                    survival_control = mean(cum_hazard_control),
-                   survival_difference = survival_treatment - survival_control)
+                   risk_difference = survival_control - survival_treatment)
 
-ggplot() +geom_line(aes(x = 0:4,y = pull(predicted_probas_PP,survival_difference)))+
-  geom_point(aes(x = 0:4,y = pull(predicted_probas_PP,survival_difference)))
+ggplot() +geom_line(aes(x = 0:4,y = pull(predicted_probas_PP,risk_difference)))+
+  geom_point(aes(x = 0:4,y = pull(predicted_probas_PP,risk_difference)))
 
 boot_data_conf <- list()
 for (k in 1:500) {
@@ -223,8 +233,8 @@ surv_PP_difference_boostrap_estimates_conf$ub <- apply(surv_PP_difference_boostr
                                                        quantile,
                                                        probs = c(0.975))
 CI_bootstrap_coefs_PP_red <- array(, dim = c(5,2))
-CI_bootstrap_coefs_PP_red[,1] <- 2*pull(predicted_probas_PP,survival_difference) - surv_PP_difference_boostrap_estimates_conf$ub
-CI_bootstrap_coefs_PP_red[,2] <- 2*pull(predicted_probas_PP,survival_difference) - surv_PP_difference_boostrap_estimates_conf$lb
+CI_bootstrap_coefs_PP_red[,1] <-  2*pull(predicted_probas_PP,risk_difference) - surv_PP_difference_boostrap_estimates_conf$lb
+CI_bootstrap_coefs_PP_red[,2] <- 2*pull(predicted_probas_PP,risk_difference) - surv_PP_difference_boostrap_estimates_conf$ub
 
 ################### LEF OUTCOME ONLY ##################################
 X <- model.matrix(PP$model)
@@ -295,11 +305,9 @@ surv_PP_difference_LEF_outcome_estimates_conf$ub <- apply(surv_PP_difference_LEF
                                                           probs = c(0.975))
 
 CI_LEF_outcome_coefs_PP_red <- array(,dim = c(5,2))
-computation_time_coefs[2,i] <- (proc.time() - time)[[3]]
-CI_LEF_outcome_coefs_PP_red[,1] <- 2*pull(predicted_probas_PP,survival_difference) - surv_PP_difference_LEF_outcome_estimates_conf$ub
-CI_LEF_outcome_coefs_PP_red[,2] <- 2*pull(predicted_probas_PP,survival_difference) - surv_PP_difference_LEF_outcome_estimates_conf$lb
+CI_LEF_outcome_coefs_PP_red[,1] <- 2*pull(predicted_probas_PP,risk_difference) - surv_PP_difference_LEF_outcome_estimates_conf$lb
+CI_LEF_outcome_coefs_PP_red[,2] <- 2*pull(predicted_probas_PP,risk_difference) - surv_PP_difference_LEF_outcome_estimates_conf$ub
 
-time <- proc.time()
 #################### LEF WEIGHT AND OUTCOME  ##############################
 X_sw_d0 <- model.matrix(switch_d0)
 e_sw_d0 <- switch_d0$y - switch_d0$fitted.values
@@ -424,8 +432,8 @@ surv_PP_difference_LEF_both_estimates_conf$ub <- apply(surv_PP_difference_LEF_bo
 
 
 CI_LEF_both_coefs_PP_red <- array(,dim = c(5,2))
-CI_LEF_both_coefs_PP_red[,1] <- 2*pull(predicted_probas_PP, survival_difference) - surv_PP_difference_LEF_both_estimates_conf$ub
-CI_LEF_both_coefs_PP_red[,2] <- 2*pull(predicted_probas_PP, survival_difference) - surv_PP_difference_LEF_both_estimates_conf$lb
+CI_LEF_both_coefs_PP_red[,1] <- 2*pull(predicted_probas_PP, risk_difference) - surv_PP_difference_LEF_both_estimates_conf$lb
+CI_LEF_both_coefs_PP_red[,2] <- 2*pull(predicted_probas_PP, risk_difference) - surv_PP_difference_LEF_both_estimates_conf$ub
 
 ############################SANDWICH #######################################
 covariance_mat <-PP$robust$matrix
@@ -461,9 +469,9 @@ for (k in 1:500){
     dplyr::group_by(followup_time) %>% 
     dplyr::summarise(survival_treatment = mean(cum_hazard_treatment),
                      survival_control = mean(cum_hazard_control),
-                     survival_difference = survival_treatment - survival_control)
+                     risk_difference = survival_control - survival_treatment)
   
-  surv_PP_difference_sandwich_estimates[,k] <- pull(predicted_probas_PP_sample, survival_difference)
+  surv_PP_difference_sandwich_estimates[,k] <- pull(predicted_probas_PP_sample, risk_difference)
 }
 
 #Step 3 -- calculating lower and upper bounds by 2.5% and 97.5% quantiles
@@ -481,8 +489,8 @@ CI_sandwich_coefs_PP_red[,1] <- surv_PP_difference_sandwich_estimates$lb
 CI_sandwich_coefs_PP_red[,2] <- surv_PP_difference_sandwich_estimates$ub
 #
 #################### CURVE PLOT AND CIS ##################################
-ggplot(data = predicted_probas_PP, aes(followup_time)) +
-  geom_step(aes(y = survival_difference)) +
+ggplot(data = predicted_probas_PP,aes(x = followup_time)) +
+  geom_step(aes(x = followup_time,y = risk_difference)) +
   geom_stepribbon(aes(ymin = CI_LEF_outcome_coefs_PP_red[,1],
                       ymax = CI_LEF_outcome_coefs_PP_red[,2], color = "LEF outcome"), alpha = 0.1) +
   geom_stepribbon(aes(ymin = CI_LEF_both_coefs_PP_red[,1],
@@ -490,8 +498,8 @@ ggplot(data = predicted_probas_PP, aes(followup_time)) +
   geom_stepribbon(aes(ymin = CI_sandwich_coefs_PP_red[,1],
                       ymax = CI_sandwich_coefs_PP_red[,2], color = "Sandwich"), alpha = 0.1) +
   geom_stepribbon(aes(ymin = CI_bootstrap_coefs_PP_red[,1], 
-                      ymax = CI_bootstrap_coefs_PP_red[,2], color = "Direct Boot."), alpha = 0.1) +
-  scale_color_manual(name = "CI method", values = c("LEF outcome"= "green", "Direct Boot." = "red", "LEF both" = 'purple', "Sandwich" = 'blue')) +
+                      ymax = CI_bootstrap_coefs_PP_red[,2], color = "Nonparametric Boot."), alpha = 0.1) +
+  scale_color_manual(name = "CI method", values = c("LEF outcome"= "green", "Nonparametric Boot." = "red", "LEF both" = 'purple', "Sandwich" = 'blue')) +
   labs(x = 'Follow-up time', 
        y = "Marginal risk difference", title = "HERS data analysis")
-$
+

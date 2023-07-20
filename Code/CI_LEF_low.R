@@ -50,8 +50,7 @@ for (i in 1:iters){
                                                 eligible ='eligible',
                                                 switch_d_cov = ~X2 + X4,
                                                 outcome_cov = ~X2 + X4, model_var = c('assigned_treatment'),
-                                                include_regime_length = F,
-                                                use_weight=1, use_censor=1, quiet = T,
+                                                use_weight=T, use_censor=T, quiet = T,
                                                 save_weight_models = T,
                                                 data_dir = data_direction)
     switch_data <- PP_prep$data %>% 
