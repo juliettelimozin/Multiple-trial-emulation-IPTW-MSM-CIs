@@ -98,7 +98,7 @@ weight_model_censor_d0 <- glm(C ~ CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsy
                               family = binomial(link = "logit"), data = HERS[HERS$Ap == 0])
 
 
-hers_data_one_trial <- HERS %>% 
+hers_data_tradi <- HERS %>% 
   dplyr::arrange(ID, t) %>% 
   dplyr::mutate(weight_A = 1/ifelse(Ap == 1 & A == 1, 
                                     predict.glm(weight_model_switch_d1,HERS[HERS$Ap == 1],
@@ -144,10 +144,10 @@ hers_data_one_trial <- HERS %>%
                 first(CAp) == 0)
 
 
-fit_one_trial <- glm(formula = outcome ~ assigned_treatment + CD4_1 + CD4_2 + 
+fit_tradi <- glm(formula = outcome ~ assigned_treatment + CD4_1 + CD4_2 + 
                        viral_1 + viral_2 + SITE1 + SITE2 + SITE3 + WHITE + OTHER + 
-                       haartCD4_1 + CA , family = binomial(link = "logit"), data = hers_data_one_trial, 
-                     weights = hers_data_one_trial[["weight"]])
+                       haartCD4_1 + CA , family = binomial(link = "logit"), data = hers_data_tradi, 
+                     weights = hers_data_tradi[["weight"]])
 
 
 
@@ -205,15 +205,15 @@ predicted_probas_PP <- fitting_data_treatment %>%
                    survival_control = mean(cum_hazard_control),
                    risk_difference = survival_control - survival_treatment)
 
-Y_pred_PP_treatment_one_trial <- predict.glm(fit_one_trial, 
+Y_pred_PP_treatment_tradi <- predict.glm(fit_tradi, 
                                    fitting_data_treatment, 
                                    type = "response")
-Y_pred_PP_control_one_trial <- predict.glm(fit_one_trial, 
+Y_pred_PP_control_tradi <- predict.glm(fit_tradi, 
                                  fitting_data_control,
                                  type = "response")
-predicted_probas_PP_one_trial <- fitting_data_treatment %>% 
-  dplyr::mutate(predicted_proba_treatment = Y_pred_PP_treatment_one_trial,
-                predicted_proba_control = Y_pred_PP_control_one_trial) %>% 
+predicted_probas_PP_tradi <- fitting_data_treatment %>% 
+  dplyr::mutate(predicted_proba_treatment = Y_pred_PP_treatment_tradi,
+                predicted_proba_control = Y_pred_PP_control_tradi) %>% 
   dplyr::group_by(id, for_period) %>% 
   dplyr::mutate(cum_hazard_treatment = cumprod(1-predicted_proba_treatment),
                 cum_hazard_control = cumprod(1-predicted_proba_control)) %>% 
@@ -223,9 +223,9 @@ predicted_probas_PP_one_trial <- fitting_data_treatment %>%
                    survival_control = mean(cum_hazard_control),
                    risk_difference = survival_control - survival_treatment)
 
-ggplot() +geom_line(aes(x = 0:4,y = pull(predicted_probas_PP_one_trial,risk_difference), 
+ggplot() +geom_line(aes(x = 0:4,y = pull(predicted_probas_PP_tradi,risk_difference), 
                         color = 'Traditional IPW-MSM analysis'))+
-  geom_point(aes(x = 0:4,y = pull(predicted_probas_PP_one_trial,risk_difference)))+ 
+  geom_point(aes(x = 0:4,y = pull(predicted_probas_PP_tradi,risk_difference)))+ 
   geom_line(aes(x = 0:4,y = pull(predicted_probas_PP,risk_difference), 
                 color = 'Sequential trial emulation analysis'))+
   geom_point(aes(x = 0:4,y = pull(predicted_probas_PP,risk_difference))) + 
@@ -244,7 +244,7 @@ registerDoParallel(cores = 2)
 
 ############################# DIRECT BOOTSTRAP #############################
 surv_PP_difference_boostrap_estimates_conf <-as.data.frame(matrix(,5,500))
-surv_PP_difference_boostrap_estimates_conf_one_trial <-as.data.frame(matrix(,5,500))
+surv_PP_difference_boostrap_estimates_conf_tradi <-as.data.frame(matrix(,5,500))
 
 for (k in 1:500){
   print(k)
@@ -279,7 +279,7 @@ for (k in 1:500){
                                 family = binomial(link = "logit"), data = HERS[HERS$Ap == 1& HERS$ID %in% boot_data_conf[[k]]])
   weight_model_censor_d0_boot <- glm(C ~ CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE1 + SITE2 + SITE3 + WHITE + OTHER,
                                 family = binomial(link = "logit"), data = HERS[HERS$Ap == 0& HERS$ID %in% boot_data_conf[[k]]])
-  boot_design_data_one_trial <-  HERS[HERS$ID %in% boot_data_conf[[k]]] %>% 
+  boot_design_data_tradi <-  HERS[HERS$ID %in% boot_data_conf[[k]]] %>% 
     dplyr::arrange(ID, t) %>% 
     dplyr::mutate(weight_A = 1/ifelse(Ap == 1 & A == 1, 
                                       predict.glm(weight_model_switch_d1_boot,HERS[HERS$Ap == 1& HERS$ID %in% boot_data_conf[[k]]],
@@ -327,10 +327,10 @@ for (k in 1:500){
     merge(weights_table_boot, by = 'id', all.y = TRUE) %>% 
     dplyr::mutate(weight = ifelse(weight_boot !=0,weight*weight_boot,0))
   
-  fit_one_trial_boot <- glm(formula = outcome ~ assigned_treatment + CD4_1 + CD4_2 + 
+  fit_tradi_boot <- glm(formula = outcome ~ assigned_treatment + CD4_1 + CD4_2 + 
                          viral_1 + viral_2 + SITE1 + SITE2 + SITE3 + WHITE + OTHER + 
-                         haartCD4_1 + CA , family = binomial(link = "logit"), data = boot_design_data_one_trial, 
-                       weights = boot_design_data_one_trial[["weight"]])
+                         haartCD4_1 + CA , family = binomial(link = "logit"), data = boot_design_data_tradi, 
+                       weights = boot_design_data_tradi[["weight"]])
   ###########
   PP_boot <- TrialEmulation::data_modelling(data = boot_design_data,
                                             outcome_cov = ~ CD4_1 + CD4_2 + viral_1 + viral_2 + SITE1 + SITE2 + SITE3 + WHITE + OTHER + assigned_treatment+
@@ -395,15 +395,15 @@ for (k in 1:500){
                      survival_control = mean(cum_hazard_control),
                      risk_difference = survival_control - survival_treatment)
   
-  Y_pred_PP_treatment_one_trial_boot <- predict.glm(fit_one_trial_boot, 
+  Y_pred_PP_treatment_tradi_boot <- predict.glm(fit_tradi_boot, 
                                                fitting_data_treatment_boot, 
                                                type = "response")
-  Y_pred_PP_control_one_trial_boot <- predict.glm(fit_one_trial_boot, 
+  Y_pred_PP_control_tradi_boot <- predict.glm(fit_tradi_boot, 
                                              fitting_data_control_boot,
                                              type = "response")
-  predicted_probas_PP_one_trial_boot <- fitting_data_treatment_boot %>% 
-    dplyr::mutate(predicted_proba_treatment = Y_pred_PP_treatment_one_trial_boot,
-                  predicted_proba_control = Y_pred_PP_control_one_trial_boot) %>% 
+  predicted_probas_PP_tradi_boot <- fitting_data_treatment_boot %>% 
+    dplyr::mutate(predicted_proba_treatment = Y_pred_PP_treatment_tradi_boot,
+                  predicted_proba_control = Y_pred_PP_control_tradi_boot) %>% 
     dplyr::group_by(id, for_period) %>% 
     dplyr::mutate(cum_hazard_treatment = cumprod(1-predicted_proba_treatment),
                   cum_hazard_control = cumprod(1-predicted_proba_control)) %>% 
@@ -413,20 +413,8 @@ for (k in 1:500){
                      survival_control = mean(cum_hazard_control),
                      risk_difference = survival_control - survival_treatment)
   
-  ggplot() +geom_line(aes(x = 0:4,y = pull(predicted_probas_PP_one_trial_boot,risk_difference), 
-                          color = 'Traditional IPW-MSM analysis'))+
-    geom_point(aes(x = 0:4,y = pull(predicted_probas_PP_one_trial_boot,risk_difference)))+ 
-    geom_line(aes(x = 0:4,y = pull(predicted_probas_PP_boot,risk_difference), 
-                  color = 'Sequential trial emulation analysis'))+
-    geom_point(aes(x = 0:4,y = pull(predicted_probas_PP_boot,risk_difference))) + 
-    scale_color_manual(name = "Per-protocol analysis method",
-                       values = c("Traditional IPW-MSM analysis"= "red",
-                                  "Sequential trial emulation analysis" = "blue")) +
-    labs(x = 'Follow-up time', 
-         y = "Marginal risk difference", title = "HERS data analysis")
-  
   surv_PP_difference_boostrap_estimates_conf[,k] <-pull(predicted_probas_PP_boot,risk_difference)
-  surv_PP_difference_boostrap_estimates_conf_one_trial[,k] <-pull(predicted_probas_PP_one_trial_boot,
+  surv_PP_difference_boostrap_estimates_conf_tradi[,k] <-pull(predicted_probas_PP_tradi_boot,
                                                                   risk_difference)
 }
 
@@ -442,28 +430,28 @@ CI_bootstrap_coefs_PP_red <- array(, dim = c(5,2))
 CI_bootstrap_coefs_PP_red[,1] <-  2*pull(predicted_probas_PP,risk_difference) - surv_PP_difference_boostrap_estimates_conf$ub
 CI_bootstrap_coefs_PP_red[,2] <- 2*pull(predicted_probas_PP,risk_difference) - surv_PP_difference_boostrap_estimates_conf$lb
 
-surv_PP_difference_boostrap_estimates_conf_one_trial$lb <- apply(surv_PP_difference_boostrap_estimates_conf_one_trial,
+surv_PP_difference_boostrap_estimates_conf_tradi$lb <- apply(surv_PP_difference_boostrap_estimates_conf_tradi,
                                                        1,
                                                        quantile,
                                                        probs = c(0.025))
-surv_PP_difference_boostrap_estimates_conf_one_trial$ub <- apply(surv_PP_difference_boostrap_estimates_conf_one_trial,
+surv_PP_difference_boostrap_estimates_conf_tradi$ub <- apply(surv_PP_difference_boostrap_estimates_conf_tradi,
                                                        1,
                                                        quantile,
                                                        probs = c(0.975))
-CI_bootstrap_coefs_PP_red_one_trial <- array(, dim = c(5,2))
-CI_bootstrap_coefs_PP_red_one_trial[,1] <-  2*pull(predicted_probas_PP_one_trial,risk_difference) - surv_PP_difference_boostrap_estimates_conf_one_trial$ub
-CI_bootstrap_coefs_PP_red_one_trial[,2] <- 2*pull(predicted_probas_PP_one_trial,risk_difference) - surv_PP_difference_boostrap_estimates_conf_one_trial$lb
+CI_bootstrap_coefs_PP_red_tradi <- array(, dim = c(5,2))
+CI_bootstrap_coefs_PP_red_tradi[,1] <-  2*pull(predicted_probas_PP_tradi,risk_difference) - surv_PP_difference_boostrap_estimates_conf_tradi$ub
+CI_bootstrap_coefs_PP_red_tradi[,2] <- 2*pull(predicted_probas_PP_tradi,risk_difference) - surv_PP_difference_boostrap_estimates_conf_tradi$lb
 
-ggplot() +geom_line(aes(x = 0:4,y = pull(predicted_probas_PP_one_trial,risk_difference), 
+ggplot() +geom_line(aes(x = 0:4,y = pull(predicted_probas_PP_tradi,risk_difference), 
                         color = 'Traditional IPW-MSM analysis'))+
-  geom_point(aes(x = 0:4,y = pull(predicted_probas_PP_one_trial,risk_difference)))+ 
+  geom_point(aes(x = 0:4,y = pull(predicted_probas_PP_tradi,risk_difference)))+ 
   geom_line(aes(x = 0:4,y = pull(predicted_probas_PP,risk_difference), 
                 color = 'Sequential trial emulation analysis'))+
   geom_point(aes(x = 0:4,y = pull(predicted_probas_PP,risk_difference))) + 
   geom_stepribbon(aes(x = 0:4,ymin = CI_bootstrap_coefs_PP_red[,1], 
                       ymax = CI_bootstrap_coefs_PP_red[,2], color = "Sequential trial emulation analysis"), alpha = 0.1) +
-  geom_stepribbon(aes(x = 0:4,ymin = CI_bootstrap_coefs_PP_red_one_trial[,1], 
-                      ymax = CI_bootstrap_coefs_PP_red_one_trial[,2], color = "Traditional IPW-MSM analysis"), alpha = 0.1) +
+  geom_stepribbon(aes(x = 0:4,ymin = CI_bootstrap_coefs_PP_red_tradi[,1], 
+                      ymax = CI_bootstrap_coefs_PP_red_tradi[,2], color = "Traditional IPW-MSM analysis"), alpha = 0.1) +
   scale_color_manual(name = "Per-protocol analysis method",
                      values = c("Traditional IPW-MSM analysis"= "red",
                                 "Sequential trial emulation analysis" = "blue")) +
@@ -528,15 +516,15 @@ for (k in 1:500){
                      survival_control = mean(cum_hazard_control),
                      survival_difference = survival_treatment - survival_control)
   
-  Y_pred_PP_treatment_one_trial <- predict.glm(fit_one_trial, 
+  Y_pred_PP_treatment_tradi <- predict.glm(fit_tradi, 
                                                fitting_data_treatment, 
                                                type = "response")
-  Y_pred_PP_control_one_trial <- predict.glm(fit_one_trial, 
+  Y_pred_PP_control_tradi <- predict.glm(fit_tradi, 
                                              fitting_data_control,
                                              type = "response")
-  predicted_probas_PP_one_trial <- fitting_data_treatment %>% 
-    dplyr::mutate(predicted_proba_treatment = Y_pred_PP_treatment_one_trial,
-                  predicted_proba_control = Y_pred_PP_control_one_trial) %>% 
+  predicted_probas_PP_tradi <- fitting_data_treatment %>% 
+    dplyr::mutate(predicted_proba_treatment = Y_pred_PP_treatment_tradi,
+                  predicted_proba_control = Y_pred_PP_control_tradi) %>% 
     dplyr::group_by(id, for_period) %>% 
     dplyr::mutate(cum_hazard_treatment = cumprod(1-predicted_proba_treatment),
                   cum_hazard_control = cumprod(1-predicted_proba_control)) %>% 
@@ -755,3 +743,4 @@ ggplot(data = predicted_probas_PP,aes(x = 0:4)) +
   labs(x = 'Follow-up time', 
        y = "Marginal risk difference", title = "HERS data analysis")
 
+rmarkdown::render("HERS_modelling.R", "pdf_document")
