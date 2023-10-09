@@ -6,13 +6,13 @@ f <- function(y) {
   return(seq(0, y$t[last_ind]))
 }
 
-for_period_func <- function(x) {
+trial_period_func <- function(x) {
   # Dummy variables used in data.table calls declared to prevent package check NOTES:
-  t <- ID <- for_period <- NULL
+  t <- ID <- trial_period <- NULL
   
   x_new <- x[rep(seq_len(.N), t + 1), list(ID, t)]
-  x_new[, for_period := f(.BY), by = list(ID, t)]
-  return(x_new[, for_period])
+  x_new[, trial_period := f(.BY), by = list(ID, t)]
+  return(x_new[, trial_period])
 }
 
 quiet_print <- function(quiet, x, ...) {
@@ -563,15 +563,15 @@ weight_func_bootstrap <- function(data,
   
   #new_data[, outcome_new := data[expand_index, Y]]
   new_data[, weight0 := data[expand_index, weight0]]
-  new_data[, for_period := for_period_func(data)]
+  new_data[, trial_period := trial_period_func(data)]
   new_data[, index := seq_len(.N)]
   
-  new_data <- new_data[temp_data, on = list(id = id, for_period = period)]
+  new_data <- new_data[temp_data, on = list(id = id, trial_period = period)]
   setorder(new_data, index)
-  new_data[, followup_time := period_new - for_period]
+  new_data[, followup_time := period_new - trial_period]
   new_data[, weight := (weight0 / wtprod)]
   
-  output_data <- new_data[expanded_data, on = list( id = id, for_period = for_period, 
+  output_data <- new_data[expanded_data, on = list( id = id, trial_period = trial_period, 
                                                     followup_time = followup_time)] %>%
     dplyr::select(names(expanded_data))
   

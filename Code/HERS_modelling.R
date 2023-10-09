@@ -1,3 +1,4 @@
+setwd("~/Documents/MPhil PHS 21-22/Multiple-trial-emulation-IPTW-MSM-CIs/Code")
 load('hers.Rdata')
 library(modelr)
 library(reshape2)
@@ -13,6 +14,8 @@ library(doParallel)
 library(doRNG)
 library(pammtools)
 library(lmtest)
+library(xtable)
+
 ############# DATA PREPARATION ##################
 HERS$Y <- as.factor(HERS$Y)
 HERS$t <- HERS$visit - 8
@@ -61,19 +64,19 @@ switch_data <- PP_prep$data %>%
   dplyr::mutate(haartCD4_1 = assigned_treatment*CD4_1)
 
 summary_trial0 <- switch_data %>% 
-  dplyr::filter(for_period == 4,followup_time == 0) %>% 
+  dplyr::filter(trial_period == 4,followup_time == 0) %>% 
   dplyr::count(assigned_treatment)
 
 summary_trial0 <- HERS %>% 
   dplyr::group_by(t) %>% 
   dplyr::count(A)
 
-PP <- TrialEmulation::data_modelling(data = switch_data,
+PP <- TrialEmulation::trial_msm(data = switch_data,
                                      outcome_cov = ~ CD4_1 + CD4_2 + viral_1 + viral_2 + SITE1 + SITE2 + SITE3 + WHITE + OTHER + assigned_treatment+
                                        haartCD4_1,
                                      model_var = c('assigned_treatment'),
                                      glm_function = 'glm',
-                                     include_expansion_time = ~1, include_followup_time = ~1,
+                                     include_trial_period = ~1, include_followup_time = ~1,
                                      use_weight=T, use_censor=T, quiet = F, use_sample_weights =  F)
 
 
@@ -144,39 +147,39 @@ hers_data_tradi <- HERS %>%
                 first(CAp) == 0)
 
 
-fit_tradi <- glm(formula = outcome ~ assigned_treatment + CD4_1 + CD4_2 + 
+fit_tradi <- glm(formula = outcome ~  CA +CD4_1 + CD4_2 + 
                        viral_1 + viral_2 + SITE1 + SITE2 + SITE3 + WHITE + OTHER + 
-                       haartCD4_1 + CA , family = binomial(link = "logit"), data = hers_data_tradi, 
+                       haartCD4_1 , family = binomial(link = "logit"), data = hers_data_tradi, 
                      weights = hers_data_tradi[["weight"]])
 
-
+print(xtable(as.data.frame(summary(fit_tradi)$coefficients), type = "latex", digits = 4))
 
 design_mat <- expand.grid(id = 1:609,
-                          for_period = 0:4,
+                          trial_period = 0:4,
                           followup_time = 0:4) 
-design_mat <- design_mat[which(5 -design_mat$for_period > design_mat$followup_time),]
+design_mat <- design_mat[which(5 -design_mat$trial_period > design_mat$followup_time),]
 
 fitting_data_treatment <-  switch_data %>% 
   dplyr::mutate(assigned_treatment = followup_time*0 + 1) %>% 
-  dplyr::select(id,for_period, followup_time,CD4_1 , CD4_2 , viral_1 , 
+  dplyr::select(id,trial_period, followup_time,CD4_1 , CD4_2 , viral_1 , 
                 viral_2 , SITE1 , SITE2 , SITE3 , WHITE , OTHER , assigned_treatment,
                   haartCD4_1) %>% 
-  merge(design_mat, by = c("id", "for_period", "followup_time"), all.y = TRUE) %>% 
+  merge(design_mat, by = c("id", "trial_period", "followup_time"), all.y = TRUE) %>% 
   dplyr::group_by(id) %>% 
   tidyr::fill(CD4_1 , CD4_2 , viral_1 , viral_2 , SITE1 , SITE2 , SITE3 , WHITE , OTHER , assigned_treatment,
               haartCD4_1,.direction = "down") %>% 
   dplyr::ungroup() %>% 
-  dplyr::select(id, for_period, followup_time,CD4_1 , CD4_2 , viral_1 , 
+  dplyr::select(id, trial_period, followup_time,CD4_1 , CD4_2 , viral_1 , 
                 viral_2 , SITE1 , SITE2 , SITE3 , WHITE , OTHER , assigned_treatment,
                 haartCD4_1) %>% 
-  merge(data.frame(id = switch_data$id, for_period = switch_data$for_period), 
-        by = c("id", "for_period"), all.y = TRUE) %>% 
-  dplyr::arrange(id, for_period, followup_time) %>% 
+  merge(data.frame(id = switch_data$id, trial_period = switch_data$trial_period), 
+        by = c("id", "trial_period"), all.y = TRUE) %>% 
+  dplyr::arrange(id, trial_period, followup_time) %>% 
   dplyr::mutate(haartCD4_1 = assigned_treatment*CD4_1,
                 tA = as.factor(followup_time * assigned_treatment),
                 followup_time = as.factor(followup_time)) %>% 
   distinct() %>% 
-  dplyr::filter(for_period == 0) %>% 
+  dplyr::filter(trial_period == 0) %>% 
   dplyr::group_by(id) %>% 
   dplyr::mutate(CA = cumsum(assigned_treatment)) %>% 
   dplyr::ungroup()
@@ -196,7 +199,7 @@ Y_pred_PP_control <- predict.glm(PP$model,
 predicted_probas_PP <- fitting_data_treatment %>% 
   dplyr::mutate(predicted_proba_treatment = Y_pred_PP_treatment,
                 predicted_proba_control = Y_pred_PP_control) %>% 
-  dplyr::group_by(id, for_period) %>% 
+  dplyr::group_by(id, trial_period) %>% 
   dplyr::mutate(cum_hazard_treatment = cumprod(1-predicted_proba_treatment),
                 cum_hazard_control = cumprod(1-predicted_proba_control)) %>% 
   dplyr::ungroup() %>% 
@@ -214,7 +217,7 @@ Y_pred_PP_control_tradi <- predict.glm(fit_tradi,
 predicted_probas_PP_tradi <- fitting_data_treatment %>% 
   dplyr::mutate(predicted_proba_treatment = Y_pred_PP_treatment_tradi,
                 predicted_proba_control = Y_pred_PP_control_tradi) %>% 
-  dplyr::group_by(id, for_period) %>% 
+  dplyr::group_by(id, trial_period) %>% 
   dplyr::mutate(cum_hazard_treatment = cumprod(1-predicted_proba_treatment),
                 cum_hazard_control = cumprod(1-predicted_proba_control)) %>% 
   dplyr::ungroup() %>% 
@@ -233,7 +236,7 @@ ggplot() +geom_line(aes(x = 0:4,y = pull(predicted_probas_PP_tradi,risk_differen
                      values = c("Traditional IPW-MSM analysis"= "red",
                                 "Sequential trial emulation analysis" = "blue")) +
   labs(x = 'Follow-up time', 
-       y = "Marginal risk difference", title = "HERS data analysis")
+       y = "Marginal risk difference", title = "HERS data analysis: comparison of\nsequential trial emulation and IPW-MSM")
 
 
 boot_data_conf <- list()
@@ -332,41 +335,41 @@ for (k in 1:500){
                          haartCD4_1 + CA , family = binomial(link = "logit"), data = boot_design_data_tradi, 
                        weights = boot_design_data_tradi[["weight"]])
   ###########
-  PP_boot <- TrialEmulation::data_modelling(data = boot_design_data,
+  PP_boot <- TrialEmulation::trial_msm(data = boot_design_data,
                                             outcome_cov = ~ CD4_1 + CD4_2 + viral_1 + viral_2 + SITE1 + SITE2 + SITE3 + WHITE + OTHER + assigned_treatment+
                                               haartCD4_1,
                                             model_var = c('assigned_treatment'),
                                             glm_function = 'glm',
-                                            include_expansion_time = ~1, include_followup_time = ~1,
+                                            include_trial_period = ~1, include_followup_time = ~1,
                                             use_weight=T, use_censor=T, quiet = T, use_sample_weights =  F)
   
 
   design_mat <- expand.grid(id = 1:tail(boot_design_data$id, n = 1), 
-                            for_period = 0:4,
+                            trial_period = 0:4,
                             followup_time = 0:4)
-  design_mat <- design_mat[which(5 -design_mat$for_period > design_mat$followup_time),]
+  design_mat <- design_mat[which(5 -design_mat$trial_period > design_mat$followup_time),]
   
   fitting_data_treatment_boot <-  boot_design_data %>% 
     dplyr::mutate(assigned_treatment = followup_time*0 + 1) %>% 
-    dplyr::select(id,for_period, followup_time,CD4_1 , CD4_2 , viral_1 , 
+    dplyr::select(id,trial_period, followup_time,CD4_1 , CD4_2 , viral_1 , 
                   viral_2 , SITE1 , SITE2 , SITE3 , WHITE , OTHER , assigned_treatment,
                   haartCD4_1) %>% 
-    merge(design_mat, by = c("id", "for_period", "followup_time"), all.y = TRUE) %>% 
+    merge(design_mat, by = c("id", "trial_period", "followup_time"), all.y = TRUE) %>% 
     dplyr::group_by(id) %>% 
     tidyr::fill(CD4_1 , CD4_2 , viral_1 , viral_2 , SITE1 , SITE2 , SITE3 , WHITE , OTHER , assigned_treatment,
                 haartCD4_1,.direction = "down") %>% 
     dplyr::ungroup() %>% 
-    dplyr::select(id, for_period, followup_time,CD4_1 , CD4_2 , viral_1 , 
+    dplyr::select(id, trial_period, followup_time,CD4_1 , CD4_2 , viral_1 , 
                   viral_2 , SITE1 , SITE2 , SITE3 , WHITE , OTHER , assigned_treatment,
                   haartCD4_1) %>% 
-    merge(data.frame(id = switch_data$id, for_period = switch_data$for_period), 
-          by = c("id", "for_period"), all.y = TRUE) %>% 
-    dplyr::arrange(id, for_period, followup_time) %>% 
+    merge(data.frame(id = switch_data$id, trial_period = switch_data$trial_period), 
+          by = c("id", "trial_period"), all.y = TRUE) %>% 
+    dplyr::arrange(id, trial_period, followup_time) %>% 
     dplyr::mutate(haartCD4_1 = assigned_treatment*CD4_1,
                   tA = as.factor(followup_time * assigned_treatment),
                   followup_time = as.factor(followup_time)) %>% 
     distinct() %>% 
-    dplyr::filter(for_period == 0) %>% 
+    dplyr::filter(trial_period == 0) %>% 
     dplyr::group_by(id) %>% 
     dplyr::mutate(CA = cumsum(assigned_treatment)) %>% 
     dplyr::ungroup()
@@ -386,7 +389,7 @@ for (k in 1:500){
   predicted_probas_PP_boot <- fitting_data_treatment_boot %>% 
     dplyr::mutate(predicted_proba_treatment = Y_pred_PP_treatment_boot,
                   predicted_proba_control = Y_pred_PP_control_boot) %>% 
-    dplyr::group_by(id, for_period) %>% 
+    dplyr::group_by(id, trial_period) %>% 
     dplyr::mutate(cum_hazard_treatment = cumprod(1-predicted_proba_treatment),
                   cum_hazard_control = cumprod(1-predicted_proba_control)) %>% 
     dplyr::ungroup() %>% 
@@ -404,7 +407,7 @@ for (k in 1:500){
   predicted_probas_PP_tradi_boot <- fitting_data_treatment_boot %>% 
     dplyr::mutate(predicted_proba_treatment = Y_pred_PP_treatment_tradi_boot,
                   predicted_proba_control = Y_pred_PP_control_tradi_boot) %>% 
-    dplyr::group_by(id, for_period) %>% 
+    dplyr::group_by(id, trial_period) %>% 
     dplyr::mutate(cum_hazard_treatment = cumprod(1-predicted_proba_treatment),
                   cum_hazard_control = cumprod(1-predicted_proba_control)) %>% 
     dplyr::ungroup() %>% 
@@ -456,7 +459,8 @@ ggplot() +geom_line(aes(x = 0:4,y = pull(predicted_probas_PP_tradi,risk_differen
                      values = c("Traditional IPW-MSM analysis"= "red",
                                 "Sequential trial emulation analysis" = "blue")) +
   labs(x = 'Follow-up time', 
-       y = "Marginal risk difference", title = "HERS data analysis")
+       y = "Marginal risk difference", title = "HERS data analysis: comparison of\nsequential trial emulation and IPW-MSM")
+
 
 ################### LEF OUTCOME ONLY ##################################
 X <- model.matrix(PP$model)
@@ -487,7 +491,7 @@ for (k in 1:500){
   boot_design_data <- IP_model$data %>%
     merge(weights_table_boot, by = 'id', all.y = TRUE) %>% 
     dplyr::mutate(weight = ifelse(weight_boot !=0,weight*weight_boot,0)) %>% 
-    dplyr::filter(!is.na(for_period))
+    dplyr::filter(!is.na(trial_period))
   
   LEFs <- t(X)%*%(boot_design_data$weight*e)
   LEFs[is.na(LEFs)] <- 0
@@ -507,7 +511,7 @@ for (k in 1:500){
   predicted_probas_PP_boot <- fitting_data_treatment %>% 
     dplyr::mutate(predicted_proba_treatment = Y_pred_PP_treatment_boot,
                   predicted_proba_control = Y_pred_PP_control_boot) %>% 
-    dplyr::group_by(id, for_period) %>% 
+    dplyr::group_by(id, trial_period) %>% 
     dplyr::mutate(cum_hazard_treatment = cumprod(1-predicted_proba_treatment),
                   cum_hazard_control = cumprod(1-predicted_proba_control)) %>% 
     dplyr::ungroup() %>% 
@@ -525,7 +529,7 @@ for (k in 1:500){
   predicted_probas_PP_tradi <- fitting_data_treatment %>% 
     dplyr::mutate(predicted_proba_treatment = Y_pred_PP_treatment_tradi,
                   predicted_proba_control = Y_pred_PP_control_tradi) %>% 
-    dplyr::group_by(id, for_period) %>% 
+    dplyr::group_by(id, trial_period) %>% 
     dplyr::mutate(cum_hazard_treatment = cumprod(1-predicted_proba_treatment),
                   cum_hazard_control = cumprod(1-predicted_proba_control)) %>% 
     dplyr::ungroup() %>% 
@@ -629,7 +633,7 @@ for (k in 1:500){
   boot_design_data <- IP_model$data %>%
     merge(weights_table_boot, by = 'id', all.y = TRUE) %>% 
     dplyr::mutate(weight = ifelse(weight_boot !=0,weight*weight_boot,0))%>% 
-    dplyr::filter(!is.na(for_period))
+    dplyr::filter(!is.na(trial_period))
   
   LEFs <- t(X)%*%(boot_design_data$weight*e)
   LEFs[is.na(LEFs)] <- 0
@@ -650,7 +654,7 @@ for (k in 1:500){
   predicted_probas_PP_boot <- fitting_data_treatment %>% 
     dplyr::mutate(predicted_proba_treatment = Y_pred_PP_treatment_boot,
                   predicted_proba_control = Y_pred_PP_control_boot) %>% 
-    dplyr::group_by(id, for_period) %>% 
+    dplyr::group_by(id, trial_period) %>% 
     dplyr::mutate(cum_hazard_treatment = cumprod(1-predicted_proba_treatment),
                   cum_hazard_control = cumprod(1-predicted_proba_control)) %>% 
     dplyr::ungroup() %>% 
@@ -702,7 +706,7 @@ for (k in 1:500){
   predicted_probas_PP_sample <- fitting_data_treatment %>% 
     dplyr::mutate(predicted_proba_treatment = Y_pred_sample_treatment,
                   predicted_proba_control = Y_pred_sample_control) %>% 
-    dplyr::group_by(id, for_period) %>% 
+    dplyr::group_by(id, trial_period) %>% 
     dplyr::mutate(cum_hazard_treatment = cumprod(1-predicted_proba_treatment),
                   cum_hazard_control = cumprod(1-predicted_proba_control)) %>% 
     dplyr::ungroup() %>% 
@@ -729,6 +733,23 @@ CI_sandwich_coefs_PP_red[,1] <- surv_PP_difference_sandwich_estimates$lb
 CI_sandwich_coefs_PP_red[,2] <- surv_PP_difference_sandwich_estimates$ub
 #
 #################### CURVE PLOT AND CIS ##################################
+
+ggplot() +geom_line(aes(x = 0:4,y = pull(predicted_probas_PP_tradi,risk_difference), 
+                        color = 'Traditional IPW-MSM analysis'))+
+  geom_point(aes(x = 0:4,y = pull(predicted_probas_PP_tradi,risk_difference)))+ 
+  geom_line(aes(x = 0:4,y = pull(predicted_probas_PP,risk_difference), 
+                color = 'Sequential trial emulation analysis'))+
+  geom_point(aes(x = 0:4,y = pull(predicted_probas_PP,risk_difference))) + 
+  geom_stepribbon(aes(x = 0:4,ymin = CI_bootstrap_coefs_PP_red[,1], 
+                      ymax = CI_bootstrap_coefs_PP_red[,2], color = "Sequential trial emulation analysis"), alpha = 0.1) +
+  geom_stepribbon(aes(x = 0:4,ymin = CI_bootstrap_coefs_PP_red_tradi[,1], 
+                      ymax = CI_bootstrap_coefs_PP_red_tradi[,2], color = "Traditional IPW-MSM analysis"), alpha = 0.1) +
+  scale_color_manual(name = "Per-protocol analysis method",
+                     values = c("Traditional IPW-MSM analysis"= "red",
+                                "Sequential trial emulation analysis" = "blue")) +
+  labs(x = 'Follow-up time', 
+       y = "Marginal risk difference", title = "HERS data analysis")
+
 ggplot(data = predicted_probas_PP,aes(x = 0:4)) +
   geom_step(aes(x = 0:4,y = risk_difference)) +
   geom_stepribbon(aes(ymin = CI_LEF_outcome_coefs_PP_red[,1],
@@ -741,6 +762,6 @@ ggplot(data = predicted_probas_PP,aes(x = 0:4)) +
                       ymax = CI_bootstrap_coefs_PP_red[,2], color = "Nonparametric Boot."), alpha = 0.1) +
   scale_color_manual(name = "CI method", values = c("LEF outcome"= "green", "Nonparametric Boot." = "red", "LEF both" = 'purple', "Sandwich" = 'blue')) +
   labs(x = 'Follow-up time', 
-       y = "Marginal risk difference", title = "HERS data analysis")
+       y = "Marginal risk difference", title = "HERS data analysis: sequential trial emulation")
 
-rmarkdown::render("HERS_modelling.R", "pdf_document")
+ 
