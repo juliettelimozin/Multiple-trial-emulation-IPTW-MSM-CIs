@@ -95,15 +95,32 @@ weight_model_switch_d1 <- glm(A ~ CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+
                               family = binomial(link = "logit"), data = HERS[HERS$Ap == 1])
 weight_model_switch_d0 <- glm(A ~ CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE1 + SITE2 + SITE3 + WHITE + OTHER,
                               family = binomial(link = "logit"), data = HERS[HERS$Ap == 0])
+weight_model_switch_n1 <- glm(A ~ 1,
+                              family = binomial(link = "logit"), data = HERS[HERS$Ap == 1])
+weight_model_switch_n0 <- glm(A ~ 1,
+                              family = binomial(link = "logit"), data = HERS[HERS$Ap == 0])
 weight_model_censor_d1 <- glm(C ~ CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE1 + SITE2 + SITE3 + WHITE + OTHER,
                                family = binomial(link = "logit"), data = HERS[HERS$Ap == 1])
 weight_model_censor_d0 <- glm(C ~ CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE1 + SITE2 + SITE3 + WHITE + OTHER,
+                              family = binomial(link = "logit"), data = HERS[HERS$Ap == 0])
+weight_model_censor_n1 <- glm(C ~ 1,
+                             family = binomial(link = "logit"), data = HERS[HERS$Ap == 1])
+weight_model_censor_n0 <- glm(C ~ 1,
                               family = binomial(link = "logit"), data = HERS[HERS$Ap == 0])
 
 
 hers_data_tradi <- HERS %>% 
   dplyr::arrange(ID, t) %>% 
-  dplyr::mutate(weight_A = 1/ifelse(Ap == 1 & A == 1, 
+  dplyr::mutate(weight_A = ifelse(Ap == 1 & A == 1, 
+                                  predict.glm(weight_model_switch_n1,HERS[HERS$Ap == 1],
+                                              type = 'response'),
+                                  ifelse(Ap == 1 & A == 0,
+                                         1-predict.glm(weight_model_switch_n1,HERS[HERS$Ap == 1], type = 'response'),
+                                         ifelse(Ap ==0 & A == 1,
+                                                predict.glm(weight_model_switch_n0,HERS[HERS$Ap == 0],
+                                                            type = 'response'),
+                                                1-predict.glm(weight_model_switch_n0,HERS[HERS$Ap == 0],
+                                                              type = 'response'))))/ifelse(Ap == 1 & A == 1, 
                                     predict.glm(weight_model_switch_d1,HERS[HERS$Ap == 1],
                                                 type = 'response'),
                                     ifelse(Ap == 1 & A == 0,
@@ -113,7 +130,14 @@ hers_data_tradi <- HERS %>%
                                                                               type = 'response'),
                                                   1-predict.glm(weight_model_switch_d0,HERS[HERS$Ap == 0],
                                                               type = 'response')))),
-                weight_C = 1/ifelse(Ap == 1 & C == 1, 
+                weight_C = ifelse(Ap == 1 & C == 1, 
+                                  predict.glm(weight_model_censor_n1,HERS[HERS$Ap == 1],
+                                              type = 'response'),
+                                  ifelse(Ap == 1 & C == 0,1-predict.glm(weight_model_censor_n1,HERS[HERS$Ap == 1], type = 'response'),
+                                         ifelse(Ap ==0 & C == 1,predict.glm(weight_model_switch_n0,HERS[HERS$Ap == 0],
+                                                                            type = 'response'),
+                                                1-predict.glm(weight_model_censor_n0,HERS[HERS$Ap == 0],
+                                                              type = 'response'))))/ifelse(Ap == 1 & C == 1, 
                                   predict.glm(weight_model_censor_d1,HERS[HERS$Ap == 1],
                                               type = 'response'),
                                   ifelse(Ap == 1 & C == 0,1-predict.glm(weight_model_censor_d1,HERS[HERS$Ap == 1], type = 'response'),
@@ -145,6 +169,14 @@ hers_data_tradi <- HERS %>%
   dplyr::group_by(ID) %>% 
   dplyr::filter(
                 first(CAp) == 0)
+
+summary(hers_data_tradi$weight)
+sd(hers_data_tradi$weight)
+quantile(hers_data_tradi$weight, c(0.01,0.99))
+
+summary(switch_data$weight)
+sd(switch_data$weight)
+quantile(switch_data$weight, c(0.01,0.99))
 
 
 fit_tradi <- glm(formula = outcome ~  CA +CD4_1 + CD4_2 + 
@@ -278,13 +310,30 @@ for (k in 1:500){
                                 family = binomial(link = "logit"), data = HERS[HERS$Ap == 1 & HERS$ID %in% boot_data_conf[[k]]])
   weight_model_switch_d0_boot <- glm(A ~ CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE1 + SITE2 + SITE3 + WHITE + OTHER,
                                 family = binomial(link = "logit"), data = HERS[HERS$Ap == 0& HERS$ID %in% boot_data_conf[[k]]])
+  weight_model_switch_n1_boot <- glm(A ~ 1,
+                                     family = binomial(link = "logit"), data = HERS[HERS$Ap == 1 & HERS$ID %in% boot_data_conf[[k]]])
+  weight_model_switch_n0_boot <- glm(A ~ 1,
+                                     family = binomial(link = "logit"), data = HERS[HERS$Ap == 0& HERS$ID %in% boot_data_conf[[k]]])
   weight_model_censor_d1_boot <- glm(C ~ CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE1 + SITE2 + SITE3 + WHITE + OTHER,
                                 family = binomial(link = "logit"), data = HERS[HERS$Ap == 1& HERS$ID %in% boot_data_conf[[k]]])
   weight_model_censor_d0_boot <- glm(C ~ CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE1 + SITE2 + SITE3 + WHITE + OTHER,
                                 family = binomial(link = "logit"), data = HERS[HERS$Ap == 0& HERS$ID %in% boot_data_conf[[k]]])
+  weight_model_censor_n1_boot <- glm(C ~1,
+                                     family = binomial(link = "logit"), data = HERS[HERS$Ap == 1& HERS$ID %in% boot_data_conf[[k]]])
+  weight_model_censor_n0_boot <- glm(C ~ 1,
+                                     family = binomial(link = "logit"), data = HERS[HERS$Ap == 0& HERS$ID %in% boot_data_conf[[k]]])
   boot_design_data_tradi <-  HERS[HERS$ID %in% boot_data_conf[[k]]] %>% 
     dplyr::arrange(ID, t) %>% 
-    dplyr::mutate(weight_A = 1/ifelse(Ap == 1 & A == 1, 
+    dplyr::mutate(weight_A = ifelse(Ap == 1 & A == 1, 
+                                    predict.glm(weight_model_switch_n1_boot,HERS[HERS$Ap == 1& HERS$ID %in% boot_data_conf[[k]]],
+                                                type = 'response'),
+                                    ifelse(Ap == 1 & A == 0,
+                                           1-predict.glm(weight_model_switch_n1_boot,HERS[HERS$Ap == 1& HERS$ID %in% boot_data_conf[[k]]], type = 'response'),
+                                           ifelse(Ap ==0 & A == 1,
+                                                  predict.glm(weight_model_switch_n0_boot,HERS[HERS$Ap == 0& HERS$ID %in% boot_data_conf[[k]]],
+                                                              type = 'response'),
+                                                  1-predict.glm(weight_model_switch_n0_boot,HERS[HERS$Ap == 0& HERS$ID %in% boot_data_conf[[k]]],
+                                                                type = 'response'))))/ifelse(Ap == 1 & A == 1, 
                                       predict.glm(weight_model_switch_d1_boot,HERS[HERS$Ap == 1& HERS$ID %in% boot_data_conf[[k]]],
                                                   type = 'response'),
                                       ifelse(Ap == 1 & A == 0,
@@ -294,7 +343,14 @@ for (k in 1:500){
                                                                 type = 'response'),
                                                     1-predict.glm(weight_model_switch_d0_boot,HERS[HERS$Ap == 0& HERS$ID %in% boot_data_conf[[k]]],
                                                                   type = 'response')))),
-                  weight_C = 1/ifelse(Ap == 1 & C == 1, 
+                  weight_C = ifelse(Ap == 1 & C == 1, 
+                                    predict.glm(weight_model_censor_n1_boot,HERS[HERS$Ap == 1& HERS$ID %in% boot_data_conf[[k]]],
+                                                type = 'response'),
+                                    ifelse(Ap == 1 & C == 0,1-predict.glm(weight_model_censor_n1_boot,HERS[HERS$Ap == 1& HERS$ID %in% boot_data_conf[[k]]], type = 'response'),
+                                           ifelse(Ap ==0 & C == 1,predict.glm(weight_model_switch_n0_boot,HERS[HERS$Ap == 0& HERS$ID %in% boot_data_conf[[k]]],
+                                                                              type = 'response'),
+                                                  1-predict.glm(weight_model_censor_n0_boot,HERS[HERS$Ap == 0& HERS$ID %in% boot_data_conf[[k]]],
+                                                                type = 'response'))))/ifelse(Ap == 1 & C == 1, 
                                       predict.glm(weight_model_censor_d1_boot,HERS[HERS$Ap == 1& HERS$ID %in% boot_data_conf[[k]]],
                                                   type = 'response'),
                                       ifelse(Ap == 1 & C == 0,1-predict.glm(weight_model_censor_d1_boot,HERS[HERS$Ap == 1& HERS$ID %in% boot_data_conf[[k]]], type = 'response'),

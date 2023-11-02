@@ -19,6 +19,11 @@ library(ggplot2)
 library(pammtools)
 library(doRNG)
 library(matrixStats)
+library(latex2exp)
+library(grDevices)
+library(xtable)
+
+
 
 bootstrap <- array(,dim = c(5,2,1000,27,3))
 LEF_outcome <- array(,dim = c(5,2,1000,27,3))
@@ -78,90 +83,57 @@ mean_time <- mean_time %>%
                     sandwich = 1)
 
 ################BIAS, SD, MSE PLOTS ###################
-bias_plots_low <- lapply(1:27, function(i){
+bias_plots <- lapply(1:27, function(i){
   ggplot() +
-    geom_line(aes(x = 0:4, y = bias_point[,i,1])) +
-    geom_point(aes(x = 0:4, y = bias_point[,i,1])) +
-    labs(x = paste0('N = ', scenarios[i,1], ',\nConfounding = ', scenarios[i,2], ', \nTreat. prev. = ',scenarios[i,3]),
-         y = "Empirical bias") + theme(aspect.ratio = 1, axis.title = element_text(size = 10)) +  
-    ylim(-0.1,0.3)
+    geom_line(aes(x = 0:4, y = bias_point[,i,1], colour = 'Low')) +
+    geom_point(aes(x = 0:4, y = bias_point[,i,1], colour = 'Low')) +
+    geom_line(aes(x = 0:4, y = bias_point[,i,2], colour = 'Medium')) +
+    geom_point(aes(x = 0:4, y = bias_point[,i,2], colour = 'Medium')) +
+    geom_line(aes(x = 0:4, y = bias_point[,i,3], colour = 'High')) +
+    geom_point(aes(x = 0:4, y = bias_point[,i,3], colour = 'High')) +
+    xlab(bquote(paste('N = ',.(scenarios[i,1]),", ", alpha[c] == .(scenarios[i,2]),', ',alpha[a] == .(scenarios[i,3])))) +
+    ylab("Empirical bias") + 
+    theme(aspect.ratio = 1,axis.title=element_text(size=10), axis.text = element_text(size=8)) +  
+    scale_color_manual(name = "Event rate", values = c("Low"= "red", "Medium" = "blue",
+                                                    "High" = "green")) +
+    ylim(-0.1,0.1)
 })
-annotate_figure(ggarrange(plotlist = bias_plots_low[1:27], nrow = 3, ncol = 9), top = 'Low event rate')
+annotate_figure(ggarrange(plotlist = bias_plots[1:27], nrow = 3, ncol = 9, common.legend = T, legend = 'bottom'), top = 'MRD estimation bias')
 
-bias_plots_med <- lapply(1:27, function(i){
+sd_plots <- lapply(1:27, function(i){
   ggplot() +
-    geom_line(aes(x = 0:4, y = bias_point[,i,2])) +
-    geom_point(aes(x = 0:4, y = bias_point[,i,2])) +
-    labs(x = paste0('N = ', scenarios[i,1], ',\nConfounding = ', scenarios[i,2], ', \nTreat. prev. = ',scenarios[i,3]),
-         y = "Empirical bias") + theme(aspect.ratio = 1, axis.title = element_text(size = 10))+  
-    ylim(-0.1,0.3)
+    geom_line(aes(x = 0:4, y = sd_point[,i,1], colour = 'Low')) +
+    geom_point(aes(x = 0:4, y = sd_point[,i,1], colour = 'Low')) +
+    geom_line(aes(x = 0:4, y = sd_point[,i,2], colour = 'Medium')) +
+    geom_point(aes(x = 0:4, y = sd_point[,i,2], colour = 'Medium')) +
+    geom_line(aes(x = 0:4, y = sd_point[,i,3], colour = 'High')) +
+    geom_point(aes(x = 0:4, y = sd_point[,i,3], colour = 'High')) +
+    xlab(bquote(paste('N = ',.(scenarios[i,1]),", ", alpha[c] == .(scenarios[i,2]),', ',alpha[a] == .(scenarios[i,3])))) +
+    ylab("Empirical SD") + 
+    theme(aspect.ratio = 1,axis.title=element_text(size=10), axis.text = element_text(size=8)) +  
+    scale_color_manual(name = "Event rate", values = c("Low"= "red", "Medium" = "blue",
+                                                       "High" = "green")) +
+    ylim(0,0.28)
 })
-annotate_figure(ggarrange(plotlist = bias_plots_med[1:27], nrow = 3, ncol = 9), top = 'Medium event rate')
+annotate_figure(ggarrange(plotlist = sd_plots[1:27], nrow = 3, ncol = 9, common.legend = T, legend = 'bottom'), top = 'MRD estimation SD')
 
-bias_plots_high <- lapply(1:27, function(i){
+mse_plots <- lapply(1:27, function(i){
   ggplot() +
-    geom_line(aes(x = 0:4, y = bias_point[,i,3])) +
-    geom_point(aes(x = 0:4, y = bias_point[,i,3])) +
-    labs(x = paste0('N = ', scenarios[i,1], ',\nConfounding = ', scenarios[i,2], ', \nTreat. prev. = ',scenarios[i,3]),
-         y = "Empirical bias") + theme(aspect.ratio = 1, axis.title = element_text(size = 10))+  
-    ylim(-0.1,0.3)
+  geom_line(aes(x = 0:4, y = sqrt(bias_point[,i,1]^2 + sd_point[,i,1]^2), colour = 'Low')) +
+    geom_point(aes(x = 0:4, y = sqrt(bias_point[,i,1]^2 + sd_point[,i,1]^2), colour = 'Low')) +
+    geom_line(aes(x = 0:4, y = sqrt(bias_point[,i,2]^2 + sd_point[,i,2]^2), colour = 'Medium')) +
+    geom_point(aes(x = 0:4, y = sqrt(bias_point[,i,2]^2 + sd_point[,i,2]^2), colour = 'Medium')) +
+    geom_line(aes(x = 0:4, y = sqrt(bias_point[,i,3]^2 + sd_point[,i,3]^2), colour = 'High')) +
+    geom_point(aes(x = 0:4, y = sqrt(bias_point[,i,3]^2 + sd_point[,i,3]^2), colour = 'High')) +
+    xlab(bquote(paste('N = ',.(scenarios[i,1]),", ", alpha[c] == .(scenarios[i,2]),', ',alpha[a] == .(scenarios[i,3])))) +
+    ylab("Empirical root-MSE") + 
+    theme(aspect.ratio = 1,axis.title=element_text(size=10), axis.text = element_text(size=8)) +  
+    scale_color_manual(name = "Event rate", values = c("Low"= "red", "Medium" = "blue",
+                                                       "High" = "green")) +
+    ylim(0,0.3)
 })
-annotate_figure(ggarrange(plotlist = bias_plots_high[1:27], nrow = 3, ncol = 9), top = 'High event rate')
+annotate_figure(ggarrange(plotlist = mse_plots[1:27], nrow = 3, ncol = 9, common.legend = T, legend = 'bottom'), top = 'MRD estimation root-MSE')
 
-sd_plots_low <- lapply(1:27, function(i){
-  ggplot() +
-    geom_line(aes(x = 0:4, y = sd_point[,i,1])) +
-    geom_point(aes(x = 0:4, y = sd_point[,i,1])) +
-    labs(x = paste0('N = ', scenarios[i,1], ',\nConfounding = ', scenarios[i,2], ', \nTreat. prev. = ',scenarios[i,3]),
-         y = "Empirical SD") + theme(aspect.ratio = 1, axis.title = element_text(size = 10)) +  ylim(0,0.3)
-})
-annotate_figure(ggarrange(plotlist = sd_plots_low[1:27], nrow = 3, ncol = 9), top = 'Low event rate')
-
-sd_plots_med <- lapply(1:27, function(i){
-  ggplot() +
-    geom_line(aes(x = 0:4, y = sd_point[,i,2])) +
-    geom_point(aes(x = 0:4, y = sd_point[,i,2])) +
-    labs(x = paste0('N = ', scenarios[i,1], ',\nConfounding = ', scenarios[i,2], ', \nTreat. prev. = ',scenarios[i,3]),
-         y = "Empirical SD") + theme(aspect.ratio = 1, axis.title = element_text(size = 10))+  ylim(0,0.3)
-})
-annotate_figure(ggarrange(plotlist = sd_plots_med[1:27], nrow = 3, ncol = 9), top = 'Medium event rate')
-
-sd_plots_high <- lapply(1:27, function(i){
-  ggplot() +
-    geom_line(aes(x = 0:4, y = sd_point[,i,3])) +
-    geom_point(aes(x = 0:4, y = sd_point[,i,3])) +
-    labs(x = paste0('N = ', scenarios[i,1], ',\nConfounding = ', scenarios[i,2], ', \nTreat. prev. = ',scenarios[i,3]),
-         y = "Empirical SD") + theme(aspect.ratio = 1, axis.title = element_text(size = 10))+ ylim(0,0.3)
-})
-annotate_figure(ggarrange(plotlist = sd_plots_high[1:27], nrow = 3, ncol = 9), top = 'High event rate')
-
-mse_plots_low <- lapply(1:27, function(i){
-  ggplot() +
-    geom_line(aes(x = 0:4, y = sqrt(bias_point[,i,1]^2 + sd_point[,i,1]^2))) +
-    geom_point(aes(x = 0:4, y = sqrt(bias_point[,i,1]^2 + sd_point[,i,1]^2))) +
-    labs(x = paste0('N = ', scenarios[i,1], ',\nConfounding = ', scenarios[i,2], 
-                    ',\nTreat. prev. = ',scenarios[i,3]),
-         y = "root MSE") + theme(aspect.ratio = 1, axis.title = element_text(size = 10)) +  ylim(0,0.5)
-})
-annotate_figure(ggarrange(plotlist = mse_plots_low[1:27], nrow = 3, ncol = 9), top = 'Low event rate')
-
-mse_plots_med <- lapply(1:27, function(i){
-  ggplot() +
-    geom_line(aes(x = 0:4, y = sqrt(bias_point[,i,2]^2 + sd_point[,i,2]^2))) +
-    geom_point(aes(x = 0:4, y = sqrt(bias_point[,i,2]^2 + sd_point[,i,2]^2))) +
-    labs(x = paste0('N = ', scenarios[i,1], ',\nConfounding = ', scenarios[i,2], ',\nTreat. prev. = ',scenarios[i,3]),
-         y = "Root MSE") + theme(aspect.ratio = 1, axis.title = element_text(size = 10))+  ylim(0,0.5)
-})
-annotate_figure(ggarrange(plotlist = mse_plots_med[1:27], nrow = 3, ncol = 9), top = 'Medium event rate')
-
-mse_plots_high <- lapply(1:27, function(i){
-  ggplot() +
-    geom_line(aes(x = 0:4, y = sqrt(bias_point[,i,3]^2 + sd_point[,i,3]^2))) +
-    geom_point(aes(x = 0:4, y = sqrt(bias_point[,i,3]^2 + sd_point[,i,3]^2))) +
-    labs(x = paste0('N = ', scenarios[i,1], ',\nConfounding = ', scenarios[i,2], ',\nTreat. prev. = ',scenarios[i,3]),
-         y = "Root MSE") + theme(aspect.ratio = 1, axis.title = element_text(size = 10))+  ylim(0,0.5)
-})
-annotate_figure(ggarrange(plotlist = mse_plots_high[1:27], nrow = 3, ncol = 9), top = 'High event rate')
 
 ############# COVERAGE #####################
 
@@ -821,7 +793,8 @@ annotate_figure(ggarrange(plotlist = MCSE_high[1:27], nrow = 3, ncol = 9, common
                           legend = 'bottom'), top = 'High event rate')
 
 ################WEIGHTS########################
-weights_low <- lapply(1:27, function(i){
+weights <- data.frame(matrix(,nrow = 0, ncol = 7))
+for(i in 1:27){
   simdata_censored<-DATA_GEN_censored_reduced(as.numeric(scenarios[i,1]), 5, 
                                               conf = as.numeric(scenarios[i,2]), 
                                               treat_prev = as.numeric(scenarios[i,3]),
@@ -833,20 +806,13 @@ weights_low <- lapply(1:27, function(i){
                                               outcome_cov = ~X2 + X4, model_var = c('assigned_treatment'),
                                               use_weight=T, use_censor=T, quiet = T,
                                               save_weight_models = F,
-                                              data_dir = data_direction)
-  ggplot() +
-    geom_density(aes(x = PP_prep$data$weight)) +
-    labs(x =   paste0('Max weight = ',round(max(PP_prep$data$weight),2)),
-         y = "Density",
-         title = paste("N =", scenarios[i,1],
-                       '\nConfounding =',scenarios[i,2],
-                       '\nTreat. prev. =', scenarios[i,3])) + 
-      xlim(-1,3) + 
-    theme(plot.title = element_text(size=10))+ theme(aspect.ratio = 1, axis.title = element_text(size = 10))
-})
-annotate_figure(ggarrange(plotlist = weights_low[1:27], nrow = 3, ncol = 9), top = 'Low event rate')
+                                               data_dir = data_direction)
+  
+  weights <- rbind(weights, c(-4.7, as.numeric(scenarios[i,1]), as.numeric(scenarios[i,3]),as.numeric(scenarios[i,2]),
+                              mean(PP_prep$data$weight), sd(PP_prep$data$weight), max(PP_prep$data$weight)))
+}
 
-weights_med <- lapply(1:27, function(i){
+for(i in 1:27){
   simdata_censored<-DATA_GEN_censored_reduced(as.numeric(scenarios[i,1]), 5, 
                                               conf = as.numeric(scenarios[i,2]), 
                                               treat_prev = as.numeric(scenarios[i,3]),
@@ -859,19 +825,11 @@ weights_med <- lapply(1:27, function(i){
                                               use_weight=T, use_censor=T, quiet = T,
                                               save_weight_models = F,
                                               data_dir = data_direction)
-  ggplot() +
-    geom_density(aes(x = PP_prep$data$weight)) +
-    labs(x =   paste0('Max weight = ',round(max(PP_prep$data$weight),2)),
-         y = "Density",
-         title = paste("N =", scenarios[i,1],
-                       '\nConfounding =',scenarios[i,2],
-                       '\nTreat. prev. =', scenarios[i,3])) + 
-    xlim(-1,3) + 
-    theme(plot.title = element_text(size=10))+ theme(aspect.ratio = 1, axis.title = element_text(size = 10))
-})
-annotate_figure(ggarrange(plotlist = weights_med[1:27], nrow = 3, ncol = 9), top = 'Medium event rate')
+  weights <- rbind(weights, c(-3.8, as.numeric(scenarios[i,1]),as.numeric(scenarios[i,3]),as.numeric(scenarios[i,2]),
+                              mean(PP_prep$data$weight), sd(PP_prep$data$weight), max(PP_prep$data$weight)))
+}
 
-weights_high <- lapply(1:27, function(i){
+for(i in 1:27){
   simdata_censored<-DATA_GEN_censored_reduced(as.numeric(scenarios[i,1]), 5, 
                                               conf = as.numeric(scenarios[i,2]), 
                                               treat_prev = as.numeric(scenarios[i,3]),
@@ -884,21 +842,15 @@ weights_high <- lapply(1:27, function(i){
                                               use_weight=T, use_censor=T, quiet = T,
                                               save_weight_models = F,
                                               data_dir = data_direction)
-  ggplot() +
-    geom_density(aes(x = PP_prep$data$weight)) +
-    labs(x =   paste0('Max weight = ',round(max(PP_prep$data$weight),2)),
-         y = "Density",
-         title = paste("N =", scenarios[i,1],
-                       '\nConfounding =',scenarios[i,2],
-                       '\nTreat. prev. =', scenarios[i,3])) + 
-    xlim(-1,3) + 
-    theme(plot.title = element_text(size=10))+ theme(aspect.ratio = 1, axis.title = element_text(size = 10))
-})
-annotate_figure(ggarrange(plotlist = weights_high[1:27], nrow = 3, ncol = 9), top = 'High event rate')
+  weights <- rbind(weights, c(-3, as.numeric(scenarios[i,1]), as.numeric(scenarios[i,3]),as.numeric(scenarios[i,2]),
+                              mean(PP_prep$data$weight), sd(PP_prep$data$weight), max(PP_prep$data$weight)))
+}
 
+colnames(weights) <- c('Outcome_prevalence','Sample_size', 'Treatment_prevalence', 'Confounding', 'Mean', 'SD',
+                         'Max')
+weights$Mean <- as.numeric(weights$Mean)
+weights$SD <- as.numeric(weights$SD)
+weights$Max <- as.numeric(weights$Max)
 
-simdata_censored<-DATA_GEN_censored_reduced(1000, 5, 
-                                            conf = 0.5, 
-                                            treat_prev = 0,
-                                            outcome_prev = -3,
-                                            censor = F) 
+print(xtable(weights %>% filter(Sample_size == 5000) %>% select(-Sample_size) %>% arrange(Outcome_prevalence,Treatment_prevalence, Confounding ), 
+             type = 'latex', digits = c(0,2,2,2,2,2,2)),include.rownames=FALSE)
