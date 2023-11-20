@@ -181,10 +181,10 @@ quantile(switch_data$weight, c(0.01,0.99))
 
 fit_tradi <- glm(formula = outcome ~  CA +CD4_1 + CD4_2 + 
                        viral_1 + viral_2 + SITE1 + SITE2 + SITE3 + WHITE + OTHER + 
-                       haartCD4_1 , family = binomial(link = "logit"), data = hers_data_tradi, 
+                       CA*CD4_1 , family = binomial(link = "logit"), data = hers_data_tradi, 
                      weights = hers_data_tradi[["weight"]])
 
-print(xtable(as.data.frame(summary(fit_tradi)$coefficients), type = "latex", digits = 4))
+print(xtable(as.data.frame(summary(fit_tradi)$coefficients), type = "latex", digits = 3))
 
 design_mat <- expand.grid(id = 1:609,
                           trial_period = 0:4,
