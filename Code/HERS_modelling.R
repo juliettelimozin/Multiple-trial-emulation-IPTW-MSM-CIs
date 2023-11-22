@@ -515,7 +515,7 @@ ggplot() +geom_line(aes(x = 0:4,y = pull(predicted_probas_PP_tradi,risk_differen
                      values = c("Traditional IPW-MSM analysis"= "red",
                                 "Sequential trial emulation analysis" = "blue")) +
   labs(x = 'Follow-up time', 
-       y = "Marginal risk difference", title = "HERS data analysis: comparison of\nsequential trial emulation and IPW-MSM")
+       y = "Marginal risk difference")
 
 
 ################### LEF OUTCOME ONLY ##################################
@@ -818,6 +818,6 @@ ggplot(data = predicted_probas_PP,aes(x = 0:4)) +
                       ymax = CI_bootstrap_coefs_PP_red[,2], color = "Nonparametric Boot."), alpha = 0.1) +
   scale_color_manual(name = "CI method", values = c("LEF outcome"= "green", "Nonparametric Boot." = "red", "LEF both" = 'purple', "Sandwich" = 'blue')) +
   labs(x = 'Follow-up time', 
-       y = "Marginal risk difference", title = "HERS data analysis: sequential trial emulation")
+       y = "Marginal risk difference")
 
  
