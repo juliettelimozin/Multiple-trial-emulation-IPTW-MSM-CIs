@@ -82,6 +82,95 @@ mean_time <- mean_time %>%
                     LEF_both = mean(LEF_both),
                     sandwich = 1)
 
+mrd_dist1_low <- lapply(1:27, function(i){
+  scenario <- i%%9
+  if (scenario ==0){scenario <- 9}
+  ggplot() +
+    geom_histogram(aes(x = est[1,,i,1], fill="Low"),binwidth = 0.001)+
+    geom_histogram(aes(x = est[1,,i,2], fill="Medium"), binwidth = .001 )+
+    geom_histogram(aes(x = est[1,,i,3], fill="High"), binwidth = .001)+
+    geom_vline(xintercept = true_value_red[1,scenario,1]) +
+    geom_vline(xintercept = true_value_red[1,scenario,2]) +
+    geom_vline(xintercept = true_value_red[1,scenario,3]) +
+  xlab(bquote(atop(N ==.(scenarios[i,1]), alpha[c] ==.(scenarios[i,2])~', '~alpha[a] == .(scenarios[i,3])))) +
+  ylab("Empirical MRD dist.") + 
+  theme(title=element_text(size=15), axis.text = element_text(size=10), legend.text = element_text(size=14)) +  
+  scale_fill_manual(name = "Event rate", values = c("Low"= "red", "Medium" = "blue",
+                                                     "High" = "green"))
+})
+annotate_figure(ggarrange(plotlist = mrd_dist1_low[1:27], nrow = 3, ncol = 9, common.legend = T, legend = 'bottom'))
+mrd_dist2_low <- lapply(1:27, function(i){
+  scenario <- i%%9
+  if (scenario ==0){scenario <- 9}
+  ggplot() +
+    geom_histogram(aes(x = est[2,,i,1], fill="Low"),binwidth = 0.001)+
+    geom_histogram(aes(x = est[2,,i,2], fill="Medium"), binwidth = .001 )+
+    geom_histogram(aes(x = est[2,,i,3], fill="High"), binwidth = .001)+
+    geom_vline(xintercept = true_value_red[2,scenario,1]) +
+    geom_vline(xintercept = true_value_red[2,scenario,2]) +
+    geom_vline(xintercept = true_value_red[2,scenario,3]) +
+    xlab(bquote(atop(N ==.(scenarios[i,1]), alpha[c] ==.(scenarios[i,2])~', '~alpha[a] == .(scenarios[i,3])))) +
+    ylab("Empirical MRD dist.") + 
+    theme(title=element_text(size=15), axis.text = element_text(size=10), legend.text = element_text(size=14)) +  
+    scale_fill_manual(name = "Event rate", values = c("Low"= "red", "Medium" = "blue",
+                                                      "High" = "green"))
+})
+annotate_figure(ggarrange(plotlist = mrd_dist2_low[1:27], nrow = 3, ncol = 9, common.legend = T, legend = 'bottom'))
+
+mrd_dist3_low <- lapply(1:27, function(i){
+  scenario <- i%%9
+  if (scenario ==0){scenario <- 9}
+  ggplot() +
+    geom_histogram(aes(x = est[3,,i,1], fill="Low"),binwidth = 0.001)+
+    geom_histogram(aes(x = est[3,,i,2], fill="Medium"), binwidth = .001 )+
+    geom_histogram(aes(x = est[3,,i,3], fill="High"), binwidth = .001)+
+    geom_vline(xintercept = true_value_red[3,scenario,1]) +
+    geom_vline(xintercept = true_value_red[3,scenario,2]) +
+    geom_vline(xintercept = true_value_red[3,scenario,3]) +
+    xlab(bquote(atop(N ==.(scenarios[i,1]), alpha[c] ==.(scenarios[i,2])~', '~alpha[a] == .(scenarios[i,3])))) +
+    ylab("Empirical MRD dist.") + 
+    theme(title=element_text(size=15), axis.text = element_text(size=10), legend.text = element_text(size=14)) +  
+    scale_fill_manual(name = "Event rate", values = c("Low"= "red", "Medium" = "blue",
+                                                      "High" = "green"))
+})
+annotate_figure(ggarrange(plotlist = mrd_dist3_low[1:27], nrow = 3, ncol = 9, common.legend = T, legend = 'bottom'))
+
+mrd_dist4_low <- lapply(1:27, function(i){
+  scenario <- i%%9
+  if (scenario ==0){scenario <- 9}
+  ggplot() +
+    geom_histogram(aes(x = est[4,,i,1], fill="Low"),binwidth = 0.001)+
+    geom_histogram(aes(x = est[4,,i,2], fill="Medium"), binwidth = .001 )+
+    geom_histogram(aes(x = est[4,,i,3], fill="High"), binwidth = .001)+
+    geom_vline(xintercept = true_value_red[4,scenario,1]) +
+    geom_vline(xintercept = true_value_red[4,scenario,2]) +
+    geom_vline(xintercept = true_value_red[4,scenario,3]) +
+    xlab(bquote(atop(N ==.(scenarios[i,1]), alpha[c] ==.(scenarios[i,2])~', '~alpha[a] == .(scenarios[i,3])))) +
+    ylab("Empirical MRD dist.") + 
+    theme(title=element_text(size=15), axis.text = element_text(size=10), legend.text = element_text(size=14)) +  
+    scale_fill_manual(name = "Event rate", values = c("Low"= "red", "Medium" = "blue",
+                                                        "High" = "green"))
+})
+annotate_figure(ggarrange(plotlist = mrd_dist4_low[1:27], nrow = 3, ncol = 9, common.legend = T, legend = 'bottom'))
+
+mrd_dist5_low <- lapply(1:27, function(i){
+  scenario <- i%%9
+  if (scenario ==0){scenario <- 9}
+  ggplot() +
+    geom_histogram(aes(x = est[5,,i,1], fill="Low"),binwidth = 0.001)+
+    geom_histogram(aes(x = est[5,,i,2], fill="Medium"), binwidth = .001 )+
+    geom_histogram(aes(x = est[5,,i,3], fill="High"), binwidth = .001)+
+    geom_vline(xintercept = true_value_red[5,scenario,1]) +
+    geom_vline(xintercept = true_value_red[5,scenario,2]) +
+    geom_vline(xintercept = true_value_red[5,scenario,3]) +
+    xlab(bquote(atop(N ==.(scenarios[i,1]), alpha[c] ==.(scenarios[i,2])~', '~alpha[a] == .(scenarios[i,3])))) +
+    ylab("Empirical MRD dist.") + 
+    theme(title=element_text(size=15), axis.text = element_text(size=10), legend.text = element_text(size=14)) +  
+    scale_fill_manual(name = "Event rate", values = c("Low"= "red", "Medium" = "blue",
+                                                      "High" = "green"))
+})
+annotate_figure(ggarrange(plotlist = mrd_dist5_low[1:27], nrow = 3, ncol = 9, common.legend = T, legend = 'bottom'))
+
 ################BIAS, SD, MSE PLOTS ###################
 bias_plots <- lapply(1:27, function(i){
   ggplot() +
@@ -118,6 +207,25 @@ sd_plots <- lapply(1:27, function(i){
     ylim(0,0.28)
 })
 annotate_figure(ggarrange(plotlist = sd_plots[1:27], nrow = 3, ncol = 9, common.legend = T, legend = 'bottom'))
+
+bias.se_plots <- lapply(1:27, function(i){
+  ggplot() +
+    geom_line(aes(x = 0:4, y = bias_point[,i,1]/sd_point[,i,1], colour = 'Low')) +
+    geom_point(aes(x = 0:4, y = bias_point[,i,1]/sd_point[,i,1], colour = 'Low')) +
+    geom_line(aes(x = 0:4, y = bias_point[,i,2]/sd_point[,i,2], colour = 'Medium')) +
+    geom_point(aes(x = 0:4, y = bias_point[,i,2]/sd_point[,i,2], colour = 'Medium')) +
+    geom_line(aes(x = 0:4, y = bias_point[,i,3]/sd_point[,i,3], colour = 'High')) +
+    geom_point(aes(x = 0:4, y = bias_point[,i,3]/sd_point[,i,3], colour = 'High')) +
+    #xlab(bquote(paste('N = ',.(scenarios[i,1]),", ", alpha[c] == .(scenarios[i,2]),', ',alpha[a] == .(scenarios[i,3])))) +
+    xlab(bquote(atop(N ==.(scenarios[i,1]), alpha[c] ==.(scenarios[i,2])~', '~alpha[a] == .(scenarios[i,3])))) +
+    
+    ylab("Empirical bias") + 
+    theme(title=element_text(size=15), axis.text = element_text(size=10), legend.text = element_text(size=14)) +  
+    scale_color_manual(name = "Event rate", values = c("Low"= "red", "Medium" = "blue",
+                                                       "High" = "green")) +
+    ylim(-0.1,0.1)
+})
+annotate_figure(ggarrange(plotlist = bias.se_plots[1:27], nrow = 3, ncol = 9, common.legend = T, legend = 'bottom'))
 
 mse_plots <- lapply(1:27, function(i){
   ggplot() +

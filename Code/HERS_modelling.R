@@ -36,7 +36,7 @@ HERS$viral_2 <- (log10(HERS$viral_2) - mean(log10(HERS$viral_2)))/sd(log10(HERS$
 HERS <- HERS %>% 
   dplyr::arrange(id,t) %>% 
   dplyr::group_by(id) %>% 
-  dplyr::mutate(CAp = cumsum(haart_1)) %>% 
+  dplyr::mutate(CAp = ifelse(t == 0, haart_1 + haart_2, cumsum(haart_1))) %>% 
   dplyr::ungroup()
 
 HERS$A <- HERS$haart
@@ -44,18 +44,20 @@ HERS$Ap <- HERS$haart_1
 HERS$App <- HERS$haart_2
 HERS[,'ID'] <- HERS$id
 HERS <- HERS %>% 
+  dplyr::mutate(SITE = as.factor(ifelse(SITE1 == 1, 1, ifelse(SITE2 == 1,2,3)))) %>% 
   dplyr::select(ID, t, A, Ap, App,CAp, CD4, CD4_1,CD4_2,
          viral,viral_1,viral_2,HIVsym,HIVsym_1,HIVsym_2,
-         SITE1, SITE2, SITE3, WHITE, OTHER, Y, C)
+         SITE, WHITE, OTHER, Y, C)
 HERS$eligible <- as.numeric(HERS$CAp == 0)
 
-
+summary_HERS <- HERS %>% 
+  summarize(total_cense = sum(as.numeric(Y)-1))
 #################SEQUENTIAL TRIALS IPW AND MSM #########################
 PP_prep <- TrialEmulation::data_preparation(data = HERS, id='ID', period='t', treatment='A', outcome='Y', 
                                             eligible ='eligible', cense = 'C',
-                                            switch_d_cov = ~ CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE1 + SITE2 + SITE3 + WHITE + OTHER,
-                                            cense_d_cov = ~ CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE1 + SITE2 + SITE3 + WHITE + OTHER,
-                                            outcome_cov = ~ CD4 + CD4_1 + viral + CD4_2 + viral_1 + viral_2 + HIVsym+ SITE1 + SITE2 + SITE3 + WHITE + OTHER,
+                                            switch_d_cov = ~ CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE + WHITE + OTHER,
+                                            cense_d_cov = ~ CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE + WHITE + OTHER,
+                                            outcome_cov = ~ CD4 + CD4_1 + viral + CD4_2 + viral_1 + viral_2 + HIVsym+ SITE + WHITE + OTHER,
                                             model_var = c('assigned_treatment'),
                                             use_weight=TRUE, use_censor=TRUE, quiet = F,
                                             save_weight_models = T,
@@ -72,13 +74,14 @@ summary_trial0 <- HERS %>%
   dplyr::count(A)
 
 PP <- TrialEmulation::trial_msm(data = switch_data,
-                                     outcome_cov = ~ CD4_1 + CD4_2 + viral_1 + viral_2 + SITE1 + SITE2 + SITE3 + WHITE + OTHER + assigned_treatment+
+                                     outcome_cov = ~ CD4_1 + CD4_2 + viral_1 + viral_2 + SITE + WHITE + OTHER + assigned_treatment+
                                        haartCD4_1,
                                      model_var = c('assigned_treatment'),
                                      glm_function = 'glm',
                                      include_trial_period = ~1, include_followup_time = ~1,
                                      use_weight=T, use_censor=T, quiet = F, use_sample_weights =  F)
 
+print(xtable(as.data.frame(summary(PP$model)$coefficients), type = "latex", digits = 3))
 
 switch_d0 <- readRDS(paste(data_direction,'/weight_model_switch_d0.rds', sep = ""))
 switch_n0 <- readRDS(paste(data_direction,'/weight_model_switch_n0.rds', sep = ""))
@@ -91,17 +94,17 @@ cense_n0 <- readRDS(paste(data_direction,'/cense_model_n0.rds', sep = ""))
 cense_n1 <- readRDS(paste(data_direction,'/cense_model_n1.rds', sep = ""))
 
 #################### TRADITIONAL IPW-MSM ('SINGLE TRIAL') ####################################
-weight_model_switch_d1 <- glm(A ~ CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE1 + SITE2 + SITE3 + WHITE + OTHER,
+weight_model_switch_d1 <- glm(A ~ CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE + WHITE + OTHER,
                               family = binomial(link = "logit"), data = HERS[HERS$Ap == 1])
-weight_model_switch_d0 <- glm(A ~ CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE1 + SITE2 + SITE3 + WHITE + OTHER,
+weight_model_switch_d0 <- glm(A ~ CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE + WHITE + OTHER,
                               family = binomial(link = "logit"), data = HERS[HERS$Ap == 0])
 weight_model_switch_n1 <- glm(A ~ 1,
                               family = binomial(link = "logit"), data = HERS[HERS$Ap == 1])
 weight_model_switch_n0 <- glm(A ~ 1,
                               family = binomial(link = "logit"), data = HERS[HERS$Ap == 0])
-weight_model_censor_d1 <- glm(C ~ CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE1 + SITE2 + SITE3 + WHITE + OTHER,
+weight_model_censor_d1 <- glm(C ~ CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE + WHITE + OTHER,
                                family = binomial(link = "logit"), data = HERS[HERS$Ap == 1])
-weight_model_censor_d0 <- glm(C ~ CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE1 + SITE2 + SITE3 + WHITE + OTHER,
+weight_model_censor_d0 <- glm(C ~ CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE + WHITE + OTHER,
                               family = binomial(link = "logit"), data = HERS[HERS$Ap == 0])
 weight_model_censor_n1 <- glm(C ~ 1,
                              family = binomial(link = "logit"), data = HERS[HERS$Ap == 1])
@@ -153,9 +156,7 @@ hers_data_tradi <- HERS %>%
                 CD4_2 = first(CD4_2),
                 viral_1 = first(viral_1),
                 viral_2 = first(viral_2),
-                SITE1 = first(SITE1),
-                SITE2 = first(SITE2),
-                SITE3 = first(SITE3),
+                SITE = first(SITE),
                 WHITE = first(WHITE),
                 OTHER = first(OTHER),
                 haartCD4_1 = A*CD4_1) %>% 
@@ -180,7 +181,7 @@ quantile(switch_data$weight, c(0.01,0.99))
 
 
 fit_tradi <- glm(formula = outcome ~  CA +CD4_1 + CD4_2 + 
-                       viral_1 + viral_2 + SITE1 + SITE2 + SITE3 + WHITE + OTHER + 
+                       viral_1 + viral_2 + SITE + WHITE + OTHER + 
                        CA*CD4_1 , family = binomial(link = "logit"), data = hers_data_tradi, 
                      weights = hers_data_tradi[["weight"]])
 
@@ -194,15 +195,15 @@ design_mat <- design_mat[which(5 -design_mat$trial_period > design_mat$followup_
 fitting_data_treatment <-  switch_data %>% 
   dplyr::mutate(assigned_treatment = followup_time*0 + 1) %>% 
   dplyr::select(id,trial_period, followup_time,CD4_1 , CD4_2 , viral_1 , 
-                viral_2 , SITE1 , SITE2 , SITE3 , WHITE , OTHER , assigned_treatment,
+                viral_2 , SITE , WHITE , OTHER , assigned_treatment,
                   haartCD4_1) %>% 
   merge(design_mat, by = c("id", "trial_period", "followup_time"), all.y = TRUE) %>% 
   dplyr::group_by(id) %>% 
-  tidyr::fill(CD4_1 , CD4_2 , viral_1 , viral_2 , SITE1 , SITE2 , SITE3 , WHITE , OTHER , assigned_treatment,
+  tidyr::fill(CD4_1 , CD4_2 , viral_1 , viral_2 , SITE , WHITE , OTHER , assigned_treatment,
               haartCD4_1,.direction = "down") %>% 
   dplyr::ungroup() %>% 
   dplyr::select(id, trial_period, followup_time,CD4_1 , CD4_2 , viral_1 , 
-                viral_2 , SITE1 , SITE2 , SITE3 , WHITE , OTHER , assigned_treatment,
+                viral_2 , SITE , WHITE , OTHER , assigned_treatment,
                 haartCD4_1) %>% 
   merge(data.frame(id = switch_data$id, trial_period = switch_data$trial_period), 
         by = c("id", "trial_period"), all.y = TRUE) %>% 
@@ -288,8 +289,8 @@ for (k in 1:500){
     dplyr::mutate(weight_boot = length(boot_data_conf[[k]][boot_data_conf[[k]] == id])) #bootstrap weight is number of times they were sampled
   IP_model <- weight_func_bootstrap(data = HERS, expanded_data = switch_data, 
                                     treatment = 'A',
-                                    switch_d_cov = ~CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE1 + SITE2 + SITE3 + WHITE + OTHER,
-                                    cense_d_cov = ~CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE1 + SITE2 + SITE3 + WHITE + OTHER,
+                                    switch_d_cov = ~CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE + WHITE + OTHER,
+                                    cense_d_cov = ~CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE + WHITE + OTHER,
                                     cense = 'C',
                                     weight_model_d0 = switch_d0,
                                     weight_model_n0 = switch_n0,
@@ -306,17 +307,17 @@ for (k in 1:500){
     dplyr::mutate(weight = ifelse(weight_boot !=0,weight*weight_boot,0))
   
   ############
-  weight_model_switch_d1_boot <- glm(A ~ CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE1 + SITE2 + SITE3 + WHITE + OTHER,
+  weight_model_switch_d1_boot <- glm(A ~ CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE + WHITE + OTHER,
                                 family = binomial(link = "logit"), data = HERS[HERS$Ap == 1 & HERS$ID %in% boot_data_conf[[k]]])
-  weight_model_switch_d0_boot <- glm(A ~ CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE1 + SITE2 + SITE3 + WHITE + OTHER,
+  weight_model_switch_d0_boot <- glm(A ~ CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE + WHITE + OTHER,
                                 family = binomial(link = "logit"), data = HERS[HERS$Ap == 0& HERS$ID %in% boot_data_conf[[k]]])
   weight_model_switch_n1_boot <- glm(A ~ 1,
                                      family = binomial(link = "logit"), data = HERS[HERS$Ap == 1 & HERS$ID %in% boot_data_conf[[k]]])
   weight_model_switch_n0_boot <- glm(A ~ 1,
                                      family = binomial(link = "logit"), data = HERS[HERS$Ap == 0& HERS$ID %in% boot_data_conf[[k]]])
-  weight_model_censor_d1_boot <- glm(C ~ CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE1 + SITE2 + SITE3 + WHITE + OTHER,
+  weight_model_censor_d1_boot <- glm(C ~ CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE + WHITE + OTHER,
                                 family = binomial(link = "logit"), data = HERS[HERS$Ap == 1& HERS$ID %in% boot_data_conf[[k]]])
-  weight_model_censor_d0_boot <- glm(C ~ CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE1 + SITE2 + SITE3 + WHITE + OTHER,
+  weight_model_censor_d0_boot <- glm(C ~ CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE + WHITE + OTHER,
                                 family = binomial(link = "logit"), data = HERS[HERS$Ap == 0& HERS$ID %in% boot_data_conf[[k]]])
   weight_model_censor_n1_boot <- glm(C ~1,
                                      family = binomial(link = "logit"), data = HERS[HERS$Ap == 1& HERS$ID %in% boot_data_conf[[k]]])
@@ -366,9 +367,7 @@ for (k in 1:500){
                   CD4_2 = first(CD4_2),
                   viral_1 = first(viral_1),
                   viral_2 = first(viral_2),
-                  SITE1 = first(SITE1),
-                  SITE2 = first(SITE2),
-                  SITE3 = first(SITE3),
+                  SITE = first(SITE),
                   WHITE = first(WHITE),
                   OTHER = first(OTHER),
                   haartCD4_1 = A*CD4_1) %>% 
@@ -387,12 +386,12 @@ for (k in 1:500){
     dplyr::mutate(weight = ifelse(weight_boot !=0,weight*weight_boot,0))
   
   fit_tradi_boot <- glm(formula = outcome ~ assigned_treatment + CD4_1 + CD4_2 + 
-                         viral_1 + viral_2 + SITE1 + SITE2 + SITE3 + WHITE + OTHER + 
+                         viral_1 + viral_2 + SITE + WHITE + OTHER + 
                          haartCD4_1 + CA , family = binomial(link = "logit"), data = boot_design_data_tradi, 
                        weights = boot_design_data_tradi[["weight"]])
   ###########
   PP_boot <- TrialEmulation::trial_msm(data = boot_design_data,
-                                            outcome_cov = ~ CD4_1 + CD4_2 + viral_1 + viral_2 + SITE1 + SITE2 + SITE3 + WHITE + OTHER + assigned_treatment+
+                                            outcome_cov = ~ CD4_1 + CD4_2 + viral_1 + viral_2 + SITE + WHITE + OTHER + assigned_treatment+
                                               haartCD4_1,
                                             model_var = c('assigned_treatment'),
                                             glm_function = 'glm',
@@ -408,15 +407,15 @@ for (k in 1:500){
   fitting_data_treatment_boot <-  boot_design_data %>% 
     dplyr::mutate(assigned_treatment = followup_time*0 + 1) %>% 
     dplyr::select(id,trial_period, followup_time,CD4_1 , CD4_2 , viral_1 , 
-                  viral_2 , SITE1 , SITE2 , SITE3 , WHITE , OTHER , assigned_treatment,
+                  viral_2 , SITE , WHITE , OTHER , assigned_treatment,
                   haartCD4_1) %>% 
     merge(design_mat, by = c("id", "trial_period", "followup_time"), all.y = TRUE) %>% 
     dplyr::group_by(id) %>% 
-    tidyr::fill(CD4_1 , CD4_2 , viral_1 , viral_2 , SITE1 , SITE2 , SITE3 , WHITE , OTHER , assigned_treatment,
+    tidyr::fill(CD4_1 , CD4_2 , viral_1 , viral_2 , SITE , WHITE , OTHER , assigned_treatment,
                 haartCD4_1,.direction = "down") %>% 
     dplyr::ungroup() %>% 
     dplyr::select(id, trial_period, followup_time,CD4_1 , CD4_2 , viral_1 , 
-                  viral_2 , SITE1 , SITE2 , SITE3 , WHITE , OTHER , assigned_treatment,
+                  viral_2 , SITE , WHITE , OTHER , assigned_treatment,
                   haartCD4_1) %>% 
     merge(data.frame(id = switch_data$id, trial_period = switch_data$trial_period), 
           by = c("id", "trial_period"), all.y = TRUE) %>% 
@@ -530,8 +529,8 @@ for (k in 1:500){
     dplyr::mutate(weight_boot = length(boot_data_conf[[k]][boot_data_conf[[k]] == id])) #bootstrap weight is number of times they were sampled
   
   IP_model <- weight_func_bootstrap(data = HERS, expanded_data = switch_data, 
-                                    switch_d_cov = ~CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE1 + SITE2 + SITE3 + WHITE + OTHER,
-                                    cense_d_cov = ~CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE1 + SITE2 + SITE3 + WHITE + OTHER,
+                                    switch_d_cov = ~CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE + WHITE + OTHER,
+                                    cense_d_cov = ~CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE + WHITE + OTHER,
                                     cense = 'C',
                                     weight_model_d0 = switch_d0,
                                     weight_model_n0 = switch_n0,
@@ -663,8 +662,8 @@ for (k in 1:500){
   beta_c_n1 <- cense_n1$coefficients + vcov(cense_n1)%*%LEF_c_n1_boot
   
   IP_model <- weight_func_bootstrap(data = HERS, expanded_data = switch_data, 
-                                    switch_d_cov = ~CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE1 + SITE2 + SITE3 + WHITE + OTHER,
-                                    cense_d_cov = ~CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE1 + SITE2 + SITE3 + WHITE + OTHER,
+                                    switch_d_cov = ~CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE + WHITE + OTHER,
+                                    cense_d_cov = ~CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE + WHITE + OTHER,
                                     cense = 'C',
                                     weight_model_d0 = switch_d0,
                                     weight_model_n0 = switch_n0,
