@@ -1,8 +1,9 @@
 library(modelr)
 library(tidyverse)
 library(tidyr)
+setwd('~/rds/hpc-work/Project1')
 source("simulate_MSM_simplified.R")
-setwd('~/rds/hpc-work')
+
 set.seed(20222022)
 library(MASS)
 library(survival)
@@ -18,6 +19,8 @@ outcome_prev <- c(-4.7,-3.8,-3)
 scenarios <- tidyr::crossing(conf, treat)
 
 true_value_red <- array(,dim = c(5,9,3))
+surv0 <- array(,dim = c(5,9,3))
+surv1 <- array(,dim = c(5,9,3))
 
 for (l in 1:9){
   for (j in 1:3){
@@ -46,8 +49,14 @@ for (l in 1:9){
   
   f2 <- survfit(Surv(t, status) ~ 1, data = surv_data_control)
   
+  
   true_value_red[,l,j] <- f1$surv - f2$surv
+  
+  surv0[,l,j]<- f2$surv
+  surv1[,l,j] <- f1$surv
   }
 }
 save(true_value_red, file = "true_value_red_newsimus.rda")
+save(surv0, file = "true_value_surv0.rda")
+save(surv1, file = "true_value_surv1.rda")
 

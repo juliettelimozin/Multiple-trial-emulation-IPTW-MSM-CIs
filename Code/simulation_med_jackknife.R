@@ -11,6 +11,7 @@ library(MASS)
 library(sandwich)
 library(doParallel)
 library(doRNG)
+library(rlist)
 
 iters <- 1000
 bootstrap_iter <- 500
@@ -200,7 +201,7 @@ for (i in 1:iters){
     print('Bootstrap')
     time <- proc.time()
     ############################# DIRECT BOOTSTRAP #############################
-    surv_PP_difference_boostrap_estimates <-as.data.frame(matrix(,5,bootstrap_iter))
+    surv_PP_difference_boostrap_estimates <-as.data.frame(matrix(,6,bootstrap_iter))
     surv_PP_difference_boostrap_estimates <- foreach(k = 1:bootstrap_iter, .combine=cbind) %dopar% {
       
       weights_table_boot <- data.frame(id = 1:as.numeric(scenarios[l,1])) %>% 
@@ -230,11 +231,16 @@ for (i in 1:iters){
                                            use_weight=T, use_censor=T, quiet = T, use_sample_weights =  F)
       
       if(is.na(PP_boot$model$coefficients['t_4A']) == T){
-        bootstrap_nas[i] < bootstrap_nas[i] + 1
         PP_boot$model <- update(PP_boot$model, . ~ . - t_4A, data = boot_design_data)
         if(is.na(PP_boot$model$coefficients['t_3A']) == T){
           PP_boot$model <- update(PP_boot$model, . ~ . - t_3A, data = boot_design_data)
         }
+      }
+      
+      if(length(PP_boot$model$coefficients) == length(PP$model$coefficients)){
+        na_ind <- 0
+      } else{
+        na_ind <- 1
       }
       
       design_mat <- expand.grid(id = 1:tail(boot_design_data$id, n = 1), 
@@ -297,11 +303,11 @@ for (i in 1:iters){
         dplyr::summarise(survival_treatment = mean(cum_hazard_treatment),
                          survival_control = mean(cum_hazard_control))
       
-      predicted_probas_PP_boot[,3] - predicted_probas_PP_boot[,2]
+      rbind(na_ind,predicted_probas_PP_boot[,3] - predicted_probas_PP_boot[,2])
       
     }
     
-    bootstrap_mrd[,,i] <- as.matrix(surv_PP_difference_boostrap_estimates)
+    bootstrap_mrd[,,i] <- as.matrix(surv_PP_difference_boostrap_estimates[2:6,])
     surv_PP_difference_boostrap_estimates$lb <- apply(surv_PP_difference_boostrap_estimates,
                                                       1,
                                                       quantile,
@@ -312,8 +318,9 @@ for (i in 1:iters){
                                                       probs = c(0.975))
     
     computation_time[1,i] <- (proc.time() - time)[[3]]
-    CI_bootstrap_PP_red[,1,i] <- surv_PP_difference_boostrap_estimates$lb
-    CI_bootstrap_PP_red[,2,i] <- surv_PP_difference_boostrap_estimates$ub
+    bootstrap_nas[i] <- sum(surv_PP_difference_boostrap_estimates[1,])
+    CI_bootstrap_PP_red[,1,i] <- surv_PP_difference_boostrap_estimates[2:6,501]
+    CI_bootstrap_PP_red[,2,i] <- surv_PP_difference_boostrap_estimates[2:6,502]
     
     print('LEF outcome')
     time <- proc.time()
@@ -496,10 +503,22 @@ for (i in 1:iters){
         boot_data[[k]] <- unique(switch_data$id[switch_data$id != k])
       }
       
-      jackknife_est_theta<- array(, dim = c(length(PP$model$coefficients),lenid))
-      jackknife_est_mrd<- array(, dim = c(5,lenid))
-      fail <- FALSE
-      for (k in 1:lenid){
+      multiResultClass <- function(result1=NULL,result2=NULL,result3=NULL)
+      {
+        me <- list(
+          result1 = result1,
+          result2 = result2,
+          result3 = result3
+        )
+        
+        ## Set the name for the class
+        class(me) <- append(class(me),"multiResultClass")
+        return(me)
+      }
+      
+      
+      jackknife_est_mrd <- foreach(k = 1:lenid, .combine=cbind) %dopar% {
+        result <- multiResultClass()
         weights_table_boot <- data.frame(id = 1:as.numeric(scenarios[l,1])) %>% 
           rowwise() %>% 
           dplyr::mutate(weight_boot = length(boot_data[[k]][boot_data[[k]] == id])) #bootstrap weight is number of times they were sampled
@@ -525,8 +544,6 @@ for (i in 1:iters){
                                              include_trial_period = ~1, include_followup_time = ~1,
                                              use_weight=T, use_censor=T, quiet = T, use_sample_weights =  F)
         if(is.na(PP_boot$model$coefficients['t_4A']) == T){
-          fail <- TRUE
-          jackknife_nas[i] <- jackknife_nas[i]+1
           PP_boot$model <- update(PP_boot$model, . ~ . - t_4A, data = boot_design_data)
           if(is.na(PP_boot$model$coefficients['t_3A']) == T){
             PP_boot$model <- update(PP_boot$model, . ~ . - t_3A, data = boot_design_data)
@@ -534,7 +551,10 @@ for (i in 1:iters){
         }
         
         if(length(PP_boot$model$coefficients) == length(PP$model$coefficients)){
-          jackknife_est_theta[,k] <-PP_boot$model$coefficients
+          result$result1 <- 0
+          result$result2 <-PP_boot$model$coefficients
+        } else {
+          result$result1 <- 1
         }
         design_mat <- expand.grid(id = 1:tail(boot_design_data$id, n = 1), 
                                   trial_period = 0:4,
@@ -596,29 +616,30 @@ for (i in 1:iters){
           dplyr::summarise(survival_treatment = mean(cum_hazard_treatment),
                            survival_control = mean(cum_hazard_control),
                            mrd = survival_control-survival_treatment)
-        jackknife_est_mrd[,k] <- pull(predicted_probas_PP_boot,mrd)
+        result$result3 <-pull(predicted_probas_PP_boot,mrd)
+        return(result)
       }
       
       mrd <-pull(predicted_probas_PP,mrd)
       jacknife_mrd_se <- array(,dim = c(5))
       for (t in 1:5){
-        jacknife_mrd_se[t] <- sqrt(((as.numeric(scenarios[l,1])-1)/as.numeric(scenarios[l,1]))*sum((jackknife_est_mrd[t,] - mrd[t])^2))
+        jacknife_mrd_se[t] <- sqrt(((as.numeric(scenarios[l,1])-1)/as.numeric(scenarios[l,1]))*sum((t(list.rbind(jackknife_est_mrd[3,]))[t,] - mrd[t])^2))
       }
       
       jackknife_SEs[,i]<- jacknife_mrd_se
       CI_jackknife_wald_PP_red[,,i] <- cbind(mrd - 1.96*jacknife_mrd_se, mrd + 1.96*jacknife_mrd_se)
       
       computation_time[4,i] <- (proc.time() - time)[[3]]
-      jackknife_wald_mrd[,,i]<- jackknife_est_mrd
+      jackknife_wald_mrd[,,i]<- t(list.rbind(jackknife_est_mrd[3,]))
       
-      if(fail == FALSE){
+      if(all(jackknife_est_mrd[1,] == 0)){
         jackknife_theta_var <- array(0,dim = c(length(PP$model$coefficients),length(PP$model$coefficients)))
         b_bar <- array(0,dim = c(length(PP$model$coefficients)))
         for (k in 1:lenid){
-          b_bar <- b_bar + (as.numeric(scenarios[l,1])*PP$model$coefficients - (as.numeric(scenarios[l,1])-1)*jackknife_est_theta[,k])/as.numeric(scenarios[l,1])
+          b_bar <- b_bar + (as.numeric(scenarios[l,1])*PP$model$coefficients - (as.numeric(scenarios[l,1])-1)*t(list.rbind(jackknife_est_mrd[2,]))[,k])/as.numeric(scenarios[l,1])
         }
         for (k in 1:lenid){
-          bi <- as.numeric(scenarios[l,1])*PP$model$coefficients - (as.numeric(scenarios[l,1])-1)*jackknife_est_theta[,k]
+          bi <- as.numeric(scenarios[l,1])*PP$model$coefficients - (as.numeric(scenarios[l,1])-1)*t(list.rbind(jackknife_est_mrd[2,]))[,k]
           jackknife_theta_var <- jackknife_theta_var + (1/((as.numeric(scenarios[l,1])-1)*as.numeric(scenarios[l,1])))*outer(bi- b_bar, bi-b_bar)
         }
         
@@ -665,6 +686,8 @@ for (i in 1:iters){
         
         computation_time[5,i] <- (proc.time() - time)[[3]]
         jackknife_mvn_mrd[,,i] <- as.matrix(surv_PP_difference_jackknife_estimates)
+      } else {
+        jackknife_nas[i] <- sum(list.rbind(jackknife_est_mrd[1,]))
       }
     }
     print('Sandwich')
