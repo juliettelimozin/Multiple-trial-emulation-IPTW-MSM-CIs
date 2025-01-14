@@ -7,3 +7,5 @@ sw_data.csv
 switch_data.csv
 weight_models.rda
 .Rproj.user
+Code/HPC output/*
+.out
