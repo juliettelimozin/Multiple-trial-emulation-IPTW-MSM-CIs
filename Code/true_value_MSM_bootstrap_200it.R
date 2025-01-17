@@ -1,16 +1,16 @@
 library(modelr)
 library(tidyverse)
 library(tidyr)
-setwd("~/rds/hpc-work/Project1")
+#setwd("~/rds/hpc-work/Project1")
 source("simulate_MSM_simplified.R")
 source("weight_func.R")
 set.seed(20222022)
-library(TrialEmulation, lib.loc = '/home/jml219/R/x86_64-redhat-linux-gnu-library/4.3')
+library(TrialEmulation)
 library(MASS)
 library(sandwich)
 library(doParallel)
 library(doRNG)
-library(rlist)
+#library(rlist)
 
 
 treat <- c(-1,0,1)
@@ -21,9 +21,12 @@ scenarios <- tidyr::crossing(conf, treat)
 
 true_value_boot <- array(,dim = c(5,9,3))
 
-bootstrap_iter <- 2
+bootstrap_iter <- 500
+registerDoParallel(cores = 10)
+
 for (l in 1:9){
   for (j in 1:3){
+    start.time <- Sys.time()
     estimates_boot <- as.data.frame(matrix(,5,bootstrap_iter))
     estimates_boot <- foreach(k = 1:bootstrap_iter, .combine=cbind) %dopar% {
       simdata_censored <-DATA_GEN_censored_reduced(50000, 5, 
@@ -33,9 +36,10 @@ for (l in 1:9){
                                                    censor = F)
       PP_prep <- TrialEmulation::data_preparation(simdata_censored, id='ID', period='t', treatment='A', outcome='Y', 
                                                   eligible ='eligible',
+                                                  estimand_type = 'PP',
                                                   switch_d_cov = ~X2 + X4,
                                                   outcome_cov = ~X2 + X4, model_var = c('assigned_treatment'),
-                                                  use_weight=T, use_censor=T, quiet = T,
+                                                   quiet = T,
                                                   save_weight_models = F)
       switch_data <- PP_prep$data %>% 
         dplyr::mutate(t_1 = ifelse(followup_time == 1,1,0),
@@ -63,10 +67,12 @@ for (l in 1:9){
       
       PP <- TrialEmulation::trial_msm(data = switch_data,
                                       outcome_cov = my_covariates,
+                                      estimand_type = 'PP',
+                                      analysis_weights = 'asis',
                                       model_var = c('assigned_treatment'),
                                       glm_function = 'parglm',
                                       include_trial_period = ~1, include_followup_time = ~1,
-                                      use_weight=T, use_censor=T, quiet = T, use_sample_weights =  F)
+                                       quiet = T, use_sample_weights =  F)
       
       if(is.na(PP$model$coefficients['t_4A']) == T){
         PP$model <- update(PP$model, . ~ . - t_4A, data = switch_data)
@@ -86,7 +92,7 @@ for (l in 1:9){
       }
       
       
-      design_mat <- expand.grid(id = 1:1500000,
+      design_mat <- expand.grid(id = 1:50000,
                                 trial_period = 0:4,
                                 followup_time = 0:4) 
       design_mat <- design_mat[which(5 -design_mat$trial_period > design_mat$followup_time),]
@@ -151,8 +157,8 @@ for (l in 1:9){
     }
       
     true_value_boot[,l,j] <- rowMeans(estimates_boot, na.rm = TRUE)
-    
+    print(Sys.time() - start.time)
   }
 }
-save(true_value_boot, file = "true_value_red_pseudo_true_boot.rda")
+save(true_value_boot, file = "true_value_red_pseudo_true_boot_500it.rda")
 

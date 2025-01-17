@@ -6,7 +6,7 @@ library(tidyr)
 source("simulate_MSM_simplified.R")
 source("weight_func.R")
 data_direction <- getwd()
-library(TrialEmulation, lib.loc = '/home/jml219/R/x86_64-redhat-linux-gnu-library/4.3')
+library(TrialEmulation)
 library(MASS)
 library(sandwich)
 library(doParallel)
@@ -14,7 +14,8 @@ library(doRNG)
 library(pammtools)
 library(lmtest)
 library(xtable)
-
+library(data.table)
+library(reshape2)
 ############# DATA PREPARATION ##################
 HERS$Y <- as.factor(HERS$Y)
 HERS$t <- HERS$visit - 8
@@ -28,9 +29,9 @@ HERS$CD4 <- (sqrt(as.numeric(HERS$CD4)) - mean(sqrt(HERS$CD4)))/sd(sqrt(HERS$CD4
 HERS$CD4_1 <- (sqrt(as.numeric(HERS$CD4_1)) - mean(sqrt(HERS$CD4_1)))/sd(sqrt(HERS$CD4_1))
 HERS$CD4_2 <- (sqrt(as.numeric(HERS$CD4_2)) - mean(sqrt(HERS$CD4_2)))/sd(sqrt(HERS$CD4_2))
 
-# HERS$HIVsym <- as.factor(HERS$HIVsym)
-# HERS$HIVsym_1 <- as.factor(HERS$HIVsym_1)
-# HERS$HIVsym_2 <- as.factor(HERS$HIVsym_2)
+HERS$HIVsym <- as.factor(HERS$HIVsym)
+HERS$HIVsym_1 <- as.factor(HERS$HIVsym_1)
+HERS$HIVsym_2 <- as.factor(HERS$HIVsym_2)
 
 HERS$viral <- (log10(HERS$viral) - mean(log10(HERS$viral)))/sd(log10(HERS$viral))
 HERS$viral_1 <- (log10(HERS$viral_1) - mean(log10(HERS$viral_1)))/sd(log10(HERS$viral_1))
@@ -58,12 +59,13 @@ summary_HERS <- HERS %>%
   summarize(total_cense = sum(as.numeric(Y)-1))
 #################SEQUENTIAL TRIALS IPW AND MSM #########################
 PP_prep <- TrialEmulation::data_preparation(data = HERS, id='ID', period='t', treatment='A', outcome='Y', 
-                                            eligible ='eligible', cense = 'C',
-                                            switch_d_cov = ~ CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE + WHITE + OTHER,
-                                            cense_d_cov = ~ CD4_1 + CD4  + viral + viral_1  + HIVsym + HIVsym_1+ SITE + WHITE + OTHER,
-                                            outcome_cov = ~ CD4 + CD4_1 + CD4_2 + viral+ viral_1 + viral_2 + HIVsym + HIVsym_1 + HIVsym_2+ SITE + WHITE + OTHER,
+                                            eligible ='eligible', cense = 'C', use_censor_weights = T,
+                                            switch_d_cov = ~ CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE + ETHNICITY,
+                                            cense_d_cov = ~ CD4_1 + CD4  + viral + viral_1  + HIVsym + HIVsym_1+ SITE + ETHNICITY,
+                                            outcome_cov = ~ CD4 + CD4_1 + CD4_2 + viral+ viral_1 + viral_2 + HIVsym + HIVsym_1 + HIVsym_2+ SITE + ETHNICITY,
                                             model_var = c('assigned_treatment'),
-                                            use_weight=TRUE, use_censor=TRUE, quiet = F,
+                                            estimand_type = 'PP', quiet = F,
+                                            pool_cense = 'none',
                                             save_weight_models = T, 
                                             data_dir = data_direction)
 switch_data <- PP_prep$data %>% 
@@ -78,14 +80,15 @@ summary_trial0 <- HERS %>%
   dplyr::count(A)
 
 PP <- TrialEmulation::trial_msm(data = switch_data,
-                                     outcome_cov = ~ CD4_1 + CD4_2 + viral_1 + viral_2 + SITE + WHITE + OTHER + assigned_treatment+
+                                     outcome_cov = ~ CD4_1 + CD4_2 + viral_1 + viral_2 + SITE + ETHNICITY + assigned_treatment+
                                        haartCD4_1,
                                      model_var = c('assigned_treatment'),
-                                     glm_function = 'glm',
+                                  analysis_weights = 'asis',
+                                     glm_function = 'parglm',
                                     include_trial_period = ~1, include_followup_time = ~1,
-                                     use_weight=T, use_censor=T, quiet = F, use_sample_weights =  F)
+                                     estimand_type = 'PP', quiet = F, use_sample_weights =  F)
 
-print(xtable(as.data.frame(summary(PP$model)$coefficients), type = "latex", digits = 3))
+print(xtable(as.data.frame(PP$robust$summary), type = "latex", digits = 4))
 
 switch_d0 <- readRDS(paste(data_direction,'/weight_model_switch_d0.rds', sep = ""))
 switch_n0 <- readRDS(paste(data_direction,'/weight_model_switch_n0.rds', sep = ""))
@@ -98,17 +101,17 @@ cense_n0 <- readRDS(paste(data_direction,'/cense_model_n0.rds', sep = ""))
 cense_n1 <- readRDS(paste(data_direction,'/cense_model_n1.rds', sep = ""))
 
 #################### TRADITIONAL IPW-MSM ('SINGLE TRIAL') ####################################
-# weight_model_switch_d1 <- glm(A ~ CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE + WHITE + OTHER,
+# weight_model_switch_d1 <- glm(A ~ CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE + ETHNICITY,
 #                               family = binomial(link = "logit"), data = HERS[HERS$Ap == 1])
-# weight_model_switch_d0 <- glm(A ~ CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE + WHITE + OTHER,
+# weight_model_switch_d0 <- glm(A ~ CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE + ETHNICITY,
 #                               family = binomial(link = "logit"), data = HERS[HERS$Ap == 0])
 # weight_model_switch_n1 <- glm(A ~ 1,
 #                               family = binomial(link = "logit"), data = HERS[HERS$Ap == 1])
 # weight_model_switch_n0 <- glm(A ~ 1,
 #                               family = binomial(link = "logit"), data = HERS[HERS$Ap == 0])
-# weight_model_censor_d1 <- glm(C ~ CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE + WHITE + OTHER,
+# weight_model_censor_d1 <- glm(C ~ CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE + ETHNICITY,
 #                                family = binomial(link = "logit"), data = HERS[HERS$Ap == 1])
-# weight_model_censor_d0 <- glm(C ~ CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE + WHITE + OTHER,
+# weight_model_censor_d0 <- glm(C ~ CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE + ETHNICITY,
 #                               family = binomial(link = "logit"), data = HERS[HERS$Ap == 0])
 # weight_model_censor_n1 <- glm(C ~ 1,
 #                              family = binomial(link = "logit"), data = HERS[HERS$Ap == 1])
@@ -179,17 +182,18 @@ cense_n1 <- readRDS(paste(data_direction,'/cense_model_n1.rds', sep = ""))
 # sd(hers_data_tradi$weight)
 # quantile(hers_data_tradi$weight, c(0.01,0.99))
 
-summary(switch_data$weight)
-sd(switch_data$weight)
-quantile(switch_data$weight, c(0.01,0.99))
 
 
 # fit_tradi <- glm(formula = outcome ~  CA +CD4_1 + CD4_2 + 
-#                        viral_1 + viral_2 + SITE + WHITE + OTHER + 
+#                        viral_1 + viral_2 + SITE + ETHNICITY + 
 #                        CA*CD4_1 , family = binomial(link = "logit"), data = hers_data_tradi, 
 #                      weights = hers_data_tradi[["weight"]])
 # 
 # print(xtable(as.data.frame(summary(fit_tradi)$coefficients), type = "latex", digits = 3))
+##############
+summary(switch_data$weight)
+sd(switch_data$weight)
+quantile(switch_data$weight, c(0.01,0.99))
 
 design_mat <- expand.grid(id = 1:609,
                           trial_period = 0:4,
@@ -199,15 +203,15 @@ design_mat <- design_mat[which(5 -design_mat$trial_period > design_mat$followup_
 fitting_data_treatment <-  switch_data %>% 
   dplyr::mutate(assigned_treatment = followup_time*0 + 1) %>% 
   dplyr::select(id,trial_period, followup_time,CD4_1 , CD4_2 , viral_1 , 
-                viral_2 , SITE , WHITE , OTHER , assigned_treatment,
+                viral_2 , SITE , ETHNICITY, assigned_treatment,
                   haartCD4_1) %>% 
   merge(design_mat, by = c("id", "trial_period", "followup_time"), all.y = TRUE) %>% 
   dplyr::group_by(id) %>% 
-  tidyr::fill(CD4_1 , CD4_2 , viral_1 , viral_2 , SITE , WHITE , OTHER , assigned_treatment,
+  tidyr::fill(CD4_1 , CD4_2 , viral_1 , viral_2 , SITE , ETHNICITY, assigned_treatment,
               haartCD4_1,.direction = "down") %>% 
   dplyr::ungroup() %>% 
   dplyr::select(id, trial_period, followup_time,CD4_1 , CD4_2 , viral_1 , 
-                viral_2 , SITE , WHITE , OTHER , assigned_treatment,
+                viral_2 , SITE , ETHNICITY, assigned_treatment,
                 haartCD4_1) %>% 
   merge(data.frame(id = switch_data$id, trial_period = switch_data$trial_period), 
         by = c("id", "trial_period"), all.y = TRUE) %>% 
@@ -240,7 +244,7 @@ predicted_probas_PP <- fitting_data_treatment %>%
   dplyr::summarise(survival_treatment = mean(cum_hazard_treatment),
                    survival_control = mean(cum_hazard_control),
                    risk_difference = survival_control - survival_treatment)
-
+# ###############
 # Y_pred_PP_treatment_tradi <- predict.glm(fit_tradi, 
 #                                    fitting_data_treatment, 
 #                                    type = "response")
@@ -272,26 +276,23 @@ predicted_probas_PP <- fitting_data_treatment %>%
 #        y = "Marginal risk difference", title = "HERS data analysis: comparison of\nsequential trial emulation and IPW-MSM")
 # 
 
+###############
 boot_data_conf <- list()
 for (k in 1:500) {
   boot_data_conf[[k]] <- sort(sample(unique(switch_data$id), length(unique(switch_data$id)), replace = TRUE))
 }
-registerDoParallel(cores = 2)
+registerDoParallel(cores = 4)
 
 ############################# DIRECT BOOTSTRAP #############################
 surv_PP_difference_boostrap_estimates_conf <-as.data.frame(matrix(,5,500))
-surv_PP_difference_boostrap_estimates_conf_tradi <-as.data.frame(matrix(,5,500))
 
-for (k in 1:500){
-  print(k)
+surv_PP_difference_boostrap_estimates_conf <- foreach(k = 1:500, .combine = cbind) %dopar% {
   weights_table_boot <- data.frame(id = 1:609) %>% 
     rowwise() %>% 
     dplyr::mutate(weight_boot = length(boot_data_conf[[k]][boot_data_conf[[k]] == id])) #bootstrap weight is number of times they were sampled
-  IP_model <- weight_func_bootstrap(data = HERS, expanded_data = switch_data, 
-                                    treatment = 'A',
-                                    switch_d_cov = ~CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE + WHITE + OTHER,
-                                    cense_d_cov = ~CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE + WHITE + OTHER,
-                                    cense = 'C',
+  IP_model <- weight_func_bootstrap(data = HERS, expanded_data = switch_data, cense = 'C',
+                                    switch_d_cov = ~CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE + ETHNICITY,
+                                    cense_d_cov = ~CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE + ETHNICITY,
                                     weight_model_d0 = switch_d0,
                                     weight_model_n0 = switch_n0,
                                     weight_model_d1 = switch_d1,
@@ -307,17 +308,17 @@ for (k in 1:500){
     dplyr::mutate(weight = ifelse(weight_boot !=0,weight*weight_boot,0))
   
   # ############
-  # weight_model_switch_d1_boot <- glm(A ~ CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE + WHITE + OTHER,
+  # weight_model_switch_d1_boot <- glm(A ~ CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE + ETHNICITY,
   #                               family = binomial(link = "logit"), data = HERS[HERS$Ap == 1 & HERS$ID %in% boot_data_conf[[k]]])
-  # weight_model_switch_d0_boot <- glm(A ~ CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE + WHITE + OTHER,
+  # weight_model_switch_d0_boot <- glm(A ~ CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE + ETHNICITY,
   #                               family = binomial(link = "logit"), data = HERS[HERS$Ap == 0& HERS$ID %in% boot_data_conf[[k]]])
   # weight_model_switch_n1_boot <- glm(A ~ 1,
   #                                    family = binomial(link = "logit"), data = HERS[HERS$Ap == 1 & HERS$ID %in% boot_data_conf[[k]]])
   # weight_model_switch_n0_boot <- glm(A ~ 1,
   #                                    family = binomial(link = "logit"), data = HERS[HERS$Ap == 0& HERS$ID %in% boot_data_conf[[k]]])
-  # weight_model_censor_d1_boot <- glm(C ~ CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE + WHITE + OTHER,
+  # weight_model_censor_d1_boot <- glm(C ~ CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE + ETHNICITY,
   #                               family = binomial(link = "logit"), data = HERS[HERS$Ap == 1& HERS$ID %in% boot_data_conf[[k]]])
-  # weight_model_censor_d0_boot <- glm(C ~ CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE + WHITE + OTHER,
+  # weight_model_censor_d0_boot <- glm(C ~ CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE + ETHNICITY,
   #                               family = binomial(link = "logit"), data = HERS[HERS$Ap == 0& HERS$ID %in% boot_data_conf[[k]]])
   # weight_model_censor_n1_boot <- glm(C ~1,
   #                                    family = binomial(link = "logit"), data = HERS[HERS$Ap == 1& HERS$ID %in% boot_data_conf[[k]]])
@@ -386,17 +387,18 @@ for (k in 1:500){
   #   dplyr::mutate(weight = ifelse(weight_boot !=0,weight*weight_boot,0))
   # 
   # fit_tradi_boot <- glm(formula = outcome ~ assigned_treatment + CD4_1 + CD4_2 + 
-  #                        viral_1 + viral_2 + SITE + WHITE + OTHER + 
+  #                        viral_1 + viral_2 + SITE + ETHNICITY + 
   #                        haartCD4_1 + CA , family = binomial(link = "logit"), data = boot_design_data_tradi, 
   #                      weights = boot_design_data_tradi[["weight"]])
   ###########
   PP_boot <- TrialEmulation::trial_msm(data = boot_design_data,
-                                            outcome_cov = ~ CD4_1 + CD4_2 + viral_1 + viral_2 + SITE + WHITE + OTHER + assigned_treatment+
-                                              haartCD4_1,
-                                            model_var = c('assigned_treatment'),
-                                            glm_function = 'glm',
-                                            include_trial_period = ~1, include_followup_time = ~1,
-                                            use_weight=T, use_censor=T, quiet = T, use_sample_weights =  F)
+                                       outcome_cov = ~ CD4_1 + CD4_2 + viral_1 + viral_2 + SITE + ETHNICITY + assigned_treatment+
+                                         haartCD4_1,
+                                       model_var = c('assigned_treatment'),
+                                       analysis_weights = 'asis',
+                                       glm_function = 'parglm',
+                                       include_trial_period = ~1, include_followup_time = ~1,
+                                       estimand_type = 'PP', quiet = F, use_sample_weights =  F)
   
 
   design_mat <- expand.grid(id = 1:tail(boot_design_data$id, n = 1), 
@@ -404,44 +406,40 @@ for (k in 1:500){
                             followup_time = 0:4)
   design_mat <- design_mat[which(5 -design_mat$trial_period > design_mat$followup_time),]
   
-  # fitting_data_treatment_boot <-  boot_design_data %>% 
-  #   dplyr::mutate(assigned_treatment = followup_time*0 + 1) %>% 
-  #   dplyr::select(id,trial_period, followup_time,CD4_1 , CD4_2 , viral_1 , 
-  #                 viral_2 , SITE , WHITE , OTHER , assigned_treatment,
-  #                 haartCD4_1) %>% 
-  #   merge(design_mat, by = c("id", "trial_period", "followup_time"), all.y = TRUE) %>% 
-  #   dplyr::group_by(id) %>% 
-  #   tidyr::fill(CD4_1 , CD4_2 , viral_1 , viral_2 , SITE , WHITE , OTHER , assigned_treatment,
-  #               haartCD4_1,.direction = "down") %>% 
-  #   dplyr::ungroup() %>% 
-  #   dplyr::select(id, trial_period, followup_time,CD4_1 , CD4_2 , viral_1 , 
-  #                 viral_2 , SITE , WHITE , OTHER , assigned_treatment,
-  #                 haartCD4_1) %>% 
-  #   merge(data.frame(id = switch_data$id, trial_period = switch_data$trial_period), 
-  #         by = c("id", "trial_period"), all.y = TRUE) %>% 
-  #   dplyr::arrange(id, trial_period, followup_time) %>% 
-  #   dplyr::mutate(haartCD4_1 = assigned_treatment*CD4_1,
-  #                 tA = as.factor(followup_time * assigned_treatment),
-  #                 followup_time = as.factor(followup_time)) %>% 
-  #   distinct() %>% 
-  #   dplyr::filter(trial_period == 0) %>% 
-  #   dplyr::group_by(id) %>% 
-  #   dplyr::mutate(CA = cumsum(assigned_treatment)) %>% 
-  #   dplyr::ungroup()
-  # 
-  # fitting_data_control_boot <- fitting_data_treatment_boot %>% 
-  #   dplyr::mutate(assigned_treatment = assigned_treatment*0,
-  #                 tA = as.factor(0),
-  #                 CA = cumsum(assigned_treatment)) %>% 
-  #   dplyr::distinct()
-  # 
+  fitting_data_treatment_boot <-  boot_design_data %>% 
+    dplyr::mutate(assigned_treatment = followup_time*0 + 1) %>% 
+    dplyr::select(id,trial_period, followup_time,CD4_1 , CD4_2 , viral_1 , 
+                  viral_2 , SITE , ETHNICITY, assigned_treatment,
+                  haartCD4_1) %>% 
+    merge(design_mat, by = c("id", "trial_period", "followup_time"), all.y = TRUE) %>% 
+    dplyr::group_by(id) %>% 
+    tidyr::fill(CD4_1 , CD4_2 , viral_1 , viral_2 , SITE , ETHNICITY, assigned_treatment,
+                haartCD4_1,.direction = "down") %>% 
+    dplyr::ungroup() %>% 
+    dplyr::select(id, trial_period, followup_time,CD4_1 , CD4_2 , viral_1 , 
+                  viral_2 , SITE , ETHNICITY, assigned_treatment,
+                  haartCD4_1) %>% 
+    merge(data.frame(id = switch_data$id, trial_period = switch_data$trial_period), 
+          by = c("id", "trial_period"), all.y = TRUE) %>% 
+    dplyr::arrange(id, trial_period, followup_time) %>% 
+    dplyr::mutate(haartCD4_1 = assigned_treatment*CD4_1) %>% 
+    distinct() %>% 
+    dplyr::filter(trial_period == 0)
+  
+  fitting_data_treatment_boot <- fitting_data_treatment_boot[!duplicated(fitting_data_treatment_boot),]  
+  
+  fitting_data_control_boot <- fitting_data_treatment_boot %>% 
+    dplyr::mutate(assigned_treatment = assigned_treatment*0,
+                  haartCD4_1 = haartCD4_1*0)%>% 
+    dplyr::distinct()
+
   Y_pred_PP_treatment_boot <- predict.glm(PP_boot$model, 
-                                          fitting_data_treatment, 
+                                          fitting_data_treatment_boot, 
                                           type = "response")
   Y_pred_PP_control_boot <- predict.glm(PP_boot$model, 
-                                        fitting_data_control,
+                                        fitting_data_control_boot,
                                         type = "response")
-  predicted_probas_PP_boot <- fitting_data_treatment %>% 
+  predicted_probas_PP_boot <- fitting_data_treatment_boot %>% 
     dplyr::mutate(predicted_proba_treatment = Y_pred_PP_treatment_boot,
                   predicted_proba_control = Y_pred_PP_control_boot) %>% 
     dplyr::group_by(id, trial_period) %>% 
@@ -471,7 +469,7 @@ for (k in 1:500){
   #                    survival_control = mean(cum_hazard_control),
   #                    risk_difference = survival_control - survival_treatment)
   
-  surv_PP_difference_boostrap_estimates_conf[,k] <-pull(predicted_probas_PP_boot,risk_difference)
+  predicted_probas_PP_boot[,4]
   # surv_PP_difference_boostrap_estimates_conf_tradi[,k] <-pull(predicted_probas_PP_tradi_boot,
                                                                   # risk_difference)
 }
@@ -522,15 +520,14 @@ X <- model.matrix(PP$model)
 e <- PP$model$y - PP$model$fitted.values
 
 surv_PP_difference_LEF_outcome_estimates_conf <- as.data.frame(matrix(,5,500))
-for (k in 1:500){
-  print(k)
+surv_PP_difference_LEF_outcome_estimates_conf <- foreach(k = 1:500, .combine = cbind) %dopar% {
   weights_table_boot <- data.frame(id = 1:609) %>% 
     rowwise() %>% 
     dplyr::mutate(weight_boot = length(boot_data_conf[[k]][boot_data_conf[[k]] == id])) #bootstrap weight is number of times they were sampled
   
   IP_model <- weight_func_bootstrap(data = HERS, expanded_data = switch_data, 
-                                    switch_d_cov = ~CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE + WHITE + OTHER,
-                                    cense_d_cov = ~CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE + WHITE + OTHER,
+                                    switch_d_cov = ~CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE + ETHNICITY,
+                                    cense_d_cov = ~CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE + ETHNICITY,
                                     cense = 'C',
                                     weight_model_d0 = switch_d0,
                                     weight_model_n0 = switch_n0,
@@ -573,9 +570,9 @@ for (k in 1:500){
     dplyr::group_by(followup_time) %>% 
     dplyr::summarise(survival_treatment = mean(cum_hazard_treatment),
                      survival_control = mean(cum_hazard_control),
-                     survival_difference = survival_treatment - survival_control)
+                     risk_difference = survival_control - survival_treatment)
   
-  surv_PP_difference_LEF_outcome_estimates_conf[,k] <- pull(predicted_probas_PP_boot,survival_difference)
+  predicted_probas_PP_boot[,4]
 }
 surv_PP_difference_LEF_outcome_estimates_conf$lb <-apply(surv_PP_difference_LEF_outcome_estimates_conf,
                                                          1,
@@ -587,8 +584,8 @@ surv_PP_difference_LEF_outcome_estimates_conf$ub <- apply(surv_PP_difference_LEF
                                                           probs = c(0.975))
 
 CI_LEF_outcome_coefs_PP_red <- array(,dim = c(5,2))
-CI_LEF_outcome_coefs_PP_red[,1] <- 2*pull(predicted_probas_PP,risk_difference) - surv_PP_difference_LEF_outcome_estimates_conf$lb
-CI_LEF_outcome_coefs_PP_red[,2] <- 2*pull(predicted_probas_PP,risk_difference) - surv_PP_difference_LEF_outcome_estimates_conf$ub
+CI_LEF_outcome_coefs_PP_red[,1] <- surv_PP_difference_LEF_outcome_estimates_conf$lb
+CI_LEF_outcome_coefs_PP_red[,2] <- surv_PP_difference_LEF_outcome_estimates_conf$ub
 
 #################### LEF WEIGHT AND OUTCOME  ##############################
 X_sw_d0 <- model.matrix(switch_d0)
@@ -616,8 +613,7 @@ X_c_n1 <- model.matrix(cense_n1)
 e_c_n1 <- cense_n1$y - cense_n1$fitted.values
 
 surv_PP_difference_LEF_both_estimates_conf <- as.data.frame(matrix(,5,500))
-for (k in 1:500){
-  print(k)
+surv_PP_difference_LEF_both_estimates_conf <- foreach(k = 1:500, .combine = cbind) %dopar% {
   weights_table_boot <- data.frame(id = 1:609) %>% 
     rowwise() %>% 
     dplyr::mutate(weight_boot = length(boot_data_conf[[k]][boot_data_conf[[k]] == id])) #bootstrap weight is number of times they were sampled
@@ -645,8 +641,8 @@ for (k in 1:500){
   beta_c_n1 <- cense_n1$coefficients + vcov(cense_n1)%*%LEF_c_n1_boot
   
   IP_model <- weight_func_bootstrap(data = HERS, expanded_data = switch_data, 
-                                    switch_d_cov = ~CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE + WHITE + OTHER,
-                                    cense_d_cov = ~CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE + WHITE + OTHER,
+                                    switch_d_cov = ~CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE + ETHNICITY,
+                                    cense_d_cov = ~CD4_1 + CD4 + viral + viral_1 + HIVsym + HIVsym_1+ SITE + ETHNICITY,
                                     cense = 'C',
                                     weight_model_d0 = switch_d0,
                                     weight_model_n0 = switch_n0,
@@ -699,9 +695,9 @@ for (k in 1:500){
     dplyr::group_by(followup_time) %>% 
     dplyr::summarise(survival_treatment = mean(cum_hazard_treatment),
                      survival_control = mean(cum_hazard_control),
-                     survival_difference = survival_treatment - survival_control)
+                     risk_difference = survival_control - survival_treatment)
   
-  surv_PP_difference_LEF_both_estimates_conf[,k] <- pull(predicted_probas_PP_boot, survival_difference)
+  predicted_probas_PP_boot[,4]
 }
 surv_PP_difference_LEF_both_estimates_conf$lb <-apply(surv_PP_difference_LEF_both_estimates_conf,
                                                       1,
@@ -714,8 +710,8 @@ surv_PP_difference_LEF_both_estimates_conf$ub <- apply(surv_PP_difference_LEF_bo
 
 
 CI_LEF_both_coefs_PP_red <- array(,dim = c(5,2))
-CI_LEF_both_coefs_PP_red[,1] <- 2*pull(predicted_probas_PP, risk_difference) - surv_PP_difference_LEF_both_estimates_conf$lb
-CI_LEF_both_coefs_PP_red[,2] <- 2*pull(predicted_probas_PP, risk_difference) - surv_PP_difference_LEF_both_estimates_conf$ub
+CI_LEF_both_coefs_PP_red[,1] <- surv_PP_difference_LEF_both_estimates_conf$lb
+CI_LEF_both_coefs_PP_red[,2] <- surv_PP_difference_LEF_both_estimates_conf$ub
 
 ############################SANDWICH #######################################
 covariance_mat <-PP$robust$matrix
@@ -727,8 +723,7 @@ if (all(eigen(covariance_mat)$values > 0) == F){
 sampling_size <- 500
 coeffs_sample <- mvrnorm(sampling_size,PP$model$coefficients, covariance_mat)
 surv_PP_difference_sandwich_estimates <- as.data.frame(matrix(,5,500))
-for (k in 1:500){
-  print(k)
+surv_PP_difference_sandwich_estimates <- foreach(k = 1:500, .combine = cbind) %dopar% {
   #Step 1 of algorithm -- same model with new coeffs = one point from MVN sample
   fit_sample <- PP
   fit_sample$model$coefficients <- coeffs_sample[k,]
@@ -753,7 +748,7 @@ for (k in 1:500){
                      survival_control = mean(cum_hazard_control),
                      risk_difference = survival_control - survival_treatment)
   
-  surv_PP_difference_sandwich_estimates[,k] <- pull(predicted_probas_PP_sample, risk_difference)
+  predicted_probas_PP_sample[,4]
 }
 
 #Step 3 -- calculating lower and upper bounds by 2.5% and 97.5% quantiles
@@ -772,34 +767,43 @@ CI_sandwich_coefs_PP_red[,2] <- surv_PP_difference_sandwich_estimates$ub
 #
 #################### CURVE PLOT AND CIS ##################################
 
-ggplot() +geom_line(aes(x = 0:4,y = pull(predicted_probas_PP_tradi,risk_difference), 
-                        color = 'Traditional IPW-MSM analysis'))+
-  geom_point(aes(x = 0:4,y = pull(predicted_probas_PP_tradi,risk_difference)))+ 
-  geom_line(aes(x = 0:4,y = pull(predicted_probas_PP,risk_difference), 
-                color = 'Sequential trial emulation analysis'))+
-  geom_point(aes(x = 0:4,y = pull(predicted_probas_PP,risk_difference))) + 
-  geom_stepribbon(aes(x = 0:4,ymin = CI_bootstrap_coefs_PP_red[,1], 
-                      ymax = CI_bootstrap_coefs_PP_red[,2], color = "Sequential trial emulation analysis"), alpha = 0.1) +
-  geom_stepribbon(aes(x = 0:4,ymin = CI_bootstrap_coefs_PP_red_tradi[,1], 
-                      ymax = CI_bootstrap_coefs_PP_red_tradi[,2], color = "Traditional IPW-MSM analysis"), alpha = 0.1) +
-  scale_color_manual(name = "Per-protocol analysis method",
-                     values = c("Traditional IPW-MSM analysis"= "red",
-                                "Sequential trial emulation analysis" = "blue")) +
-  labs(x = 'Follow-up time', 
-       y = "Marginal risk difference", title = "HERS data analysis")
+# ggplot() +geom_line(aes(x = 0:4,y = pull(predicted_probas_PP_tradi,risk_difference), 
+#                         color = 'Traditional IPW-MSM analysis'))+
+#   geom_point(aes(x = 0:4,y = pull(predicted_probas_PP_tradi,risk_difference)))+ 
+#   geom_line(aes(x = 0:4,y = pull(predicted_probas_PP,risk_difference), 
+#                 color = 'Sequential trial emulation analysis'))+
+#   geom_point(aes(x = 0:4,y = pull(predicted_probas_PP,risk_difference))) + 
+#   geom_stepribbon(aes(x = 0:4,ymin = CI_bootstrap_coefs_PP_red[,1], 
+#                       ymax = CI_bootstrap_coefs_PP_red[,2], color = "Sequential trial emulation analysis"), alpha = 0.1) +
+#   geom_stepribbon(aes(x = 0:4,ymin = CI_bootstrap_coefs_PP_red_tradi[,1], 
+#                       ymax = CI_bootstrap_coefs_PP_red_tradi[,2], color = "Traditional IPW-MSM analysis"), alpha = 0.1) +
+#   scale_color_manual(name = "Per-protocol analysis method",
+#                      values = c("Traditional IPW-MSM analysis"= "red",
+#                                 "Sequential trial emulation analysis" = "blue")) +
+#   labs(x = 'Follow-up time', 
+#        y = "Marginal risk difference", title = "HERS data analysis")
 
-ggplot(data = predicted_probas_PP,aes(x = 0:4)) +
-  geom_step(aes(x = 0:4,y = risk_difference)) +
-  geom_stepribbon(aes(ymin = CI_LEF_outcome_coefs_PP_red[,1],
-                      ymax = CI_LEF_outcome_coefs_PP_red[,2], color = "LEF outcome"), alpha = 0.1) +
-  geom_stepribbon(aes(ymin = CI_LEF_both_coefs_PP_red[,1],
-                      ymax = CI_LEF_both_coefs_PP_red[,2], color = "LEF both"), alpha = 0.1) +
-  geom_stepribbon(aes(ymin = CI_sandwich_coefs_PP_red[,1],
-                      ymax = CI_sandwich_coefs_PP_red[,2], color = "Sandwich"), alpha = 0.1) +
-  geom_stepribbon(aes(ymin = CI_bootstrap_coefs_PP_red[,1], 
-                      ymax = CI_bootstrap_coefs_PP_red[,2], color = "Nonparametric Boot."), alpha = 0.1) +
-  scale_color_manual(name = "CI method", values = c("LEF outcome"= "green", "Nonparametric Boot." = "red", "LEF both" = 'purple', "Sandwich" = 'blue')) +
-  labs(x = 'Follow-up time', 
-       y = "Marginal risk difference")
+CI_summary <- as.data.frame(cbind(predicted_probas_PP[,1], predicted_probas_PP[,4], CI_bootstrap_coefs_PP_red[,1], CI_bootstrap_coefs_PP_red[,2], 
+                    CI_LEF_outcome_coefs_PP_red[,1], CI_LEF_outcome_coefs_PP_red[,2],
+                    CI_LEF_both_coefs_PP_red[,1], CI_LEF_both_coefs_PP_red[,2],
+                    CI_sandwich_coefs_PP_red[,1], CI_sandwich_coefs_PP_red[,2])) 
+colnames(CI_summary) <- c('Visit', 'MRD', 'LB_Bootstrap', 'UB_Bootstrap', 'LB_LEF outcome', 'UB_LEF outcome',
+                                  'LB_LEF both', 'UB_LEF both', 'LB_Sandwich', 'UB_Sandwich')
+CI_summary_long_LB <- pivot_longer(data = CI_summary, cols = c('LB_Bootstrap', 'LB_LEF outcome',
+                                'LB_LEF both', 'LB_Sandwich'), names_to = c('Bound', 'CI_type'), 
+                                names_sep = '_', values_to = 'LB')
+CI_summary_long_UB <- pivot_longer(data = CI_summary, cols = c('UB_Bootstrap', 'UB_LEF outcome',
+                                                               'UB_LEF both', 'UB_Sandwich'), names_to = c('Bound', 'CI_type'), 
+                                   names_sep = '_', values_to = 'UB')
+CI_summary_long <- merge(CI_summary_long_LB[,-3:-7], CI_summary_long_UB[,-3:-7], by = c("Visit", 'MRD', 'CI_type'))
 
- 
+
+ggplot(CI_summary_long, aes(x=Visit, y=MRD, color=CI_type)) + 
+  geom_pointrange(aes(ymin=LB, ymax=UB), position = position_dodge(width = 0.5)) +
+  #xlab(bquote(atop(n ==.(scenarios[i,1]), alpha[c] ==.(scenarios[i,2])~', '~alpha[a] == .(scenarios[i,3])))) +
+  labs(y = "Marginal risk difference",
+       x = 'Visit') +  
+  scale_color_manual(name = "CI method", values = c("Bootstrap"= "red", "Sandwich" = "blue",
+                                                  "LEF outcome" = "green", "LEF both" = "purple",
+                                                  "Jackknife MVN" = 'orange',"Jackknife Wald" = 'deepskyblue' ))
+

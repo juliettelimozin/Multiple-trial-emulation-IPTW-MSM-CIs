@@ -274,6 +274,7 @@ weight_func_bootstrap <- function(data,
       t = weight_model_n1_data[, period])
   }
   
+  print('models refitted')
   # -------------- Combine results --------------------
   
   switch_0 <- switch_d0[switch_n0, on = list(
@@ -291,7 +292,7 @@ weight_func_bootstrap <- function(data,
   data <- merge.data.table(data, switch_1, by = c("ID", "t"), all = TRUE)
   
   rm(switch_1, switch_0)
-  
+  data <- data.table(data) 
   data[, eligible0.y := NULL]
   data[, eligible1.y := NULL]
   setnames(data, c("eligible0.x", "eligible1.x"), c("eligible0", "eligible1"))
