@@ -24,12 +24,12 @@ true_value_boot <- array(,dim = c(5,9,3))
 bootstrap_iter <- 500
 registerDoParallel(cores = 10)
 
-for (l in 1:9){
-  for (j in 1:3){
+for (l in 9){
+  for (j in 3){
     start.time <- Sys.time()
     estimates_boot <- as.data.frame(matrix(,5,bootstrap_iter))
     estimates_boot <- foreach(k = 1:bootstrap_iter, .combine=cbind) %dopar% {
-      simdata_censored <-DATA_GEN_censored_reduced(50000, 5, 
+      simdata_censored <-DATA_GEN_censored_reduced(200000, 5, 
                                                    conf = as.numeric(scenarios[l,1]), 
                                                    treat_prev = as.numeric(scenarios[l,2]),
                                                    outcome_prev = outcome_prev[j],
@@ -92,7 +92,7 @@ for (l in 1:9){
       }
       
       
-      design_mat <- expand.grid(id = 1:50000,
+      design_mat <- expand.grid(id = 1:200000,
                                 trial_period = 0:4,
                                 followup_time = 0:4) 
       design_mat <- design_mat[which(5 -design_mat$trial_period > design_mat$followup_time),]
@@ -160,5 +160,5 @@ for (l in 1:9){
     print(Sys.time() - start.time)
   }
 }
-save(true_value_boot, file = "true_value_red_pseudo_true_boot_500it.rda")
+save(true_value_boot, file = "true_value_red_pseudo_true_boot_500it_200000p_l9j3.rda")
 
