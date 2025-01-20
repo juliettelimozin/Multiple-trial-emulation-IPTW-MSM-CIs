@@ -61,22 +61,22 @@ na_failure_rate <- data.frame(matrix(,nrow = 0, ncol = 7))
 se_ratio <- data.frame(matrix(,nrow = 0, ncol = 5))
 for (i in 1:27){
   for (j in 1:3){
-    load(paste0("NewSimusJ/J_CI_bootstrap_PP_red_",outcomes[j],'_', i, ".rda"))
-    load(paste0("NewSimusJ/J_CI_jackknife_mvn_PP_red_",outcomes[j],'_', i, ".rda"))
-    load(paste0("NewSimusJ/J_CI_jackknife_wald_PP_red_",outcomes[j],'_', i, ".rda"))
-    load(paste0("NewSimusJ/J_CI_LEF_outcome_PP_red_",outcomes[j],'_', i, ".rda"))
-    load(paste0("NewSimusJ/J_CI_LEF_both_PP_red_",outcomes[j],'_', i, ".rda"))
-    load(paste0("NewSimusJ/J_CI_sandwich_PP_red_",outcomes[j],'_', i, ".rda"))
-    load(paste0("NewSimusJ/J_computation_time_",outcomes[j],'_', i, ".rda"))
-    load(paste0('NewSimusJ/J_estimates_red_',outcomes[j],'_',i, '.rda'))
-    load(paste0('NewSimusJ/J_survival_treatment_estimates_',outcomes[j],'_',i, '.rda'))
-    load(paste0('NewSimusJ/J_survival_control_estimates_',outcomes[j],'_',i, '.rda'))
-    load(paste0('NewSimusJ/J_bootstrap_mrd_',outcomes[j],'_',i, '.rda'))
-    load(paste0('NewSimusJ/J_LEF_outcome_mrd_',outcomes[j],'_',i, '.rda'))
-    load(paste0('NewSimusJ/J_LEF_both_mrd_',outcomes[j],'_',i, '.rda'))
-    load(paste0('NewSimusJ/J_sandwich_mrd_',outcomes[j],'_',i, '.rda'))
-    load(paste0('NewSimusJ/J_jackknife_mvn_mrd_',outcomes[j],'_',i, '.rda'))
-    load(paste0('NewSimusJ/J_jackknife_SEs_',outcomes[j],'_',i, '.rda'))
+    load(paste0("~/rds/hpc-work/Project1/NewSimusJ/J_CI_bootstrap_PP_red_",outcomes[j],'_', i, ".rda"))
+    load(paste0("~/rds/hpc-work/Project1/NewSimusJ/J_CI_jackknife_mvn_PP_red_",outcomes[j],'_', i, ".rda"))
+    load(paste0("~/rds/hpc-work/Project1/NewSimusJ/J_CI_jackknife_wald_PP_red_",outcomes[j],'_', i, ".rda"))
+    load(paste0("~/rds/hpc-work/Project1/NewSimusJ/J_CI_LEF_outcome_PP_red_",outcomes[j],'_', i, ".rda"))
+    load(paste0("~/rds/hpc-work/Project1/NewSimusJ/J_CI_LEF_both_PP_red_",outcomes[j],'_', i, ".rda"))
+    load(paste0("~/rds/hpc-work/Project1/NewSimusJ/J_CI_sandwich_PP_red_",outcomes[j],'_', i, ".rda"))
+    load(paste0("~/rds/hpc-work/Project1/NewSimusJ/J_computation_time_",outcomes[j],'_', i, ".rda"))
+    load(paste0('~/rds/hpc-work/Project1/NewSimusJ/J_estimates_red_',outcomes[j],'_',i, '.rda'))
+    load(paste0('~/rds/hpc-work/Project1/NewSimusJ/J_survival_treatment_estimates_',outcomes[j],'_',i, '.rda'))
+    load(paste0('~/rds/hpc-work/Project1/NewSimusJ/J_survival_control_estimates_',outcomes[j],'_',i, '.rda'))
+    load(paste0('~/rds/hpc-work/Project1/NewSimusJ/J_bootstrap_mrd_',outcomes[j],'_',i, '.rda'))
+    load(paste0('~/rds/hpc-work/Project1/NewSimusJ/J_LEF_outcome_mrd_',outcomes[j],'_',i, '.rda'))
+    load(paste0('~/rds/hpc-work/Project1/NewSimusJ/J_LEF_both_mrd_',outcomes[j],'_',i, '.rda'))
+    load(paste0('~/rds/hpc-work/Project1/NewSimusJ/J_sandwich_mrd_',outcomes[j],'_',i, '.rda'))
+    load(paste0('~/rds/hpc-work/Project1/NewSimusJ/J_jackknife_mvn_mrd_',outcomes[j],'_',i, '.rda'))
+    load(paste0('~/rds/hpc-work/Project1/NewSimusJ/J_jackknife_SEs_',outcomes[j],'_',i, '.rda'))
     
     bootstrap[,,,i,j] <- CI_bootstrap_PP_red
     LEF_outcome[,,,i,j] <- CI_LEF_outcome_PP_red
@@ -572,6 +572,7 @@ annotate_figure(ggarrange(plotlist = mse_plots, nrow = 3, ncol = 9, common.legen
 # 
 # 
 
+##############
 pivot_coverage_ind <- array(0,dim = c(6,5,27,3))
 pivot_success <- array(0,dim = c(6,5,27,3))
 
@@ -695,6 +696,7 @@ for (i in 1:iters){
 }
 
 bias_elim_pivot_coverage_ind <- bias_elim_pivot_coverage_ind/bias_elim_pivot_success
+
 
 ###############COVERAGE PLOTS ####################
 # coverage_low <-  lapply(1:9, function(i){
@@ -860,13 +862,41 @@ coverage_low <-  lapply(1:27, function(i){
                                                     "LEF outcome" = "green", "LEF both" = "purple",
                                                     "Jackknife MVN" = 'orange',"Jackknife Wald" = 'deepskyblue' )) +
     geom_hline(yintercept = 0.95, linetype = "dashed") +
-    xlab(bquote(atop(n ==.(scenarios[i,1]), alpha[c] ==.(scenarios[i,2])~', '~alpha[a] == .(scenarios[i,3])))) +
-    ylab("Coverage") +  ylim(0.4,1) + 
-    theme(title=element_text(size=15), axis.text = element_text(size=10), legend.text = element_text(size=14))
+    ylim(0.4,1) + 
+    theme(legend.text = element_text(size=14))
 }
 )
+for(i in 1:27){
+  if(i %in% 1:9){
+    if(i %in% c(2, 5, 8)){
+      coverage_low[[i]] <- coverage_low[[i]] +
+        labs(title = bquote(atop(alpha[c] == .(scenarios[i,2]), alpha[a] == .(scenarios[i,3]))))} else{
+          coverage_low[[i]] <- coverage_low[[i]] +
+            labs(title = bquote(atop(phantom(3),alpha[a] == .(scenarios[i,3]))))
+    }
+  }
+  if(i %in% c(1,10,19)){
+    coverage_low[[i]] <- coverage_low[[i]] +
+      ylab(bquote(atop(n == .(scenarios[i,1]), 'Coverage')))
+  } else{coverage_low[[i]] <- coverage_low[[i]] +
+    theme(axis.text.y=element_blank(), 
+          axis.ticks.y=element_blank(),
+          axis.title.y = element_blank())
+  }
+  if(i %in% 19:27){
+    coverage_low[[i]] <- coverage_low[[i]] +
+      xlab('Visit')
+  } else {coverage_low[[i]] <- coverage_low[[i]] +
+    theme(axis.text.x=element_blank(), 
+          axis.ticks.x=element_blank(),
+          axis.title.x = element_blank())
+  }
+}
+
 annotate_figure(ggarrange(plotlist = coverage_low, nrow = 3, ncol = 9, common.legend = T,
-                          legend = 'bottom'))
+                          legend = 'bottom',
+                          widths = c(1.4,1,1,1,1,1,1,1,1),
+                          heights = c(1.1, 0.95, 1)))
 
 coverage_med <-  lapply(1:27, function(i){
   ggplot() +
@@ -1276,9 +1306,9 @@ print(xtable(failure_table, type = 'latex'), include.rownames = FALSE)
 no_na_frequency <- data.frame(matrix(,nrow = 0, ncol = 7))
 for (i in 1:27){
   for (j in 1:3){
-    load(paste0('NewSimusJ/coeff_dim_',outcomes[j],'_',i, '.rda'))
-    load(paste0('NewSimusJ/bootstrap_nas_',outcomes[j],'_',i, '.rda'))
-    load(paste0('NewSimusJ/jackknife_nas_',outcomes[j],'_',i, '.rda'))
+    load(paste0('~/rds/hpc-work/Project1/NewSimusJ/coeff_dim_',outcomes[j],'_',i, '.rda'))
+    load(paste0('~/rds/hpc-work/Project1/NewSimusJ/bootstrap_nas_',outcomes[j],'_',i, '.rda'))
+    load(paste0('~/rds/hpc-work/Project1/NewSimusJ/jackknife_nas_',outcomes[j],'_',i, '.rda'))
     no_na_frequency <- rbind(no_na_frequency, cbind(outcomes[j], scenarios[i,1], scenarios[i,2],scenarios[i,3],
                                             coeff_dim, bootstrap_nas, jackknife_nas))
   }
