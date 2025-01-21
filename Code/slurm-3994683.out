@@ -1,0 +1,77 @@
+Loading [1mrhel8/default-icl[22m
+  [94mLoading requirement[0m: rhel8/slurm singularity/current rhel8/global cuda/11.4
+    vgl/2.5.1/64 intel-oneapi-compilers/2022.1.0/gcc/b6zld2mz ucx/1.15.0
+    intel-oneapi-mpi/2021.6.0/intel/guxuvcpm
+
+Attaching package: ‘dplyr’
+
+The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+✔ forcats   0.5.1     ✔ readr     2.1.2
+✔ ggplot2   3.4.0     ✔ stringr   1.5.1
+✔ lubridate 1.9.3     ✔ tibble    3.2.1
+✔ purrr     0.3.5     ✔ tidyr     1.2.1
+── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ dplyr::filter() masks stats::filter()
+✖ dplyr::lag()    masks stats::lag()
+ℹ Use the ]8;;http://conflicted.r-lib.org/conflicted package]8;; to force all conflicts to become errors
+
+Attaching package: ‘MASS’
+
+The following object is masked from ‘package:dplyr’:
+
+    select
+
+
+Attaching package: ‘foreach’
+
+The following objects are masked from ‘package:purrr’:
+
+    accumulate, when
+
+Loading required package: iterators
+Loading required package: parallel
+
+Attaching package: ‘survminer’
+
+The following object is masked from ‘package:survival’:
+
+    myeloma
+
+
+Attaching package: ‘pammtools’
+
+The following object is masked from ‘package:MASS’:
+
+    select
+
+The following object is masked from ‘package:modelr’:
+
+    seq_range
+
+The following object is masked from ‘package:stats’:
+
+    filter
+
+Loading required package: rngtools
+
+Attaching package: ‘matrixStats’
+
+The following object is masked from ‘package:dplyr’:
+
+    count
+
+Error in TrialEmulation::data_preparation(simdata_censored, id = "ID",  : 
+  2 assertions failed:
+ * Variable 'estimand_type': Must be element of set
+ * {'ITT','PP','As-Treated'}, but is not atomic scalar.
+ * Variable 'cense': May not be NA.
+Calls: <Anonymous> -> check_args_data_preparation -> reportAssertions
+Execution halted
