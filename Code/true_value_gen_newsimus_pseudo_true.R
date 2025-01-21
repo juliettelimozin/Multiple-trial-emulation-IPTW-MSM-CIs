@@ -1,7 +1,7 @@
 library(modelr)
 library(tidyverse)
 library(tidyr)
-setwd("~/rds/hpc-work/Project1")
+setwd("~/rds/hpc-work/Multiple-trial-emulation-IPTW-MSM-CIs/Code")
 source("simulate_MSM_simplified.R")
 source("weight_func.R")
 set.seed(20222022)

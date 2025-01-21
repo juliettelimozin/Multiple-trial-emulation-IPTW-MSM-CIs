@@ -54,3 +54,6 @@ IPW_summary_control[l,5:10] <- t(rbind(min(PP_prep$data[PP_prep$data$assigned_tr
 
 IPW_summary <- rbind(IPW_summary_control, IPW_summary_treated) %>% 
   dplyr::arrange(size, conf, treat, assigned_treatment)
+
+xftbl <- xtableFtable(IPW_summary, method = "compact")
+print(xtable(IPW_summary, type = 'latex', digits = c(0,0,1,0,0,2,2,2,2,2,2)), include.rownames = F) 

@@ -4,9 +4,12 @@ library(tidyr)
 setwd("/home/jml219/rds/hpc-work/Project1")
 library(ggplot2)
 library(ggpubr)
-load("true_value_red_newsimus.rda")
-load("true_value_surv0.rda")
-load("true_value_surv1.rda")
+# load("true_value_red_newsimus.rda")
+# load("true_value_surv0.rda")
+# load("true_value_surv1.rda")
+load("true_value_red_newsimus_pseudo_true_1-5M.rda")
+load("true_value_surv0_pseudo_true_1-5M.rda")
+load("true_value_surv1_pseudo_true_1-5M.rda")
 #load("Rdata.RData")
 library(modelr)
 library(MASS)
@@ -56,7 +59,7 @@ bias_surv0 <- array(,dim = c(5,27,3))
 bias_surv1 <- array(,dim = c(5,27,3))
 sd_point <- array(,dim = c(5,27,3))
 mean_time <- data.frame(matrix(,nrow = 0, ncol = 10))
-true_value_red <- -true_value_red
+#true_value_red <- -true_value_red
 na_failure_rate <- data.frame(matrix(,nrow = 0, ncol = 7))
 se_ratio <- data.frame(matrix(,nrow = 0, ncol = 5))
 for (i in 1:27){
@@ -916,13 +919,41 @@ coverage_med <-  lapply(1:27, function(i){
                                                     "LEF outcome" = "green", "LEF both" = "purple",
                                                     "Jackknife MVN" = 'orange',"Jackknife Wald" = 'deepskyblue' )) +
     geom_hline(yintercept = 0.95, linetype = "dashed") +
-    xlab(bquote(atop(n ==.(scenarios[i,1]), alpha[c] ==.(scenarios[i,2])~', '~alpha[a] == .(scenarios[i,3])))) +
-    ylab("Coverage") +  ylim(0.2,1) + 
-    theme(title=element_text(size=15), axis.text = element_text(size=10), legend.text = element_text(size=14))
+    ylim(0.4,1) + 
+    theme(legend.text = element_text(size=14))
 }
 )
+for(i in 1:27){
+  if(i %in% 1:9){
+    if(i %in% c(2, 5, 8)){
+      coverage_med[[i]] <- coverage_med[[i]] +
+        labs(title = bquote(atop(alpha[c] == .(scenarios[i,2]), alpha[a] == .(scenarios[i,3]))))} else{
+          coverage_med[[i]] <- coverage_med[[i]] +
+            labs(title = bquote(atop(phantom(3),alpha[a] == .(scenarios[i,3]))))
+        }
+  }
+  if(i %in% c(1,10,19)){
+    coverage_med[[i]] <- coverage_med[[i]] +
+      ylab(bquote(atop(n == .(scenarios[i,1]), 'Coverage')))
+  } else{coverage_med[[i]] <- coverage_med[[i]] +
+    theme(axis.text.y=element_blank(), 
+          axis.ticks.y=element_blank(),
+          axis.title.y = element_blank())
+  }
+  if(i %in% 19:27){
+    coverage_med[[i]] <- coverage_med[[i]] +
+      xlab('Visit')
+  } else {coverage_med[[i]] <- coverage_med[[i]] +
+    theme(axis.text.x=element_blank(), 
+          axis.ticks.x=element_blank(),
+          axis.title.x = element_blank())
+  }
+}
+
 annotate_figure(ggarrange(plotlist = coverage_med, nrow = 3, ncol = 9, common.legend = T,
-                          legend = 'bottom'))
+                          legend = 'bottom',
+                          widths = c(1.4,1,1,1,1,1,1,1,1),
+                          heights = c(1.1, 0.95, 1)))
 
 coverage_high <-  lapply(1:27, function(i){
   ggplot() +
@@ -943,13 +974,41 @@ coverage_high <-  lapply(1:27, function(i){
                                                     "LEF outcome" = "green", "LEF both" = "purple",
                                                     "Jackknife MVN" = 'orange',"Jackknife Wald" = 'deepskyblue' )) +
     geom_hline(yintercept = 0.95, linetype = "dashed") +
-    xlab(bquote(atop(n ==.(scenarios[i,1]), alpha[c] ==.(scenarios[i,2])~', '~alpha[a] == .(scenarios[i,3])))) +
-    ylab("Coverage") +  ylim(0.2,1) + 
-    theme(title=element_text(size=15), axis.text = element_text(size=10), legend.text = element_text(size=14))
+    ylim(0.4,1) + 
+    theme(legend.text = element_text(size=14))
 }
 )
+for(i in 1:27){
+  if(i %in% 1:9){
+    if(i %in% c(2, 5, 8)){
+      coverage_high[[i]] <- coverage_high[[i]] +
+        labs(title = bquote(atop(alpha[c] == .(scenarios[i,2]), alpha[a] == .(scenarios[i,3]))))} else{
+          coverage_high[[i]] <- coverage_high[[i]] +
+            labs(title = bquote(atop(phantom(3),alpha[a] == .(scenarios[i,3]))))
+        }
+  }
+  if(i %in% c(1,10,19)){
+    coverage_high[[i]] <- coverage_high[[i]] +
+      ylab(bquote(atop(n == .(scenarios[i,1]), 'Coverage')))
+  } else{coverage_high[[i]] <- coverage_high[[i]] +
+    theme(axis.text.y=element_blank(), 
+          axis.ticks.y=element_blank(),
+          axis.title.y = element_blank())
+  }
+  if(i %in% 19:27){
+    coverage_high[[i]] <- coverage_high[[i]] +
+      xlab('Visit')
+  } else {coverage_high[[i]] <- coverage_high[[i]] +
+    theme(axis.text.x=element_blank(), 
+          axis.ticks.x=element_blank(),
+          axis.title.x = element_blank())
+  }
+}
+
 annotate_figure(ggarrange(plotlist = coverage_high, nrow = 3, ncol = 9, common.legend = T,
-                          legend = 'bottom'))
+                          legend = 'bottom',
+                          widths = c(1.4,1,1,1,1,1,1,1,1),
+                          heights = c(1.1, 0.95, 1)))
 
 ######################   BIAS ELIM PIVOT COVERAGE ########################
 coverage_low <-  lapply(1:27, function(i){

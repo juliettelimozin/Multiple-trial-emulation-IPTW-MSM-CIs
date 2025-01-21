@@ -191,9 +191,20 @@ cense_n1 <- readRDS(paste(data_direction,'/cense_model_n1.rds', sep = ""))
 # 
 # print(xtable(as.data.frame(summary(fit_tradi)$coefficients), type = "latex", digits = 3))
 ##############
-summary(switch_data$weight)
-sd(switch_data$weight)
-quantile(switch_data$weight, c(0.01,0.99))
+IPW_summary <- rbind(cbind(1,min(switch_data[switch_data$assigned_treatment == 1,]$weight), 
+                                       quantile(switch_data[switch_data$assigned_treatment == 1,]$weight, probs = 0.25), 
+                                       mean(switch_data[switch_data$assigned_treatment == 1,]$weight), 
+                                       median(switch_data[switch_data$assigned_treatment == 1,]$weight),
+                                       quantile(switch_data[switch_data$assigned_treatment == 1,]$weight, probs = 0.75),
+                                       max(switch_data[switch_data$assigned_treatment == 1,]$weight)),
+                     cbind(0,min(switch_data[switch_data$assigned_treatment == 0,]$weight), 
+                                       quantile(switch_data[switch_data$assigned_treatment ==0,]$weight, probs = 0.25), 
+                                       mean(switch_data[switch_data$assigned_treatment == 0,]$weight), 
+                                       median(switch_data[switch_data$assigned_treatment == 0,]$weight),
+                                       quantile(switch_data[switch_data$assigned_treatment == 0,]$weight, probs = 0.75),
+                                       max(switch_data[switch_data$assigned_treatment == 0,]$weight)))
+colnames(IPW_summary)<- c('Assigned treatment', 'Minimum', '1st quantile', 'Mean', 'Median', '3rd quantile', 'Maximum')
+print(xtable(IPW_summary, type = 'latex'), digits = c(0,0,2,2,2,2,2,2), include.rownames = F)
 
 design_mat <- expand.grid(id = 1:609,
                           trial_period = 0:4,

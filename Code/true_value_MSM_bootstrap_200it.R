@@ -22,9 +22,9 @@ scenarios <- tidyr::crossing(conf, treat)
 true_value_boot <- array(,dim = c(5,9,3))
 
 bootstrap_iter <- 500
-registerDoParallel(cores = 10)
+#registerDoParallel(cores = 10)
 
-for (l in 9){
+for (l in c(3,6,9)){
   for (j in 3){
     start.time <- Sys.time()
     estimates_boot <- as.data.frame(matrix(,5,bootstrap_iter))
@@ -160,5 +160,5 @@ for (l in 9){
     print(Sys.time() - start.time)
   }
 }
-save(true_value_boot, file = "true_value_red_pseudo_true_boot_500it_200000p_l9j3.rda")
+save(true_value_boot, file = "true_value_red_pseudo_true_boot_500it_200000p_hightreat.rda")
 
