@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH -J pseudo-true
+#SBATCH -J pseudo-true-100k
 #SBATCH -p icelake
-#SBATCH --time=24:00:00
+#SBATCH --time=10:00:00
 #SBATCH -A mrc-bsu-sl2-cpu
 #SBATCH --cpus-per-task=67
 #SBATCH --mail-type=begin,end
@@ -14,4 +14,4 @@ module load rhel8/default-icl
 
 module load R/4.3.1-icelake
 
-Rscript pseudo_true_500it_200k_parallel.R
+Rscript pseudo_true_500it_100k_parallel.R
