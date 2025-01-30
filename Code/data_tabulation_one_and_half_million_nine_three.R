@@ -1,9 +1,9 @@
 library(dplyr)
 library(tidyverse)
 library(tidyr)
-setwd("~/rds/hpc-work/Multiple-trial-emulation-IPTW-MSM-CIs/Code")
+setwd("~/Multiple-trial-emulation-IPTW-MSM-CIs/Code")
 source("simulate_MSM_simplified.R")
-library(TrialEmulation, lib.loc = '/home/jml219/R/x86_64-redhat-linux-gnu-library/4.3')
+library(TrialEmulation)
 library(ggplot2)
 library(ggpubr)
 library(modelr)
@@ -35,16 +35,17 @@ surv1 <- array(,dim = c(5,9,3))
 l = 9
 j = 3
 
-simdata_censored <-DATA_GEN_censored_reduced(1500000, 5, 
+simdata_censored <-DATA_GEN_censored_reduced(1000000, 5, 
                                              conf = as.numeric(scenarios[l,1]), 
                                              treat_prev = as.numeric(scenarios[l,2]),
                                              outcome_prev = outcome_prev[j],
                                              censor = F)
 PP_prep <- TrialEmulation::data_preparation(simdata_censored, id='ID', period='t', treatment='A', outcome='Y', 
                                             eligible ='eligible',
+                                            estimand_type = 'PP',
                                             switch_d_cov = ~X2 + X4,
                                             outcome_cov = ~X2 + X4, model_var = c('assigned_treatment'),
-                                            use_weight=T, use_censor=T, quiet = T,
+                                            quiet = T,
                                             save_weight_models = F)
 
 con4<-xtabs(~assigned_treatment + outcome + followup_time, data=PP_prep$data)
