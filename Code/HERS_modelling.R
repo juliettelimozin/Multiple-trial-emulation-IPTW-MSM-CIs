@@ -57,23 +57,39 @@ HERS$eligible <- as.numeric(HERS$CAp == 0)
 
 summary_HERS <- HERS %>% 
   summarize(total_cense = sum(as.numeric(Y)-1))
+
 #################SEQUENTIAL TRIALS IPW AND MSM #########################
 PP_prep <- TrialEmulation::data_preparation(data = HERS, id='ID', period='t', treatment='A', outcome='Y', 
                                             eligible ='eligible', cense = 'C', use_censor_weights = T,
                                             switch_d_cov = ~ CD4_1 + CD4_2 +  viral_1 + viral_2 + HIVsym_1+ SITE + ETHNICITY,
                                             cense_d_cov = ~ CD4_1 + CD4  + viral + viral_1  + HIVsym + HIVsym_1+ SITE + ETHNICITY,
-                                            outcome_cov = ~ CD4 + CD4_1 + CD4_2 + viral+ viral_1 + viral_2 + HIVsym + HIVsym_1 + HIVsym_2+ SITE + ETHNICITY,
+                                            outcome_cov = ~ CD4 + CD4_1 + CD4_2 + viral+ viral_1 + viral_2 + HIVsym + HIVsym_1 + HIVsym_2+ SITE + ETHNICITY + C,
                                             model_var = c('assigned_treatment'),
                                             estimand_type = 'PP', quiet = F,
                                             pool_cense = 'none',
                                             save_weight_models = T, 
                                             data_dir = data_direction)
+data_tabulation <- PP_prep$data %>% 
+  dplyr::select(id,trial_period, assigned_treatment, outcome, C) %>% 
+  dplyr::group_by(id, trial_period) %>% 
+  dplyr::mutate(outcome = sum(outcome), C = sum(C)) %>% 
+  dplyr::ungroup() %>% 
+  dplyr::distinct() %>% 
+  dplyr::group_by(assigned_treatment, outcome, C, trial_period)%>% 
+  dplyr::summarise(count = n())
+con4<-xtabs(~assigned_treatment + outcome + C + trial_period, data=data_tabulation)
+ftable(con4)
+
+xftbl <- xtableFtable(ftable(con4), method = "compact")
+print.xtableFtable(xftbl, booktabs = T) 
+
 switch_data <- PP_prep$data %>% 
   dplyr::mutate(haartCD4_1 = assigned_treatment*CD4_1)
 
 summary_trial0 <- switch_data %>% 
-  dplyr::filter(trial_period == 4,followup_time == 0) %>% 
-  dplyr::count(assigned_treatment)
+  dplyr::filter(followup_time == 0) %>% 
+  dplyr::group_by(trial_period) %>% 
+  dplyr::count()
 
 summary_trial0 <- HERS %>% 
   dplyr::group_by(t) %>% 

@@ -4,7 +4,10 @@ library(tidyr)
 #setwd("~/rds/hpc-work/Project1")
 source("simulate_MSM_simplified.R")
 source("weight_func.R")
-set.seed(20222022)
+#set.seed(20222022)
+#set.seed(30333033)
+#set.seed(40444044)
+set.seed(50555055)
 library(TrialEmulation)
 library(MASS)
 library(sandwich)
@@ -20,13 +23,14 @@ outcome_prev <- c(-4.7,-3.8,-3)
 
 scenarios <- tidyr::crossing(conf, treat)
 
-true_value_boot <- array(,dim = c(5,9,3))
+bootstrap_iter <- 300
+registerDoParallel(cores = 10)
 
-bootstrap_iter <- 500
-registerDoParallel(cores = 15)
-
-for (l in 1:9){
-  for (j in 1:3){
+for (l in c(7)){
+  for (j in c(3)){
+    #if(l == 6 & j == 3){next}
+    #if(l == 7 & j == 1){next}
+    
     estimates_boot <- as.data.frame(matrix(,5,bootstrap_iter))
     estimates_boot <- foreach(k = 1:bootstrap_iter, .combine=cbind) %dopar% {
       simdata_censored <-DATA_GEN_censored_reduced(200000, 5, 
@@ -156,8 +160,10 @@ for (l in 1:9){
      predicted_probas_PP[,5]
     }
       
-    true_value_boot[,l,j] <- rowMeans(estimates_boot, na.rm = TRUE)
+    true_value_boot <- rowMeans(estimates_boot, na.rm = TRUE)
+    save(true_value_boot, file = paste0("true_value_red_pseudo_true_boot_300it_more_extra_diff_seed_200000p_",
+                                        as.character(l), "_", as.character(j),".rda"))
   }
 }
-save(true_value_boot, file = "true_value_red_pseudo_true_boot_500it_200000p.rda")
+
 
