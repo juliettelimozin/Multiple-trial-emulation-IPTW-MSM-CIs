@@ -35,7 +35,6 @@ The following object is masked from ‘package:dplyr’:
 
     select
 
-Loading required package: foreach
 
 Attaching package: ‘foreach’
 
@@ -50,8 +49,8 @@ error calling combine function:
 <simpleError in data.frame(..., check.names = FALSE): arguments imply differing number of rows: 5, 0>
 Warning message:
 In mclapply(argsList, FUN, mc.preschedule = preschedule, mc.set.seed = set.seed,  :
-  scheduled cores 3, 4, 5, 6, 12, 14, 16, 19, 24, 29, 30, 31, 32, 42, 44, 45, 46, 48, 49, 50, 51, 52, 53, 54, 56, 58, 59, 60, 63, 64, 65, 66, 67 did not deliver results, all values of the jobs will be affected
+  scheduled cores 2, 3, 4, 5, 6, 8, 9, 11, 15, 16, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 32, 33, 34, 35, 37, 38, 39, 40, 41, 43, 44, 45, 47, 48, 49, 53, 55, 56, 59, 60, 61, 62, 64, 65, 66 did not deliver results, all values of the jobs will be affected
 Error in rowMeans(estimates_boot, na.rm = TRUE) : 
   'x' must be an array of at least two dimensions
 Execution halted
-slurmstepd: error: Detected 33 oom_kill events in StepId=4399600.batch. Some of the step tasks have been OOM Killed.
+slurmstepd: error: Detected 47 oom_kill events in StepId=4408398.batch. Some of the step tasks have been OOM Killed.
