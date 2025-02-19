@@ -56,8 +56,8 @@ for (i in 1:27){
       if (i %in% 1:9){
         jackknife_mvn_SE[k,,i,j] <- colSds(jackknife_mvn_mrd[k,,], na.rm = TRUE)}}
   }}
-save(sandwich_SE, file = '~/rds/hpc-work/Project1/NewSimusJ/J_sandwich_SE')
-save(bootstrap_SE, file = '~/rds/hpc-work/Project1/NewSimusJ/J_bootstrap_SE')
-save(LEF_outcome_SE, file = '~/rds/hpc-work/Project1/NewSimusJ/J_LEF_outcome_SE')
-save(LEF_both_SE, file = '~/rds/hpc-work/Project1/NewSimusJ/J_LEF_both_SE')
-save(jackknife_mvn_SE, file = '~/rds/hpc-work/Project1/NewSimusJ/J_jackknife_mvn_SE')
+save(sandwich_SE, file = '~/rds/hpc-work/Project1/NewSimusJ/J_sandwich_SE.rda')
+save(bootstrap_SE, file = '~/rds/hpc-work/Project1/NewSimusJ/J_bootstrap_SE.rda')
+save(LEF_outcome_SE, file = '~/rds/hpc-work/Project1/NewSimusJ/J_LEF_outcome_SE.rda')
+save(LEF_both_SE, file = '~/rds/hpc-work/Project1/NewSimusJ/J_LEF_both_SE.rda')
+save(jackknife_mvn_SE, file = '~/rds/hpc-work/Project1/NewSimusJ/J_jackknife_mvn_SE.rda')
