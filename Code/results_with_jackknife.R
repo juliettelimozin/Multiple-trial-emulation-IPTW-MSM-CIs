@@ -1,15 +1,15 @@
 library(dplyr)
 library(tidyverse)
 library(tidyr)
-setwd("/home/jml219/rds/hpc-work/Project1")
+setwd("/home/juliette/Multiple-trial-emulation-IPTW-MSM-CIs/Code")
 library(ggplot2)
 library(ggpubr)
-# load("true_value_red_newsimus.rda")
-# load("true_value_surv0.rda")
-# load("true_value_surv1.rda")
-load("true_value_red_newsimus_pseudo_true_1-5M.rda")
-load("true_value_surv0_pseudo_true_1-5M.rda")
-load("true_value_surv1_pseudo_true_1-5M.rda")
+#load("true_value_red_newsimus.rda")
+#true_value_red <- -true_value_red
+load("true_value_surv0.rda")
+load("true_value_surv1.rda")
+load("true_value_boot_200it_200k_fixed_700it.rda")
+true_value_red <- true_value_boot_200it_200k_fixed
 #load("Rdata.RData")
 library(modelr)
 library(MASS)
@@ -43,12 +43,6 @@ treat_pos <- c(-1,-0.8,-0.5,-0.2,0,0.2,0.5,0.8,1)
 outcomes <- c("low", 'med', 'high')
 jackknife_se <- array(,dim = c(5,iters,27,3))
 
-sandwich_SE <- array(, dim = c(5,iters,27,3))
-bootstrap_SE <-array(, dim = c(5, iters,27,3))
-LEF_outcome_SE <- array(, dim = c(5, iters,27,3))
-LEF_both_SE <- array(, dim = c(5, iters,27,3))
-jackknife_mvn_SE <- array(, dim = c(5, iters,27,3))
-
 size <- c(200,1000,5000)
 treat <- c(-1,0,1)
 conf <- c(0.1,0.5,0.9)
@@ -59,27 +53,29 @@ bias_surv0 <- array(,dim = c(5,27,3))
 bias_surv1 <- array(,dim = c(5,27,3))
 sd_point <- array(,dim = c(5,27,3))
 mean_time <- data.frame(matrix(,nrow = 0, ncol = 10))
-#true_value_red <- -true_value_red
+
 na_failure_rate <- data.frame(matrix(,nrow = 0, ncol = 7))
 se_ratio <- data.frame(matrix(,nrow = 0, ncol = 5))
+
+load("/home/juliette/UniHPC/J_sandwich_SE.rda")
+load("/home/juliette/UniHPC/J_bootstrap_SE.rda")
+load("/home/juliette/UniHPC/J_LEF_outcome_SE.rda")
+load("/home/juliette/UniHPC/J_LEF_both_SE.rda")
+load("/home/juliette/UniHPC/J_jackknife_mvn_SE.rda")
+
 for (i in 1:27){
   for (j in 1:3){
-    load(paste0("~/rds/hpc-work/Project1/NewSimusJ/J_CI_bootstrap_PP_red_",outcomes[j],'_', i, ".rda"))
-    load(paste0("~/rds/hpc-work/Project1/NewSimusJ/J_CI_jackknife_mvn_PP_red_",outcomes[j],'_', i, ".rda"))
-    load(paste0("~/rds/hpc-work/Project1/NewSimusJ/J_CI_jackknife_wald_PP_red_",outcomes[j],'_', i, ".rda"))
-    load(paste0("~/rds/hpc-work/Project1/NewSimusJ/J_CI_LEF_outcome_PP_red_",outcomes[j],'_', i, ".rda"))
-    load(paste0("~/rds/hpc-work/Project1/NewSimusJ/J_CI_LEF_both_PP_red_",outcomes[j],'_', i, ".rda"))
-    load(paste0("~/rds/hpc-work/Project1/NewSimusJ/J_CI_sandwich_PP_red_",outcomes[j],'_', i, ".rda"))
-    load(paste0("~/rds/hpc-work/Project1/NewSimusJ/J_computation_time_",outcomes[j],'_', i, ".rda"))
-    load(paste0('~/rds/hpc-work/Project1/NewSimusJ/J_estimates_red_',outcomes[j],'_',i, '.rda'))
-    load(paste0('~/rds/hpc-work/Project1/NewSimusJ/J_survival_treatment_estimates_',outcomes[j],'_',i, '.rda'))
-    load(paste0('~/rds/hpc-work/Project1/NewSimusJ/J_survival_control_estimates_',outcomes[j],'_',i, '.rda'))
-    load(paste0('~/rds/hpc-work/Project1/NewSimusJ/J_bootstrap_mrd_',outcomes[j],'_',i, '.rda'))
-    load(paste0('~/rds/hpc-work/Project1/NewSimusJ/J_LEF_outcome_mrd_',outcomes[j],'_',i, '.rda'))
-    load(paste0('~/rds/hpc-work/Project1/NewSimusJ/J_LEF_both_mrd_',outcomes[j],'_',i, '.rda'))
-    load(paste0('~/rds/hpc-work/Project1/NewSimusJ/J_sandwich_mrd_',outcomes[j],'_',i, '.rda'))
-    load(paste0('~/rds/hpc-work/Project1/NewSimusJ/J_jackknife_mvn_mrd_',outcomes[j],'_',i, '.rda'))
-    load(paste0('~/rds/hpc-work/Project1/NewSimusJ/J_jackknife_SEs_',outcomes[j],'_',i, '.rda'))
+    load(paste0("/home/juliette/UniHPC/J_CI_bootstrap_PP_red_",outcomes[j],'_', i, ".rda"))
+    load(paste0("/home/juliette/UniHPC/J_CI_jackknife_mvn_PP_red_",outcomes[j],'_', i, ".rda"))
+    load(paste0("/home/juliette/UniHPC/J_CI_jackknife_wald_PP_red_",outcomes[j],'_', i, ".rda"))
+    load(paste0("/home/juliette/UniHPC/J_CI_LEF_outcome_PP_red_",outcomes[j],'_', i, ".rda"))
+    load(paste0("/home/juliette/UniHPC/J_CI_LEF_both_PP_red_",outcomes[j],'_', i, ".rda"))
+    load(paste0("/home/juliette/UniHPC/J_CI_sandwich_PP_red_",outcomes[j],'_', i, ".rda"))
+    load(paste0("/home/juliette/UniHPC/J_computation_time_",outcomes[j],'_', i, ".rda"))
+    load(paste0('/home/juliette/UniHPC/J_estimates_red_',outcomes[j],'_',i, '.rda'))
+    load(paste0('/home/juliette/UniHPC/J_survival_treatment_estimates_',outcomes[j],'_',i, '.rda'))
+    load(paste0('/home/juliette/UniHPC/J_survival_control_estimates_',outcomes[j],'_',i, '.rda'))
+    load(paste0('/home/juliette/UniHPC/J_jackknife_SEs_',outcomes[j],'_',i, '.rda'))
     
     bootstrap[,,,i,j] <- CI_bootstrap_PP_red
     LEF_outcome[,,,i,j] <- CI_LEF_outcome_PP_red
@@ -99,12 +95,6 @@ for (i in 1:27){
     sd_point[,i,j] <- rowSds(estimates, na.rm = TRUE)
     
     for (k in 1:5){
-      sandwich_SE[k,,i,j] <-colSds(sandwich_mrd[k,,], na.rm = TRUE)
-      bootstrap_SE[k,,i,j] <- colSds(bootstrap_mrd[k,,], na.rm = TRUE)
-      LEF_outcome_SE[k,,i,j] <- colSds(LEF_outcome_mrd[k,,], na.rm = TRUE)
-      LEF_both_SE[k,,i,j] <- colSds(LEF_both_mrd[k,,], na.rm = TRUE)
-      if (i %in% 1:9){
-      jackknife_mvn_SE[k,,i,j] <- colSds(jackknife_mvn_mrd[k,,], na.rm = TRUE)}
       se_ratio <- rbind(se_ratio, cbind(k-1,'Bootstrap',bootstrap_SE[k,,i,j]/sd_point[k,i,j],i,j))
       se_ratio <- rbind(se_ratio, cbind(k-1,'LEF outcome',LEF_outcome_SE[k,,i,j]/sd_point[k,i,j],i,j))
       
@@ -155,50 +145,6 @@ print(xtable(mean_time),
 
 ################ EMPIRICAL MRD SE ####################
 mrd_se_quantiles_low <-  lapply(1:9, function(i){
-  ggplot(se_ratio[se_ratio$i == i & se_ratio$j == 1 & se_ratio$CI_type != 'Jackknife MVN',]) +
-    stat_summary(
-      mapping = aes(x = Visit, y = SE_ratio, colour = CI_type),
-      fun.min = function(z) { quantile(z,0.25) },
-      fun.max = function(z) { quantile(z,0.75) },
-      fun = mean,
-      size=0.3, 
-      position = position_dodge(width = 0.5))+
-    xlab(bquote(atop(n ==.(scenarios[i,1]), alpha[c] ==.(scenarios[i,2])~', '~alpha[a] == .(scenarios[i,3])))) +
-    ylab("Ratio of SEs") +  
-    scale_color_manual(name = "CI type", values = c("Bootstrap"= "red", "Sandwich" = "blue",
-                                                    "LEF outcome" = "green", "LEF both" = "purple",
-                                                    "Jackknife MVN" = 'orange',"Jackknife Wald" = 'deepskyblue' )) +
-    ylim(0,2.25) + 
-    geom_hline(yintercept = 1, linetype = "dashed")+
-    theme(title=element_text(size=15), axis.text = element_text(size=10), legend.text = element_text(size=14))
-}
-)
-annotate_figure(ggarrange(plotlist = mrd_se_quantiles_low, nrow = 3, ncol = 3, common.legend = T,
-                          legend = 'bottom'))
-
-mrd_se_quantiles_low <-  lapply(1:9, function(i){
-  ggplot(se_ratio[se_ratio$i == i & se_ratio$j == 1 & se_ratio$CI_type == 'Jackknife MVN',]) +
-    stat_summary(
-      mapping = aes(x = Visit, y = SE_ratio, colour = CI_type),
-      fun.min = function(z) { quantile(z,0.25) },
-      fun.max = function(z) { quantile(z,0.75) },
-      fun = mean,
-      size=0.3, 
-      position = position_dodge(width = 0.5))+
-    xlab(bquote(atop(n ==.(scenarios[i,1]), alpha[c] ==.(scenarios[i,2])~', '~alpha[a] == .(scenarios[i,3])))) +
-    ylab("Ratio of SEs") +  
-    scale_color_manual(name = "CI type", values = c("Bootstrap"= "red", "Sandwich" = "blue",
-                                                    "LEF outcome" = "green", "LEF both" = "purple",
-                                                    "Jackknife MVN" = 'orange',"Jackknife Wald" = 'deepskyblue' )) +
-    ylim(0,50) + 
-    geom_hline(yintercept = 1, linetype = "dashed")+
-    theme(title=element_text(size=15), axis.text = element_text(size=10), legend.text = element_text(size=14))
-}
-)
-annotate_figure(ggarrange(plotlist = mrd_se_quantiles_low, nrow = 3, ncol = 3, common.legend = T,
-                          legend = 'bottom'))
-
-mrd_se_quantiles_med <-  lapply(10:27, function(i){
   ggplot(se_ratio[se_ratio$i == i & se_ratio$j == 2 & se_ratio$CI_type != 'Jackknife MVN',]) +
     stat_summary(
       mapping = aes(x = Visit, y = SE_ratio, colour = CI_type),
@@ -207,18 +153,132 @@ mrd_se_quantiles_med <-  lapply(10:27, function(i){
       fun = mean,
       size=0.3, 
       position = position_dodge(width = 0.5))+
-    xlab(bquote(atop(n ==.(scenarios[i,1]), alpha[c] ==.(scenarios[i,2])~', '~alpha[a] == .(scenarios[i,3])))) +
-    ylab("Ratio of SEs") +  
     scale_color_manual(name = "CI type", values = c("Bootstrap"= "red", "Sandwich" = "blue",
                                                     "LEF outcome" = "green", "LEF both" = "purple",
                                                     "Jackknife MVN" = 'orange',"Jackknife Wald" = 'deepskyblue' )) +
     ylim(0,2.25) + 
     geom_hline(yintercept = 1, linetype = "dashed")+
-    theme(title=element_text(size=15), axis.text = element_text(size=10), legend.text = element_text(size=14))
+    theme(legend.text = element_text(size=14))
 }
 )
+for(i in 1:9){
+  if(i %in% 1:3){
+      mrd_se_quantiles_low[[i]] <- mrd_se_quantiles_low[[i]] +
+        labs(title = bquote(alpha[a] == .(scenarios[i,3])))}
+  if(i %in% c(1,4,7)){
+    mrd_se_quantiles_low[[i]] <- mrd_se_quantiles_low[[i]] +
+      ylab(bquote(atop(alpha[c] == .(scenarios[i,2]), 'Ratio of SEs')))
+  } else{mrd_se_quantiles_low[[i]] <- mrd_se_quantiles_low[[i]] +
+    theme(axis.text.y=element_blank(), 
+          axis.ticks.y=element_blank(),
+          axis.title.y = element_blank())}
+  if(i %in% 7:9){
+    mrd_se_quantiles_low[[i]] <- mrd_se_quantiles_low[[i]] +
+      xlab('Visit')
+  } else {mrd_se_quantiles_low[[i]] <- mrd_se_quantiles_low[[i]] +
+    theme(axis.text.x=element_blank(), 
+          axis.ticks.x=element_blank(),
+          axis.title.x = element_blank())}
+  
+}
+
+annotate_figure(ggarrange(plotlist = mrd_se_quantiles_low, nrow = 3, ncol = 3, common.legend = T,
+                          legend = 'bottom',
+                          widths = c(1.2,1,1),
+                          heights = c(1.1, 0.95, 1)))
+
+mrd_se_quantiles_low <-  lapply(1:9, function(i){
+  ggplot(se_ratio[se_ratio$i == i & se_ratio$j == 2 & se_ratio$CI_type == 'Jackknife MVN',]) +
+    stat_summary(
+      mapping = aes(x = Visit, y = SE_ratio, colour = CI_type),
+      fun.min = function(z) { quantile(z,0.25) },
+      fun.max = function(z) { quantile(z,0.75) },
+      fun = mean,
+      size=0.3, 
+      position = position_dodge(width = 0.5))+
+    scale_color_manual(name = "CI type", values = c("Bootstrap"= "red", "Sandwich" = "blue",
+                                                    "LEF outcome" = "green", "LEF both" = "purple",
+                                                    "Jackknife MVN" = 'orange',"Jackknife Wald" = 'deepskyblue' )) +
+    ylim(0,2.25) + 
+    geom_hline(yintercept = 1, linetype = "dashed")+
+    theme(legend.text = element_text(size=14))
+}
+)
+for(i in 1:9){
+  if(i %in% 1:3){
+    mrd_se_quantiles_low[[i]] <- mrd_se_quantiles_low[[i]] +
+      labs(title = bquote(alpha[a] == .(scenarios[i,3])))}
+  if(i %in% c(1,4,7)){
+    mrd_se_quantiles_low[[i]] <- mrd_se_quantiles_low[[i]] +
+      ylab(bquote(atop(alpha[c] == .(scenarios[i,2]), 'Ratio of SEs')))
+  } else{mrd_se_quantiles_low[[i]] <- mrd_se_quantiles_low[[i]] +
+    theme(axis.text.y=element_blank(), 
+          axis.ticks.y=element_blank(),
+          axis.title.y = element_blank())}
+  if(i %in% 7:9){
+    mrd_se_quantiles_low[[i]] <- mrd_se_quantiles_low[[i]] +
+      xlab('Visit')
+  } else {mrd_se_quantiles_low[[i]] <- mrd_se_quantiles_low[[i]] +
+    theme(axis.text.x=element_blank(), 
+          axis.ticks.x=element_blank(),
+          axis.title.x = element_blank())}
+  
+}
+
+annotate_figure(ggarrange(plotlist = mrd_se_quantiles_low, nrow = 3, ncol = 3, common.legend = T,
+                          legend = 'bottom',
+                          widths = c(1.2,1,1),
+                          heights = c(1.1, 0.95, 1)))
+
+mrd_se_quantiles_med <-  lapply(10:27, function(i){
+  ggplot(se_ratio[se_ratio$i == i & se_ratio$j == 3 & se_ratio$CI_type != 'Jackknife MVN',]) +
+    stat_summary(
+      mapping = aes(x = Visit, y = SE_ratio, colour = CI_type),
+      fun.min = function(z) { quantile(z,0.25) },
+      fun.max = function(z) { quantile(z,0.75) },
+      fun = mean,
+      size=0.3, 
+      position = position_dodge(width = 0.5))+
+    scale_color_manual(name = "CI type", values = c("Bootstrap"= "red", "Sandwich" = "blue",
+                                                    "LEF outcome" = "green", "LEF both" = "purple",
+                                                    "Jackknife MVN" = 'orange',"Jackknife Wald" = 'deepskyblue' )) +
+    ylim(0,2.25) + 
+    geom_hline(yintercept = 1, linetype = "dashed")+
+    theme(legend.text = element_text(size=14))
+}
+)
+for(i in 1:18){
+  if(i %in% 1:9){
+    if(i %in% c(2, 5, 8)){
+      mrd_se_quantiles_med[[i]] <- mrd_se_quantiles_med[[i]] +
+        labs(title = bquote(atop(alpha[c] == .(scenarios[i,2]), alpha[a] == .(scenarios[i,3]))))} else{
+          mrd_se_quantiles_med[[i]] <- mrd_se_quantiles_med[[i]] +
+            labs(title = bquote(atop(phantom(3),alpha[a] == .(scenarios[i,3]))))
+        }
+  }
+  if(i %in% c(1,10)){
+    mrd_se_quantiles_med[[i]] <- mrd_se_quantiles_med[[i]] +
+      ylab(bquote(atop(n == .(scenarios[i,1]), 'Ratio of SEs')))
+  } else{mrd_se_quantiles_med[[i]] <- mrd_se_quantiles_med[[i]] +
+    theme(axis.text.y=element_blank(), 
+          axis.ticks.y=element_blank(),
+          axis.title.y = element_blank())
+  }
+  if(i %in% 10:18){
+    mrd_se_quantiles_med[[i]] <- mrd_se_quantiles_med[[i]] +
+      xlab('Visit')
+  } else {mrd_se_quantiles_med[[i]] <- mrd_se_quantiles_med[[i]] +
+    theme(axis.text.x=element_blank(), 
+          axis.ticks.x=element_blank(),
+          axis.title.x = element_blank())
+  }
+}
+
 annotate_figure(ggarrange(plotlist = mrd_se_quantiles_med, nrow = 2, ncol = 9, common.legend = T,
-                          legend = 'bottom'))
+                          legend = 'bottom',
+                          widths = c(1.4,1,1,1,1,1,1,1,1),
+                          heights = c(1.1, 1)))
+
 mrd_se_quantiles_med <-  lapply(1:9, function(i){
   ggplot(se_ratio[se_ratio$i == i & se_ratio$j == 2 & se_ratio$CI_type == 'Jackknife MVN',]) +
     stat_summary(
@@ -229,18 +289,31 @@ mrd_se_quantiles_med <-  lapply(1:9, function(i){
       size=0.3, 
       position = position_dodge(width = 0.5),
       na.rm = TRUE)+
-    xlab(bquote(atop(n ==.(scenarios[i,1]), alpha[c] ==.(scenarios[i,2])~', '~alpha[a] == .(scenarios[i,3])))) +
-    ylab("Ratio of SEs") +  
     scale_color_manual(name = "CI type", values = c("Bootstrap"= "red", "Sandwich" = "blue",
                                                     "LEF outcome" = "green", "LEF both" = "purple",
                                                     "Jackknife MVN" = 'orange',"Jackknife Wald" = 'deepskyblue' )) +
-    ylim(0,15) + 
+    ylim(0,2.25) + 
     geom_hline(yintercept = 1, linetype = "dashed")+
-    theme(title=element_text(size=15), axis.text = element_text(size=10), legend.text = element_text(size=14))
+    theme(legend.text = element_text(size=14))
 }
 )
+for(i in 1:9){
+  if(i %in% 1:3){
+    mrd_se_quantiles_med[[i]] <- mrd_se_quantiles_med[[i]] +
+      labs(title = bquote(alpha[a] == .(scenarios[i,3])))}
+  if(i %in% c(1,4,7)){
+    mrd_se_quantiles_med[[i]] <- mrd_se_quantiles_med[[i]] +
+      ylab(bquote(atop(alpha[c] == .(scenarios[i,2]), 'Ratio of SEs')))
+  } else{mrd_se_quantiles_med[[i]] <- mrd_se_quantiles_med[[i]] +
+    theme(axis.text.y=element_blank(), 
+          axis.ticks.y=element_blank(),
+          axis.title.y = element_blank())}
+}
+
 annotate_figure(ggarrange(plotlist = mrd_se_quantiles_med, nrow = 3, ncol = 3, common.legend = T,
-                          legend = 'bottom'))
+                          legend = 'bottom',
+                          widths = c(1.2,1,1),
+                          heights = c(1.1, 0.95, 1)))
 
 mrd_se_quantiles_high <-  lapply(10:27, function(i){
   ggplot(se_ratio[se_ratio$i == i & se_ratio$j == 3 & se_ratio$CI_type != 'Jackknife MVN',]) +
@@ -372,16 +445,43 @@ bias_plots <- lapply(1:27, function(i){
     geom_point(aes(x = 0:4, y = bias_point[,i,2], colour = 'Medium')) +
     geom_line(aes(x = 0:4, y = bias_point[,i,3], colour = 'High')) +
     geom_point(aes(x = 0:4, y = bias_point[,i,3], colour = 'High')) +
-    #xlab(bquote(paste('N = ',.(scenarios[i,1]),", ", alpha[c] == .(scenarios[i,2]),', ',alpha[a] == .(scenarios[i,3])))) +
-    xlab(bquote(atop(n ==.(scenarios[i,1]), alpha[c] ==.(scenarios[i,2])~', '~alpha[a] == .(scenarios[i,3])))) +
-    
-    ylab("Empirical bias") + 
-    theme(title=element_text(size=15), axis.text = element_text(size=10), legend.text = element_text(size=14)) +  
     scale_color_manual(name = "Event rate", values = c("Low"= "red", "Medium" = "blue",
                                                        "High" = "green")) +
-    ylim(-0.1,0.1)
-})
-annotate_figure(ggarrange(plotlist = bias_plots[1:27], nrow = 3, ncol = 9, common.legend = T, legend = 'bottom'))
+    ylim(-0.1,0.1) +
+    theme(legend.text = element_text(size=14))
+}
+)
+for(i in 1:27){
+  if(i %in% 1:9){
+    if(i %in% c(2, 5, 8)){
+      bias_plots[[i]] <- bias_plots[[i]] +
+        labs(title = bquote(atop(alpha[c] == .(scenarios[i,2]), alpha[a] == .(scenarios[i,3]))))} else{
+          bias_plots[[i]] <- bias_plots[[i]] +
+            labs(title = bquote(atop(phantom(3),alpha[a] == .(scenarios[i,3]))))
+        }
+  }
+  if(i %in% c(1,10,19)){
+    bias_plots[[i]] <- bias_plots[[i]] +
+      ylab(bquote(atop(n == .(scenarios[i,1]), 'Empirical Bias')))
+  } else{bias_plots[[i]] <- bias_plots[[i]] +
+    theme(axis.text.y=element_blank(), 
+          axis.ticks.y=element_blank(),
+          axis.title.y = element_blank())
+  }
+  if(i %in% 19:27){
+    bias_plots[[i]] <- bias_plots[[i]] +
+      xlab('Visit')
+  } else {bias_plots[[i]] <- bias_plots[[i]] +
+    theme(axis.text.x=element_blank(), 
+          axis.ticks.x=element_blank(),
+          axis.title.x = element_blank())
+  }
+}
+
+annotate_figure(ggarrange(plotlist = bias_plots, nrow = 3, ncol = 9, common.legend = T,
+                          legend = 'bottom',
+                          widths = c(1.4,1,1,1,1,1,1,1,1),
+                          heights = c(1.1, 0.95, 1)))
 
 bias_plots_surv0 <- lapply(1:27, function(i){
   ggplot() +
@@ -429,15 +529,43 @@ sd_plots <- lapply(1:27, function(i){
     geom_point(aes(x = 0:4, y = sd_point[,i,2], colour = 'Medium')) +
     geom_line(aes(x = 0:4, y = sd_point[,i,3], colour = 'High')) +
     geom_point(aes(x = 0:4, y = sd_point[,i,3], colour = 'High')) +
-    xlab(bquote(atop(n ==.(scenarios[i,1]), alpha[c] ==.(scenarios[i,2])~', '~alpha[a] == .(scenarios[i,3])))) +
-    ylab("Empirical SD") + 
-    theme(title=element_text(size=15), axis.text = element_text(size=10), legend.text = element_text(size=14), ) +  
     scale_color_manual(name = "Event rate", values = c("Low"= "red", "Medium" = "blue",
                                                        "High" = "green")) +
-    ylim(0,0.28)
-})
-annotate_figure(ggarrange(plotlist = sd_plots, nrow = 3, ncol = 9, common.legend = T, legend = 'bottom'))
+    ylim(0,0.28) +
+    theme(legend.text = element_text(size=14))
+}
+)
+for(i in 1:27){
+  if(i %in% 1:9){
+    if(i %in% c(2, 5, 8)){
+      sd_plots[[i]] <- sd_plots[[i]] +
+        labs(title = bquote(atop(alpha[c] == .(scenarios[i,2]), alpha[a] == .(scenarios[i,3]))))} else{
+          sd_plots[[i]] <- sd_plots[[i]] +
+            labs(title = bquote(atop(phantom(3),alpha[a] == .(scenarios[i,3]))))
+        }
+  }
+  if(i %in% c(1,10,19)){
+    sd_plots[[i]] <- sd_plots[[i]] +
+      ylab(bquote(atop(n == .(scenarios[i,1]), 'Empirical SD')))
+  } else{sd_plots[[i]] <- sd_plots[[i]] +
+    theme(axis.text.y=element_blank(), 
+          axis.ticks.y=element_blank(),
+          axis.title.y = element_blank())
+  }
+  if(i %in% 19:27){
+    sd_plots[[i]] <- sd_plots[[i]] +
+      xlab('Visit')
+  } else {sd_plots[[i]] <- sd_plots[[i]] +
+    theme(axis.text.x=element_blank(), 
+          axis.ticks.x=element_blank(),
+          axis.title.x = element_blank())
+  }
+}
 
+annotate_figure(ggarrange(plotlist = sd_plots, nrow = 3, ncol = 9, common.legend = T,
+                          legend = 'bottom',
+                          widths = c(1.4,1,1,1,1,1,1,1,1),
+                          heights = c(1.1, 0.95, 1)))
 bias.se_plots <- lapply(1:27, function(i){
   ggplot() +
     geom_line(aes(x = 0:4, y = bias_point[,i,1]/sd_point[,i,1], colour = 'Low')) +
@@ -465,15 +593,43 @@ mse_plots <- lapply(1:27, function(i){
     geom_point(aes(x = 0:4, y = sqrt(bias_point[,i,2]^2 + sd_point[,i,2]^2), colour = 'Medium')) +
     geom_line(aes(x = 0:4, y = sqrt(bias_point[,i,3]^2 + sd_point[,i,3]^2), colour = 'High')) +
     geom_point(aes(x = 0:4, y = sqrt(bias_point[,i,3]^2 + sd_point[,i,3]^2), colour = 'High')) +
-    xlab(bquote(atop(n ==.(scenarios[i,1]), alpha[c] ==.(scenarios[i,2])~', '~alpha[a] == .(scenarios[i,3])))) +
-    ylab("Empirical root-MSE") + 
-    theme(title=element_text(size=15), axis.text = element_text(size=10), legend.text = element_text(size=14), ) +  
     scale_color_manual(name = "Event rate", values = c("Low"= "red", "Medium" = "blue",
                                                        "High" = "green")) +
-    ylim(0,0.3)
-})
-annotate_figure(ggarrange(plotlist = mse_plots, nrow = 3, ncol = 9, common.legend = T, legend = 'bottom'))
+    ylim(0,0.3) +
+    theme(legend.text = element_text(size=14))
+}
+)
+for(i in 1:27){
+  if(i %in% 1:9){
+    if(i %in% c(2, 5, 8)){
+      mse_plots[[i]] <- mse_plots[[i]] +
+        labs(title = bquote(atop(alpha[c] == .(scenarios[i,2]), alpha[a] == .(scenarios[i,3]))))} else{
+          mse_plots[[i]] <- mse_plots[[i]] +
+            labs(title = bquote(atop(phantom(3),alpha[a] == .(scenarios[i,3]))))
+        }
+  }
+  if(i %in% c(1,10,19)){
+    mse_plots[[i]] <- mse_plots[[i]] +
+      ylab(bquote(atop(n == .(scenarios[i,1]), 'Empirical root-MSE')))
+  } else{mse_plots[[i]] <- mse_plots[[i]] +
+    theme(axis.text.y=element_blank(), 
+          axis.ticks.y=element_blank(),
+          axis.title.y = element_blank())
+  }
+  if(i %in% 19:27){
+    mse_plots[[i]] <- mse_plots[[i]] +
+      xlab('Visit')
+  } else {mse_plots[[i]] <- mse_plots[[i]] +
+    theme(axis.text.x=element_blank(), 
+          axis.ticks.x=element_blank(),
+          axis.title.x = element_blank())
+  }
+}
 
+annotate_figure(ggarrange(plotlist = mse_plots, nrow = 3, ncol = 9, common.legend = T,
+                          legend = 'bottom',
+                          widths = c(1.4,1,1,1,1,1,1,1,1),
+                          heights = c(1.1, 0.95, 1)))
 
 # ############# COVERAGE #####################
 # 
@@ -1029,13 +1185,41 @@ coverage_low <-  lapply(1:27, function(i){
                                                     "LEF outcome" = "green", "LEF both" = "purple",
                                                     "Jackknife MVN" = 'orange',"Jackknife Wald" = 'deepskyblue' )) +
     geom_hline(yintercept = 0.95, linetype = "dashed") +
-    xlab(bquote(atop(n ==.(scenarios[i,1]), alpha[c] ==.(scenarios[i,2])~', '~alpha[a] == .(scenarios[i,3])))) +
-    ylab("Coverage") +  ylim(0.2,1) + 
-    theme(title=element_text(size=15), axis.text = element_text(size=10), legend.text = element_text(size=14))
+    ylim(0.4,1) + 
+    theme(legend.text = element_text(size=14))
 }
 )
+for(i in 1:27){
+  if(i %in% 1:9){
+    if(i %in% c(2, 5, 8)){
+      coverage_low[[i]] <- coverage_low[[i]] +
+        labs(title = bquote(atop(alpha[c] == .(scenarios[i,2]), alpha[a] == .(scenarios[i,3]))))} else{
+          coverage_low[[i]] <- coverage_low[[i]] +
+            labs(title = bquote(atop(phantom(3),alpha[a] == .(scenarios[i,3]))))
+        }
+  }
+  if(i %in% c(1,10,19)){
+    coverage_low[[i]] <- coverage_low[[i]] +
+      ylab(bquote(atop(n == .(scenarios[i,1]), 'Coverage')))
+  } else{coverage_low[[i]] <- coverage_low[[i]] +
+    theme(axis.text.y=element_blank(), 
+          axis.ticks.y=element_blank(),
+          axis.title.y = element_blank())
+  }
+  if(i %in% 19:27){
+    coverage_low[[i]] <- coverage_low[[i]] +
+      xlab('Visit')
+  } else {coverage_low[[i]] <- coverage_low[[i]] +
+    theme(axis.text.x=element_blank(), 
+          axis.ticks.x=element_blank(),
+          axis.title.x = element_blank())
+  }
+}
+
 annotate_figure(ggarrange(plotlist = coverage_low, nrow = 3, ncol = 9, common.legend = T,
-                          legend = 'bottom'))
+                          legend = 'bottom',
+                          widths = c(1.4,1,1,1,1,1,1,1,1),
+                          heights = c(1.1, 0.95, 1)))
 
 coverage_med <-  lapply(1:27, function(i){
   ggplot() +
@@ -1055,12 +1239,41 @@ coverage_med <-  lapply(1:27, function(i){
                                                     "LEF outcome" = "green", "LEF both" = "purple",
                                                     "Jackknife MVN" = 'orange',"Jackknife Wald" = 'deepskyblue' )) +
     geom_hline(yintercept = 0.95, linetype = "dashed") +
-    xlab(bquote(atop(n ==.(scenarios[i,1]), alpha[c] ==.(scenarios[i,2])~', '~alpha[a] == .(scenarios[i,3])))) +
-    ylab("Coverage") +  ylim(0.2,1) + 
-    theme(title=element_text(size=15), axis.text = element_text(size=10), legend.text = element_text(size=14))}
+    ylim(0.4,1) + 
+    theme(legend.text = element_text(size=14))
+}
 )
+for(i in 1:27){
+  if(i %in% 1:9){
+    if(i %in% c(2, 5, 8)){
+      coverage_med[[i]] <- coverage_med[[i]] +
+        labs(title = bquote(atop(alpha[c] == .(scenarios[i,2]), alpha[a] == .(scenarios[i,3]))))} else{
+          coverage_med[[i]] <- coverage_med[[i]] +
+            labs(title = bquote(atop(phantom(3),alpha[a] == .(scenarios[i,3]))))
+        }
+  }
+  if(i %in% c(1,10,19)){
+    coverage_med[[i]] <- coverage_med[[i]] +
+      ylab(bquote(atop(n == .(scenarios[i,1]), 'Coverage')))
+  } else{coverage_med[[i]] <- coverage_med[[i]] +
+    theme(axis.text.y=element_blank(), 
+          axis.ticks.y=element_blank(),
+          axis.title.y = element_blank())
+  }
+  if(i %in% 19:27){
+    coverage_med[[i]] <- coverage_med[[i]] +
+      xlab('Visit')
+  } else {coverage_med[[i]] <- coverage_med[[i]] +
+    theme(axis.text.x=element_blank(), 
+          axis.ticks.x=element_blank(),
+          axis.title.x = element_blank())
+  }
+}
+
 annotate_figure(ggarrange(plotlist = coverage_med, nrow = 3, ncol = 9, common.legend = T,
-                          legend = 'bottom'))
+                          legend = 'bottom',
+                          widths = c(1.4,1,1,1,1,1,1,1,1),
+                          heights = c(1.1, 0.95, 1)))
 
 coverage_high <-  lapply(1:27, function(i){
   ggplot() +
@@ -1080,12 +1293,41 @@ coverage_high <-  lapply(1:27, function(i){
                                                     "LEF outcome" = "green", "LEF both" = "purple",
                                                     "Jackknife MVN" = 'orange',"Jackknife Wald" = 'deepskyblue' )) +
     geom_hline(yintercept = 0.95, linetype = "dashed") +
-    xlab(bquote(atop(n ==.(scenarios[i,1]), alpha[c] ==.(scenarios[i,2])~', '~alpha[a] == .(scenarios[i,3])))) +
-    ylab("Coverage") +  ylim(0.2,1) + 
-    theme(title=element_text(size=15), axis.text = element_text(size=10), legend.text = element_text(size=14))}
+    ylim(0.4,1) + 
+    theme(legend.text = element_text(size=14))
+}
 )
+for(i in 1:27){
+  if(i %in% 1:9){
+    if(i %in% c(2, 5, 8)){
+      coverage_high[[i]] <- coverage_high[[i]] +
+        labs(title = bquote(atop(alpha[c] == .(scenarios[i,2]), alpha[a] == .(scenarios[i,3]))))} else{
+          coverage_high[[i]] <- coverage_high[[i]] +
+            labs(title = bquote(atop(phantom(3),alpha[a] == .(scenarios[i,3]))))
+        }
+  }
+  if(i %in% c(1,10,19)){
+    coverage_high[[i]] <- coverage_high[[i]] +
+      ylab(bquote(atop(n == .(scenarios[i,1]), 'Coverage')))
+  } else{coverage_high[[i]] <- coverage_high[[i]] +
+    theme(axis.text.y=element_blank(), 
+          axis.ticks.y=element_blank(),
+          axis.title.y = element_blank())
+  }
+  if(i %in% 19:27){
+    coverage_high[[i]] <- coverage_high[[i]] +
+      xlab('Visit')
+  } else {coverage_high[[i]] <- coverage_high[[i]] +
+    theme(axis.text.x=element_blank(), 
+          axis.ticks.x=element_blank(),
+          axis.title.x = element_blank())
+  }
+}
+
 annotate_figure(ggarrange(plotlist = coverage_high, nrow = 3, ncol = 9, common.legend = T,
-                          legend = 'bottom'))
+                          legend = 'bottom',
+                          widths = c(1.4,1,1,1,1,1,1,1,1),
+                          heights = c(1.1, 0.95, 1)))
 
 ###################### CI WIDTH ##############################
 
@@ -1365,9 +1607,9 @@ print(xtable(failure_table, type = 'latex'), include.rownames = FALSE)
 no_na_frequency <- data.frame(matrix(,nrow = 0, ncol = 7))
 for (i in 1:27){
   for (j in 1:3){
-    load(paste0('~/rds/hpc-work/Project1/NewSimusJ/coeff_dim_',outcomes[j],'_',i, '.rda'))
-    load(paste0('~/rds/hpc-work/Project1/NewSimusJ/bootstrap_nas_',outcomes[j],'_',i, '.rda'))
-    load(paste0('~/rds/hpc-work/Project1/NewSimusJ/jackknife_nas_',outcomes[j],'_',i, '.rda'))
+    load(paste0('/home/juliette/UniHPC/coeff_dim_',outcomes[j],'_',i, '.rda'))
+    load(paste0('/home/juliette/UniHPC/bootstrap_nas_',outcomes[j],'_',i, '.rda'))
+    load(paste0('/home/juliette/UniHPC/jackknife_nas_',outcomes[j],'_',i, '.rda'))
     no_na_frequency <- rbind(no_na_frequency, cbind(outcomes[j], scenarios[i,1], scenarios[i,2],scenarios[i,3],
                                             coeff_dim, bootstrap_nas, jackknife_nas))
   }
@@ -1422,13 +1664,41 @@ MCSE_low <-  lapply(1:27, function(i){
     scale_color_manual(name = "CI type", values = c("Bootstrap"= "red", "Sandwich" = "blue",
                                                     "LEF outcome" = "green", "LEF both" = "purple",
                                                     "Jackknife MVN" = 'orange',"Jackknife Wald" = 'deepskyblue' )) +
-    xlab(bquote(atop(n ==.(scenarios[i,1]), alpha[c] ==.(scenarios[i,2])~', '~alpha[a] == .(scenarios[i,3])))) +
-    ylab("MC SE") + ylim(0,0.02) + 
-    theme(title=element_text(size=15), axis.text = element_text(size=10), legend.text = element_text(size=14), axis.title.y = element_text(size = 12))
+    ylim(0,0.02) + 
+    theme(legend.text = element_text(size=14))
 }
 )
+for(i in 1:27){
+  if(i %in% 1:9){
+    if(i %in% c(2, 5, 8)){
+      MCSE_low[[i]] <- MCSE_low[[i]] +
+        labs(title = bquote(atop(alpha[c] == .(scenarios[i,2]), alpha[a] == .(scenarios[i,3]))))} else{
+          MCSE_low[[i]] <- MCSE_low[[i]] +
+            labs(title = bquote(atop(phantom(3),alpha[a] == .(scenarios[i,3]))))
+        }
+  }
+  if(i %in% c(1,10,19)){
+    MCSE_low[[i]] <- MCSE_low[[i]] +
+      ylab(bquote(atop(n == .(scenarios[i,1]), 'MC SE')))
+  } else{MCSE_low[[i]] <- MCSE_low[[i]] +
+    theme(axis.text.y=element_blank(), 
+          axis.ticks.y=element_blank(),
+          axis.title.y = element_blank())
+  }
+  if(i %in% 19:27){
+    MCSE_low[[i]] <- MCSE_low[[i]] +
+      xlab('Visit')
+  } else {MCSE_low[[i]] <- MCSE_low[[i]] +
+    theme(axis.text.x=element_blank(), 
+          axis.ticks.x=element_blank(),
+          axis.title.x = element_blank())
+  }
+}
+
 annotate_figure(ggarrange(plotlist = MCSE_low, nrow = 3, ncol = 9, common.legend = T,
-                          legend = 'bottom'), top = 'Low event rate')
+                          legend = 'bottom',
+                          widths = c(1.4,1,1,1,1,1,1,1,1),
+                          heights = c(1.1, 0.95, 1)))
 
 MCSE_med <-  lapply(1:27, function(i){
   ggplot() +
@@ -1447,13 +1717,41 @@ MCSE_med <-  lapply(1:27, function(i){
     scale_color_manual(name = "CI type", values = c("Bootstrap"= "red", "Sandwich" = "blue",
                                                     "LEF outcome" = "green", "LEF both" = "purple",
                                                     "Jackknife MVN" = 'orange',"Jackknife Wald" = 'deepskyblue' )) +
-    xlab(bquote(atop(n ==.(scenarios[i,1]), alpha[c] ==.(scenarios[i,2])~', '~alpha[a] == .(scenarios[i,3])))) +
-    ylab("MC SE") + ylim(0,0.02) + 
-    theme(title=element_text(size=15), axis.text = element_text(size=10), legend.text = element_text(size=14), axis.title.y = element_text(size = 12))
+    ylim(0,0.02) + 
+    theme(legend.text = element_text(size=14))
 }
 )
+for(i in 1:27){
+  if(i %in% 1:9){
+    if(i %in% c(2, 5, 8)){
+      MCSE_med[[i]] <- MCSE_med[[i]] +
+        labs(title = bquote(atop(alpha[c] == .(scenarios[i,2]), alpha[a] == .(scenarios[i,3]))))} else{
+          MCSE_med[[i]] <- MCSE_med[[i]] +
+            labs(title = bquote(atop(phantom(3),alpha[a] == .(scenarios[i,3]))))
+        }
+  }
+  if(i %in% c(1,10,19)){
+    MCSE_med[[i]] <- MCSE_med[[i]] +
+      ylab(bquote(atop(n == .(scenarios[i,1]), 'MC SE')))
+  } else{MCSE_med[[i]] <- MCSE_med[[i]] +
+    theme(axis.text.y=element_blank(), 
+          axis.ticks.y=element_blank(),
+          axis.title.y = element_blank())
+  }
+  if(i %in% 19:27){
+    MCSE_med[[i]] <- MCSE_med[[i]] +
+      xlab('Visit')
+  } else {MCSE_med[[i]] <- MCSE_med[[i]] +
+    theme(axis.text.x=element_blank(), 
+          axis.ticks.x=element_blank(),
+          axis.title.x = element_blank())
+  }
+}
+
 annotate_figure(ggarrange(plotlist = MCSE_med, nrow = 3, ncol = 9, common.legend = T,
-                          legend = 'bottom'), top = 'Medium event rate')
+                          legend = 'bottom',
+                          widths = c(1.4,1,1,1,1,1,1,1,1),
+                          heights = c(1.1, 0.95, 1)))
 
 MCSE_high <-  lapply(1:27, function(i){
   ggplot() +
@@ -1472,14 +1770,41 @@ MCSE_high <-  lapply(1:27, function(i){
     scale_color_manual(name = "CI type", values = c("Bootstrap"= "red", "Sandwich" = "blue",
                                                     "LEF outcome" = "green", "LEF both" = "purple",
                                                     "Jackknife MVN" = 'orange',"Jackknife Wald" = 'deepskyblue' )) +
-    xlab(bquote(atop(n ==.(scenarios[i,1]), alpha[c] ==.(scenarios[i,2])~', '~alpha[a] == .(scenarios[i,3])))) +
-    ylab("MC SE") + ylim(0,0.02) + 
-    theme(title=element_text(size=15), axis.text = element_text(size=10), legend.text = element_text(size=14), axis.title.y = element_text(size = 12))
+    ylim(0,0.02) + 
+    theme(legend.text = element_text(size=14))
 }
 )
-annotate_figure(ggarrange(plotlist = MCSE_high, nrow = 3, ncol = 9, common.legend = T,
-                          legend = 'bottom'), top = 'High event rate')
+for(i in 1:27){
+  if(i %in% 1:9){
+    if(i %in% c(2, 5, 8)){
+      MCSE_high[[i]] <- MCSE_high[[i]] +
+        labs(title = bquote(atop(alpha[c] == .(scenarios[i,2]), alpha[a] == .(scenarios[i,3]))))} else{
+          MCSE_high[[i]] <- MCSE_high[[i]] +
+            labs(title = bquote(atop(phantom(3),alpha[a] == .(scenarios[i,3]))))
+        }
+  }
+  if(i %in% c(1,10,19)){
+    MCSE_high[[i]] <- MCSE_high[[i]] +
+      ylab(bquote(atop(n == .(scenarios[i,1]), 'MC SE')))
+  } else{MCSE_high[[i]] <- MCSE_high[[i]] +
+    theme(axis.text.y=element_blank(), 
+          axis.ticks.y=element_blank(),
+          axis.title.y = element_blank())
+  }
+  if(i %in% 19:27){
+    MCSE_high[[i]] <- MCSE_high[[i]] +
+      xlab('Visit')
+  } else {MCSE_high[[i]] <- MCSE_high[[i]] +
+    theme(axis.text.x=element_blank(), 
+          axis.ticks.x=element_blank(),
+          axis.title.x = element_blank())
+  }
+}
 
+annotate_figure(ggarrange(plotlist = MCSE_high, nrow = 3, ncol = 9, common.legend = T,
+                          legend = 'bottom',
+                          widths = c(1.4,1,1,1,1,1,1,1,1),
+                          heights = c(1.1, 0.95, 1)))
 ################WEIGHTS########################
 weights <- data.frame(matrix(,nrow = 0, ncol = 7))
 for(i in 1:27){
@@ -1616,3 +1941,12 @@ ftable(con4)
 xftbl <- xtableFtable(ftable(con4), method = "compact")
 print.xtableFtable(xftbl, booktabs = T) 
 
+############ Table of SE for n = 5000 ###############
+
+
+se_5000_table <- rbind(cbind(0:4,sd_point[,19:27,1]),
+                       cbind(0:4,sd_point[,19:27,2]),
+                       cbind(0:4,sd_point[,19:27,3]))
+
+print(xtable(se_5000_table,
+             type = 'latex', digits = c(0,0,3,3,3,3,3,3,3,3,3)),include.rownames=FALSE)
