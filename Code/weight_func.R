@@ -68,6 +68,9 @@ quiet_msg_time <- function(quiet, msg, proc_time) {
 #' @param cense_n_cov  
 #' @param eligible_wts_0 
 #' @param eligible_wts_1 
+#' @param remodel TRUE by default, indicator of whether weight models should be fitted/refitted
+#' @param boot_idx 2-column matrix of patient IDs and their bootstrap resampling weight. I.e. if the patient is sammpled 2 times in the 
+#' bootstrap sample, weight is 2. If they weren't sampled, weight is 0.
 #' @param include_regime_length 
 #' @param weight_model_d0_data 
 #' @param weight_model_n0_data 
@@ -108,27 +111,51 @@ weight_func_bootstrap <- function(data,
                                   quiet = FALSE) {
   
   
-  if (all(!is.na(boot_idx), na.rm = TRUE)){
-    weight_model_d0_data <- weight_model_d0$data[id %in% boot_idx]
-    weight_model_n0_data <- weight_model_n0$data[id %in% boot_idx]
-    weight_model_d1_data <- weight_model_d1$data[id %in% boot_idx]
-    weight_model_n1_data <- weight_model_n1$data[id %in% boot_idx]
+  if (all(!is.na(boot_idx), na.rm = TRUE)){ #Modify weight model design matrix to only include sampled IDs if boot_idx is not NA
+    weight_model_d0_data <- as.data.table(weight_model_d0$data[id %in% boot_idx] %>% 
+      rowwise() %>% 
+      dplyr::mutate(weight_boot = length(boot_idx[boot_idx == id])))
+    weight_model_n0_data <- as.data.table(weight_model_n0$data[id %in% boot_idx] %>% 
+      rowwise() %>% 
+      dplyr::mutate(weight_boot = length(boot_idx[boot_idx == id])))
+    weight_model_d1_data <- as.data.table(weight_model_d1$data[id %in% boot_idx]%>% 
+      rowwise() %>% 
+      dplyr::mutate(weight_boot = length(boot_idx[boot_idx == id])))
+    weight_model_n1_data <- as.data.table(weight_model_n1$data[id %in% boot_idx]%>% 
+      rowwise() %>% 
+      dplyr::mutate(weight_boot = length(boot_idx[boot_idx == id])))
     if(!is.na(cense)){
-      cense_model_d0_data <- cense_model_d0$data[id %in% boot_idx]
-      cense_model_n0_data <- cense_model_n0$data[id %in% boot_idx]
-      cense_model_d1_data <- cense_model_d1$data[id %in% boot_idx]
-      cense_model_n1_data <- cense_model_n1$data[id %in% boot_idx]
+      cense_model_d0_data <- as.data.table(cense_model_d0$data[id %in% boot_idx]%>% 
+        rowwise() %>% 
+        dplyr::mutate(weight_boot = length(boot_idx[boot_idx == id])))
+      cense_model_n0_data <- as.data.table(cense_model_n0$data[id %in% boot_idx]%>% 
+        rowwise() %>% 
+        dplyr::mutate(weight_boot = length(boot_idx[boot_idx == id])))
+      cense_model_d1_data <- as.data.table(cense_model_d1$data[id %in% boot_idx]%>% 
+        rowwise() %>% 
+        dplyr::mutate(weight_boot = length(boot_idx[boot_idx == id])))
+      cense_model_n1_data <- as.data.table(cense_model_n1$data[id %in% boot_idx]%>% 
+        rowwise() %>% 
+        dplyr::mutate(weight_boot = length(boot_idx[boot_idx == id])))
     }
   } else {
-    weight_model_d0_data <- weight_model_d0$data
-    weight_model_n0_data <- weight_model_n0$data
-    weight_model_d1_data <- weight_model_d1$data
-    weight_model_n1_data <- weight_model_n1$data
+    weight_model_d0_data <- as.data.table(weight_model_d0$data %>% 
+      dplyr::mutate(weight_boot = 1.0))
+    weight_model_n0_data <- as.data.table(weight_model_n0$data %>% 
+      dplyr::mutate(weight_boot = 1.0))
+    weight_model_d1_data <- as.data.table(weight_model_d1$data %>% 
+      dplyr::mutate(weight_boot = 1.0))
+    weight_model_n1_data <- as.data.table(weight_model_n1$data %>% 
+      dplyr::mutate(weight_boot = 1.0))
     if (!is.na(cense)){
-      cense_model_d0_data <- cense_model_d0$data
-      cense_model_n0_data <- cense_model_n0$data
-      cense_model_d1_data <- cense_model_d1$data
-      cense_model_n1_data <- cense_model_n1$data
+      cense_model_d0_data <- as.data.table(cense_model_d0$data %>% 
+        dplyr::mutate(weight_boot = 1.0))
+      cense_model_n0_data <- as.data.table(cense_model_n0$data %>% 
+        dplyr::mutate(weight_boot = 1.0))
+      cense_model_d1_data <- as.data.table(cense_model_d1$data %>% 
+        dplyr::mutate(weight_boot = 1.0))
+      cense_model_n1_data <- as.data.table(cense_model_n1$data %>% 
+        dplyr::mutate(weight_boot = 1.0))
     }
   }
   
@@ -158,9 +185,10 @@ weight_func_bootstrap <- function(data,
   # ------------------- eligible0 == 1 --------------------
   # --------------- denominator ------------------
   quiet_msg(quiet, "P(treatment=1 | treatment=0) for denominator")
-  if (remodel ==TRUE){
+  if (remodel ==TRUE){ #fit/refit weight models 
     model1 <- parglm::parglm(switch_d_cov,
                              data = weight_model_d0_data,
+                             weights = weight_boot,
                              family = binomial(link = "logit"),
                              control = parglm::parglm.control(nthreads = 4, method = "FAST"))
     quiet_print(quiet, summary(model1))
@@ -176,7 +204,7 @@ weight_func_bootstrap <- function(data,
       saveRDS(model1, file = file.path(save_dir, "weight_model_switch_d0.rds"))
     }
     rm(model1)
-  } else {
+  } else { #if not remodelling, predict probability on new data/bootstrap sample
     weight_model_d0$coefficients <- new_coef_sw_d0
     switch_d0 <- data.table(
       p0_d = predict.glm(weight_model_d0, weight_model_d0_data, type = 'response' ),
@@ -191,6 +219,7 @@ weight_func_bootstrap <- function(data,
   if (remodel ==TRUE){
     model2 <- parglm::parglm(switch_n_cov,
                              data = weight_model_n0_data,
+                             weights = weight_boot,
                              family = binomial(link = "logit"),
                              control = parglm::parglm.control(nthreads = 4, method = "FAST"))
     quiet_print(quiet, summary(model2))
@@ -221,6 +250,7 @@ weight_func_bootstrap <- function(data,
   if (remodel ==TRUE){
     model3 <- parglm::parglm(switch_d_cov,
                              data = weight_model_d1_data,
+                             weights = weight_boot,
                              family = binomial(link = "logit"),
                              control = parglm::parglm.control(nthreads = 4, method = "FAST"))
     quiet_print(quiet, summary(model3))
@@ -250,6 +280,7 @@ weight_func_bootstrap <- function(data,
   if (remodel ==TRUE){
     model4 <- parglm::parglm(switch_n_cov,
                              data = weight_model_n1_data,
+                             weights = weight_boot,
                              family = binomial(link = "logit"),
                              control = parglm::parglm.control(nthreads = 4, method = "FAST"))
     quiet_print(quiet, summary(model4))
@@ -312,6 +343,7 @@ weight_func_bootstrap <- function(data,
       # -----------------------------------------------------------
       model1.cense <- parglm::parglm(cense_d_cov,
                                      data = data,
+                                     weights = weight_boot,
                                      family = binomial(link = "logit"),
                                      control = parglm::parglm.control(nthreads = 4, method = "FAST"))
       quiet_print(quiet, summary(model1.cense))
@@ -333,6 +365,7 @@ weight_func_bootstrap <- function(data,
       # ---------------------------------------------------------
       model2.cense <- parglm::parglm(cense_n_cov,
                                      data = data,
+                                     weights = weight_boot,
                                      family = binomial(link = "logit"),
                                      control = parglm::parglm.control(nthreads = 4, method = "FAST"))
       quiet_print(quiet, summary(model2.cense))
@@ -361,6 +394,7 @@ weight_func_bootstrap <- function(data,
       if (remodel == TRUE){
         model1.cense <- parglm::parglm(cense_d_cov,
                                        data = cense_model_d0_data,
+                                       weights = weight_boot,
                                        family = binomial(link = "logit"),
                                        control = parglm::parglm.control(nthreads = 4, method = "FAST"))
         quiet_print(quiet, summary(model1.cense))
@@ -391,6 +425,7 @@ weight_func_bootstrap <- function(data,
       if (remodel == TRUE){
         model2.cense <- parglm::parglm(cense_n_cov,
                                        data = cense_model_n0_data,
+                                       weights = weight_boot,
                                        family = binomial(link = "logit"),
                                        control = parglm::parglm.control(nthreads = 4, method = "FAST"))
         quiet_print(quiet, summary(model2.cense))
@@ -420,6 +455,7 @@ weight_func_bootstrap <- function(data,
       if (remodel == TRUE){
         model3.cense <- parglm::parglm(cense_d_cov,
                                        data = cense_model_d1_data,
+                                       weights = weight_boot,
                                        family = binomial(link = "logit"),
                                        control = parglm::parglm.control(nthreads = 4, method = "FAST"))
         quiet_print(quiet, summary(model3.cense))
@@ -448,6 +484,7 @@ weight_func_bootstrap <- function(data,
       if (remodel == TRUE){
         model4.cense <- parglm::parglm(cense_n_cov,
                                        data = cense_model_n1_data,
+                                       weights = weight_boot,
                                        family = binomial(link = "logit"),
                                        control = parglm::parglm.control(nthreads = 4, method = "FAST"))
         quiet_print(quiet, summary(model4.cense))
@@ -480,6 +517,8 @@ weight_func_bootstrap <- function(data,
       rm(cense_0, cense_1)
     }
   }
+  
+  quiet_msg(quiet, "Calculating weights")
   # wt and wtC calculation
   if (any(!is.na(eligible_wts_0))) {
     data[
@@ -557,21 +596,28 @@ weight_func_bootstrap <- function(data,
   
   expand_index <- rep(seq_len(nrow(data)), data[, t] + 1)
   
+  quiet_msg(quiet, "Adding new weights to expanded data")
+  
+  ### new_data only contains ID, trial_period, followup_time adn the new IP weights
   new_data <- data.table(id = data[expand_index, ID])
   new_data[, period_new := data[expand_index, t]]
   #new_data[, cumA_new := data[expand_index, CAp]]
   #new_data[, treatment_new := data[expand_index, A]]
   
+  quiet_msg(quiet, "Placer 1")
   #new_data[, outcome_new := data[expand_index, Y]]
   new_data[, weight0 := data[expand_index, weight0]]
   new_data[, trial_period := trial_period_func(data)]
   new_data[, index := seq_len(.N)]
   
+  quiet_msg(quiet, "Placer 2")
   new_data <- new_data[temp_data, on = list(id = id, trial_period = period)]
   setorder(new_data, index)
   new_data[, followup_time := period_new - trial_period]
   new_data[, weight := (weight0 / wtprod)]
   
+  quiet_msg(quiet, "Placer 3")
+  #### New data is merged with existing expanded data to add the new weights 
   output_data <- new_data[expanded_data, on = list( id = id, trial_period = trial_period, 
                                                     followup_time = followup_time)] %>%
     dplyr::select(names(expanded_data))
