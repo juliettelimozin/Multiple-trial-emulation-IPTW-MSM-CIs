@@ -1,13 +1,13 @@
 #!/usr/bin R
-.libPaths()
+
 library(modelr)
 library(tidyverse)
 library(tidyr)
 setwd("~/rds/hpc-work/Project1")
-source("simulate_MSM_simplified.R")
-source("weight_func.R")
+source("~/rds/hpc-work/Multiple-trial-emulation-IPTW-MSM-CIs/Code/simulate_MSM_simplified.R")
+source("~/rds/hpc-work/Multiple-trial-emulation-IPTW-MSM-CIs/Code/weight_func.R")
 set.seed(20250228)
-library(TrialEmulation)
+library(TrialEmulation, lib.loc = '/home/jml219/R/x86_64-redhat-linux-gnu-library/4.3')
 library(MASS)
 library(sandwich)
 library(doParallel)
@@ -257,7 +257,7 @@ for (i in 1:iters){
         dplyr::mutate(cum_hazard_treatment = cumprod(1-predicted_proba_treatment),
                       cum_hazard_control = cumprod(1-predicted_proba_control)) %>% 
         dplyr::ungroup() %>% 
-        dplyr::mutate(weight_boot = length(boot_data_conf[[k]][boot_data_conf[[k]] == id])) %>% 
+        dplyr::mutate(weight_boot = length(boot_data[[k]][boot_data[[k]] == id])) %>% 
         dplyr::group_by(followup_time) %>% 
         dplyr::summarise(survival_treatment = mean(cum_hazard_treatment*weight_boot),
                          survival_control = mean(cum_hazard_control*weight_boot),
@@ -331,7 +331,7 @@ for (i in 1:iters){
         dplyr::mutate(cum_hazard_treatment = cumprod(1-predicted_proba_treatment),
                       cum_hazard_control = cumprod(1-predicted_proba_control)) %>% 
         dplyr::ungroup() %>% 
-        dplyr::mutate(weight_boot = length(boot_data_conf[[k]][boot_data_conf[[k]] == id])) %>% 
+        dplyr::mutate(weight_boot = length(boot_data[[k]][boot_data[[k]] == id])) %>% 
         dplyr::group_by(followup_time) %>% 
         dplyr::summarise(survival_treatment = mean(cum_hazard_treatment*weight_boot),
                          survival_control = mean(cum_hazard_control*weight_boot),
@@ -415,8 +415,8 @@ for (i in 1:iters){
       #Calculate \hat \beta(b)
       beta <- PP$model$coefficients + variance_mat%*%LEFs
       
-      PP_boot <- PP$model
-      PP_boot$coefficients <- beta
+      PP_boot <- PP
+      PP_boot$model$coefficients <- beta
       
       Y_pred_PP_treatment_boot <- predict.glm(PP_boot$model, 
                                               fitting_data_treatment, 
@@ -431,7 +431,7 @@ for (i in 1:iters){
         dplyr::mutate(cum_hazard_treatment = cumprod(1-predicted_proba_treatment),
                       cum_hazard_control = cumprod(1-predicted_proba_control)) %>% 
         dplyr::ungroup() %>% 
-        dplyr::mutate(weight_boot = length(boot_data_conf[[k]][boot_data_conf[[k]] == id])) %>% 
+        dplyr::mutate(weight_boot = length(boot_data[[k]][boot_data[[k]] == id])) %>% 
         dplyr::group_by(followup_time) %>% 
         dplyr::summarise(survival_treatment = mean(cum_hazard_treatment*weight_boot),
                          survival_control = mean(cum_hazard_control*weight_boot),
@@ -533,7 +533,7 @@ for (i in 1:iters){
           dplyr::mutate(cum_hazard_treatment = cumprod(1-predicted_proba_treatment),
                         cum_hazard_control = cumprod(1-predicted_proba_control)) %>% 
           dplyr::ungroup() %>% 
-          dplyr::mutate(weight_boot = length(boot_data_conf[[k]][boot_data_conf[[k]] == id])) %>% 
+          dplyr::mutate(weight_boot = length(boot_data[[k]][boot_data[[k]] == id])) %>% 
           dplyr::group_by(followup_time) %>% 
           dplyr::summarise(survival_treatment = mean(cum_hazard_treatment*weight_boot),
                            survival_control = mean(cum_hazard_control*weight_boot),
@@ -674,26 +674,26 @@ for (i in 1:iters){
   }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
 }
 print(paste0("% not pos def: ", not_pos_def*100/iters))
-save(CI_bootstrap_PP_red, file = paste("NewSimusJ_fixed/J_CI_bootstrap_PP_red_low_",as.character(l),".rda", sep = ""))
-save(CI_sandwich_PP_red, file = paste("NewSimusJ_fixed/J_CI_sandwich_PP_red_low_",as.character(l),".rda", sep = ""))
-save(CI_LEF_outcome_PP_red, file = paste("NewSimusJ_fixed/J_CI_LEF_outcome_PP_red_low_",as.character(l),".rda", sep = ""))
-save(CI_LEF_both_PP_red, file = paste("NewSimusJ_fixed/J_CI_LEF_both_PP_red_low_",as.character(l),".rda", sep = ""))
-save(CI_jackknife_mvn_PP_red, file = paste("NewSimusJ_fixed/J_CI_jackknife_mvn_PP_red_low_",as.character(l),".rda", sep = ""))
-save(CI_jackknife_wald_PP_red, file = paste("NewSimusJ_fixed/J_CI_jackknife_wald_PP_red_low_",as.character(l),".rda", sep = ""))
-save(computation_time, file = paste("NewSimusJ_fixed/J_computation_time_low_",as.character(l),".rda", sep = ""))
-save(estimates, file = paste("NewSimusJ_fixed/J_estimates_red_low_", as.character(l), ".rda", sep = ""))
-save(survival_treatment_estimates, file = paste("NewSimusJ_fixed/J_survival_treatment_estimates_low_", as.character(l), ".rda", sep = ""))
-save(survival_control_estimates, file = paste("NewSimusJ_fixed/J_survival_control_estimates_low_", as.character(l), ".rda", sep = ""))
-save(jackknife_SEs, file = paste("NewSimusJ_fixed/J_jackknife_SEs_low_", as.character(l), ".rda", sep = ""))
-save(bootstrap_mrd, file = paste("NewSimusJ_fixed/J_bootstrap_mrd_low_", as.character(l), ".rda", sep = "")) 
-save(LEF_outcome_mrd, file = paste("NewSimusJ_fixed/J_LEF_outcome_mrd_low_", as.character(l), ".rda", sep = "")) 
-save(LEF_both_mrd, file = paste("NewSimusJ_fixed/J_LEF_both_mrd_low_", as.character(l), ".rda", sep = "")) 
-save(jackknife_wald_mrd, file = paste("NewSimusJ_fixed/J_jackknife_wald_mrd_low_", as.character(l), ".rda", sep = "")) 
-save(jackknife_mvn_mrd, file = paste("NewSimusJ_fixed/J_jackknife_mvn_mrd_low_", as.character(l), ".rda", sep = "")) 
-save(sandwich_mrd, file = paste("NewSimusJ_fixed/J_sandwich_mrd_low_", as.character(l), ".rda", sep = "")) 
-save(coeff_dim, file = paste("NewSimusJ_fixed/coeff_dim_low_", as.character(l), ".rda", sep = "")) 
-save(bootstrap_nas, file = paste("NewSimusJ_fixed/bootstrap_nas_low_", as.character(l), ".rda", sep = "")) 
-save(jackknife_nas, file = paste("NewSimusJ_fixed/jackknife_nas_low_", as.character(l), ".rda", sep = "")) 
+save(CI_bootstrap_PP_red, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_CI_bootstrap_PP_red_low_",as.character(l),".rda", sep = ""))
+save(CI_sandwich_PP_red, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_CI_sandwich_PP_red_low_",as.character(l),".rda", sep = ""))
+save(CI_LEF_outcome_PP_red, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_CI_LEF_outcome_PP_red_low_",as.character(l),".rda", sep = ""))
+save(CI_LEF_both_PP_red, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_CI_LEF_both_PP_red_low_",as.character(l),".rda", sep = ""))
+save(CI_jackknife_mvn_PP_red, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_CI_jackknife_mvn_PP_red_low_",as.character(l),".rda", sep = ""))
+save(CI_jackknife_wald_PP_red, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_CI_jackknife_wald_PP_red_low_",as.character(l),".rda", sep = ""))
+save(computation_time, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_computation_time_low_",as.character(l),".rda", sep = ""))
+save(estimates, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_estimates_red_low_", as.character(l), ".rda", sep = ""))
+save(survival_treatment_estimates, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_survival_treatment_estimates_low_", as.character(l), ".rda", sep = ""))
+save(survival_control_estimates, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_survival_control_estimates_low_", as.character(l), ".rda", sep = ""))
+save(jackknife_SEs, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_jackknife_SEs_low_", as.character(l), ".rda", sep = ""))
+save(bootstrap_mrd, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_bootstrap_mrd_low_", as.character(l), ".rda", sep = "")) 
+save(LEF_outcome_mrd, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_LEF_outcome_mrd_low_", as.character(l), ".rda", sep = "")) 
+save(LEF_both_mrd, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_LEF_both_mrd_low_", as.character(l), ".rda", sep = "")) 
+save(jackknife_wald_mrd, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_jackknife_wald_mrd_low_", as.character(l), ".rda", sep = "")) 
+save(jackknife_mvn_mrd, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_jackknife_mvn_mrd_low_", as.character(l), ".rda", sep = "")) 
+save(sandwich_mrd, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_sandwich_mrd_low_", as.character(l), ".rda", sep = "")) 
+save(coeff_dim, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/coeff_dim_low_", as.character(l), ".rda", sep = "")) 
+save(bootstrap_nas, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/bootstrap_nas_low_", as.character(l), ".rda", sep = "")) 
+save(jackknife_nas, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/jackknife_nas_low_", as.character(l), ".rda", sep = "")) 
 
 
 
