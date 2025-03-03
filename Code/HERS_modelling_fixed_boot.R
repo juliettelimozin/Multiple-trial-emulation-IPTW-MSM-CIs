@@ -444,8 +444,9 @@ surv_PP_difference_boostrap_estimates_conf <- foreach(k = 1:500, .combine = cbin
     dplyr::group_by(id, trial_period) %>% 
     dplyr::mutate(cum_hazard_treatment = cumprod(1-predicted_proba_treatment),
                   cum_hazard_control = cumprod(1-predicted_proba_control)) %>% 
-    dplyr::ungroup() %>% 
+    dplyr::rowwise() %>% 
     dplyr::mutate(weight_boot = length(boot_data_conf[[k]][boot_data_conf[[k]] == id])) %>% 
+    dplyr::ungroup() %>% 
     dplyr::group_by(followup_time) %>% 
     dplyr::summarise(survival_treatment = mean(cum_hazard_treatment*weight_boot),
                      survival_control = mean(cum_hazard_control*weight_boot),
@@ -566,8 +567,9 @@ surv_PP_difference_LEF_outcome_estimates_conf <- foreach(k = 1:500, .combine = c
     dplyr::group_by(id, trial_period) %>% 
     dplyr::mutate(cum_hazard_treatment = cumprod(1-predicted_proba_treatment),
                   cum_hazard_control = cumprod(1-predicted_proba_control)) %>% 
-    dplyr::ungroup() %>% 
+    dplyr::rowwise() %>% 
     dplyr::mutate(weight_boot = length(boot_data_conf[[k]][boot_data_conf[[k]] == id])) %>% 
+    dplyr::ungroup() %>% 
     dplyr::group_by(followup_time) %>% 
     dplyr::summarise(survival_treatment = mean(cum_hazard_treatment*weight_boot),
                      survival_control = mean(cum_hazard_control*weight_boot),
@@ -692,8 +694,9 @@ surv_PP_difference_LEF_both_estimates_conf <- foreach(k = 1:500, .combine = cbin
     dplyr::group_by(id, trial_period) %>% 
     dplyr::mutate(cum_hazard_treatment = cumprod(1-predicted_proba_treatment),
                   cum_hazard_control = cumprod(1-predicted_proba_control)) %>% 
-    dplyr::ungroup() %>% 
+    dplyr::rowwise() %>% 
     dplyr::mutate(weight_boot = length(boot_data_conf[[k]][boot_data_conf[[k]] == id])) %>% 
+    dplyr::ungroup() %>% 
     dplyr::group_by(followup_time) %>% 
     dplyr::summarise(survival_treatment = mean(cum_hazard_treatment*weight_boot),
                      survival_control = mean(cum_hazard_control*weight_boot),

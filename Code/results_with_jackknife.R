@@ -4,12 +4,12 @@ library(tidyr)
 setwd("/home/juliette/Multiple-trial-emulation-IPTW-MSM-CIs/Code")
 library(ggplot2)
 library(ggpubr)
-#load("true_value_red_newsimus.rda")
-#true_value_red <- -true_value_red
+load("true_value_red_newsimus.rda")
+true_value_red <- -true_value_red
 load("true_value_surv0.rda")
 load("true_value_surv1.rda")
-load("true_value_boot_200it_200k_fixed_700it.rda")
-true_value_red <- true_value_boot_200it_200k_fixed
+#load("true_value_boot_200it_200k_fixed_700it.rda")
+#true_value_red <- true_value_boot_200it_200k_fixed
 #load("Rdata.RData")
 library(modelr)
 library(MASS)
@@ -57,25 +57,25 @@ mean_time <- data.frame(matrix(,nrow = 0, ncol = 10))
 na_failure_rate <- data.frame(matrix(,nrow = 0, ncol = 7))
 se_ratio <- data.frame(matrix(,nrow = 0, ncol = 5))
 
-load("/home/juliette/UniHPC/J_sandwich_SE.rda")
-load("/home/juliette/UniHPC/J_bootstrap_SE.rda")
-load("/home/juliette/UniHPC/J_LEF_outcome_SE.rda")
-load("/home/juliette/UniHPC/J_LEF_both_SE.rda")
-load("/home/juliette/UniHPC/J_jackknife_mvn_SE.rda")
+load("/home/juliette/UniHPC/NewSimusJ_fixed/J_sandwich_SE.rda")
+load("/home/juliette/UniHPC/NewSimusJ_fixed/J_bootstrap_SE.rda")
+load("/home/juliette/UniHPC/NewSimusJ_fixed/J_LEF_outcome_SE.rda")
+load("/home/juliette/UniHPC/NewSimusJ_fixed/J_LEF_both_SE.rda")
+load("/home/juliette/UniHPC/NewSimusJ_fixed/J_jackknife_mvn_SE.rda")
 
 for (i in 1:27){
-  for (j in 1:3){
-    load(paste0("/home/juliette/UniHPC/J_CI_bootstrap_PP_red_",outcomes[j],'_', i, ".rda"))
-    load(paste0("/home/juliette/UniHPC/J_CI_jackknife_mvn_PP_red_",outcomes[j],'_', i, ".rda"))
-    load(paste0("/home/juliette/UniHPC/J_CI_jackknife_wald_PP_red_",outcomes[j],'_', i, ".rda"))
-    load(paste0("/home/juliette/UniHPC/J_CI_LEF_outcome_PP_red_",outcomes[j],'_', i, ".rda"))
-    load(paste0("/home/juliette/UniHPC/J_CI_LEF_both_PP_red_",outcomes[j],'_', i, ".rda"))
-    load(paste0("/home/juliette/UniHPC/J_CI_sandwich_PP_red_",outcomes[j],'_', i, ".rda"))
-    load(paste0("/home/juliette/UniHPC/J_computation_time_",outcomes[j],'_', i, ".rda"))
-    load(paste0('/home/juliette/UniHPC/J_estimates_red_',outcomes[j],'_',i, '.rda'))
-    load(paste0('/home/juliette/UniHPC/J_survival_treatment_estimates_',outcomes[j],'_',i, '.rda'))
-    load(paste0('/home/juliette/UniHPC/J_survival_control_estimates_',outcomes[j],'_',i, '.rda'))
-    load(paste0('/home/juliette/UniHPC/J_jackknife_SEs_',outcomes[j],'_',i, '.rda'))
+  for (j in 1){
+    load(paste0("/home/juliette/UniHPC/NewSimusJ_fixed/J_CI_bootstrap_PP_red_",outcomes[j],'_', i, ".rda"))
+    load(paste0("/home/juliette/UniHPC/NewSimusJ_fixed/J_CI_jackknife_mvn_PP_red_",outcomes[j],'_', i, ".rda"))
+    load(paste0("/home/juliette/UniHPC/NewSimusJ_fixed/J_CI_jackknife_wald_PP_red_",outcomes[j],'_', i, ".rda"))
+    load(paste0("/home/juliette/UniHPC/NewSimusJ_fixed/J_CI_LEF_outcome_PP_red_",outcomes[j],'_', i, ".rda"))
+    load(paste0("/home/juliette/UniHPC/NewSimusJ_fixed/J_CI_LEF_both_PP_red_",outcomes[j],'_', i, ".rda"))
+    load(paste0("/home/juliette/UniHPC/NewSimusJ_fixed/J_CI_sandwich_PP_red_",outcomes[j],'_', i, ".rda"))
+    load(paste0("/home/juliette/UniHPC/NewSimusJ_fixed/J_computation_time_",outcomes[j],'_', i, ".rda"))
+    load(paste0('/home/juliette/UniHPC/NewSimusJ_fixed/J_estimates_red_',outcomes[j],'_',i, '.rda'))
+    load(paste0('/home/juliette/UniHPC/NewSimusJ_fixed/J_survival_treatment_estimates_',outcomes[j],'_',i, '.rda'))
+    load(paste0('/home/juliette/UniHPC/NewSimusJ_fixed/J_survival_control_estimates_',outcomes[j],'_',i, '.rda'))
+    load(paste0('/home/juliette/UniHPC/NewSimusJ_fixed/J_jackknife_SEs_',outcomes[j],'_',i, '.rda'))
     
     bootstrap[,,,i,j] <- CI_bootstrap_PP_red
     LEF_outcome[,,,i,j] <- CI_LEF_outcome_PP_red
@@ -145,7 +145,7 @@ print(xtable(mean_time),
 
 ################ EMPIRICAL MRD SE ####################
 mrd_se_quantiles_low <-  lapply(1:9, function(i){
-  ggplot(se_ratio[se_ratio$i == i & se_ratio$j == 2 & se_ratio$CI_type != 'Jackknife MVN',]) +
+  ggplot(se_ratio[se_ratio$i == i & se_ratio$j == 1 & se_ratio$CI_type != 'Jackknife MVN' & se_ratio$CI_type != 'Jackknife Wald',]) +
     stat_summary(
       mapping = aes(x = Visit, y = SE_ratio, colour = CI_type),
       fun.min = function(z) { quantile(z,0.25) },
@@ -156,7 +156,7 @@ mrd_se_quantiles_low <-  lapply(1:9, function(i){
     scale_color_manual(name = "CI type", values = c("Bootstrap"= "red", "Sandwich" = "blue",
                                                     "LEF outcome" = "green", "LEF both" = "purple",
                                                     "Jackknife MVN" = 'orange',"Jackknife Wald" = 'deepskyblue' )) +
-    ylim(0,2.25) + 
+    #ylim(0,2.25) + 
     geom_hline(yintercept = 1, linetype = "dashed")+
     theme(legend.text = element_text(size=14))
 }
@@ -231,7 +231,7 @@ annotate_figure(ggarrange(plotlist = mrd_se_quantiles_low, nrow = 3, ncol = 3, c
                           heights = c(1.1, 0.95, 1)))
 
 mrd_se_quantiles_med <-  lapply(10:27, function(i){
-  ggplot(se_ratio[se_ratio$i == i & se_ratio$j == 3 & se_ratio$CI_type != 'Jackknife MVN',]) +
+  ggplot(se_ratio[se_ratio$i == i & se_ratio$j == 1 & se_ratio$CI_type != 'Jackknife MVN' & se_ratio$CI_type != 'Jackknife Wald',]) +
     stat_summary(
       mapping = aes(x = Visit, y = SE_ratio, colour = CI_type),
       fun.min = function(z) { quantile(z,0.25) },
@@ -242,7 +242,7 @@ mrd_se_quantiles_med <-  lapply(10:27, function(i){
     scale_color_manual(name = "CI type", values = c("Bootstrap"= "red", "Sandwich" = "blue",
                                                     "LEF outcome" = "green", "LEF both" = "purple",
                                                     "Jackknife MVN" = 'orange',"Jackknife Wald" = 'deepskyblue' )) +
-    ylim(0,2.25) + 
+    #ylim(0,2.25) + 
     geom_hline(yintercept = 1, linetype = "dashed")+
     theme(legend.text = element_text(size=14))
 }
@@ -258,7 +258,7 @@ for(i in 1:18){
   }
   if(i %in% c(1,10)){
     mrd_se_quantiles_med[[i]] <- mrd_se_quantiles_med[[i]] +
-      ylab(bquote(atop(n == .(scenarios[i,1]), 'Ratio of SEs')))
+      ylab(bquote(atop(n == .(scenarios[i+9,1]), 'Ratio of SEs')))
   } else{mrd_se_quantiles_med[[i]] <- mrd_se_quantiles_med[[i]] +
     theme(axis.text.y=element_blank(), 
           axis.ticks.y=element_blank(),
@@ -633,53 +633,53 @@ annotate_figure(ggarrange(plotlist = mse_plots, nrow = 3, ncol = 9, common.legen
 
 # ############# COVERAGE #####################
 # 
-# coverage_ind <- array(0,dim = c(4,5,9,3))
-# success <- array(0,dim = c(4,5,9,3))
-# 
-# for (i in 1:1000){
-#   for (k in 1:5){
-#     for (j in 1:9){
-#       for (l in 1:3){
-#         scenario <- j%%9
-#         if (scenario ==0){scenario <- 9}
-#         
-#         if (is.na(bootstrap[k,1,i,j,l]) == F){
-#           success[1,k,j,l] <- success[1,k,j,l] + 1
-#           if (all(bootstrap[k,1,i,j,l] <= true_value_red[k,scenario, l])
-#               & all(bootstrap[k,2,i,j,l] >= true_value_red[k,scenario, l])){
-#             coverage_ind[1,k,j,l] <- coverage_ind[1,k,j,l] + 1
-#           }
-#         }
-#         
-#         if (is.na(LEF_outcome[k,1,i,j,l]) == F){
-#           success[2,k,j,l] <- success[2,k,j,l] + 1
-#           if (all(LEF_outcome[k,1,i,j,l] <= true_value_red[k,scenario, l])
-#               & all(LEF_outcome[k,2,i,j,l] >= true_value_red[k,scenario, l])){
-#             coverage_ind[2,k,j,l] <- coverage_ind[2,k,j,l] + 1
-#           }
-#         }
-#         
-#         if (is.na(LEF_both[k,1,i,j,l]) == F){
-#           success[3,k,j,l] <- success[3,k,j,l] + 1
-#           if (all(LEF_both[k,1,i,j,l] <= true_value_red[k,scenario, l])
-#               & all(LEF_both[k,2,i,j,l] >= true_value_red[k,scenario, l])){
-#             coverage_ind[3,k,j,l] <- coverage_ind[3,k,j,l] + 1
-#           }
-#         }
-#         
-#         if (all(is.na(sandwich[k,1,i,j,l])) == F){
-#           success[4,k,j,l] <- success[4,k,j,l] + 1
-#           if (all(sandwich[k,1,i,j,l] <= true_value_red[k,scenario, l])
-#               & all(sandwich[k,2,i,j,l] >= true_value_red[k,scenario, l])){
-#             coverage_ind[4,k,j,l]<- coverage_ind[4,k,j,l]+ 1
-#           }
-#         }
-#       }
-#     }
-#   }
-# }
-# 
-# coverage_ind <- coverage_ind/success
+coverage_ind <- array(0,dim = c(4,5,27,3))
+success <- array(0,dim = c(4,5,27,3))
+
+for (i in 1:1000){
+  for (k in 1:5){
+    for (j in 1:27){
+      for (l in 1:3){
+        scenario <- j%%9
+        if (scenario ==0){scenario <- 9}
+
+        if (is.na(bootstrap[k,1,i,j,l]) == F){
+          success[1,k,j,l] <- success[1,k,j,l] + 1
+          if (all(bootstrap[k,1,i,j,l] <= true_value_red[k,scenario, l])
+              & all(bootstrap[k,2,i,j,l] >= true_value_red[k,scenario, l])){
+            coverage_ind[1,k,j,l] <- coverage_ind[1,k,j,l] + 1
+          }
+        }
+
+        if (is.na(LEF_outcome[k,1,i,j,l]) == F){
+          success[2,k,j,l] <- success[2,k,j,l] + 1
+          if (all(LEF_outcome[k,1,i,j,l] <= true_value_red[k,scenario, l])
+              & all(LEF_outcome[k,2,i,j,l] >= true_value_red[k,scenario, l])){
+            coverage_ind[2,k,j,l] <- coverage_ind[2,k,j,l] + 1
+          }
+        }
+
+        if (is.na(LEF_both[k,1,i,j,l]) == F){
+          success[3,k,j,l] <- success[3,k,j,l] + 1
+          if (all(LEF_both[k,1,i,j,l] <= true_value_red[k,scenario, l])
+              & all(LEF_both[k,2,i,j,l] >= true_value_red[k,scenario, l])){
+            coverage_ind[3,k,j,l] <- coverage_ind[3,k,j,l] + 1
+          }
+        }
+
+        if (all(is.na(sandwich[k,1,i,j,l])) == F){
+          success[4,k,j,l] <- success[4,k,j,l] + 1
+          if (all(sandwich[k,1,i,j,l] <= true_value_red[k,scenario, l])
+              & all(sandwich[k,2,i,j,l] >= true_value_red[k,scenario, l])){
+            coverage_ind[4,k,j,l]<- coverage_ind[4,k,j,l]+ 1
+          }
+        }
+      }
+    }
+  }
+}
+
+coverage_ind <- coverage_ind/success
 # 
 # bias_elim_coverage_ind <- array(0,dim = c(4,5,9,3))
 # bias_elim_success <- array(0,dim = c(4,5,9,3))
@@ -1607,9 +1607,9 @@ print(xtable(failure_table, type = 'latex'), include.rownames = FALSE)
 no_na_frequency <- data.frame(matrix(,nrow = 0, ncol = 7))
 for (i in 1:27){
   for (j in 1:3){
-    load(paste0('/home/juliette/UniHPC/coeff_dim_',outcomes[j],'_',i, '.rda'))
-    load(paste0('/home/juliette/UniHPC/bootstrap_nas_',outcomes[j],'_',i, '.rda'))
-    load(paste0('/home/juliette/UniHPC/jackknife_nas_',outcomes[j],'_',i, '.rda'))
+    load(paste0('/home/juliette/UniHPC/NewSimusJ_fixed/coeff_dim_',outcomes[j],'_',i, '.rda'))
+    load(paste0('/home/juliette/UniHPC/NewSimusJ_fixed/bootstrap_nas_',outcomes[j],'_',i, '.rda'))
+    load(paste0('/home/juliette/UniHPC/NewSimusJ_fixed/jackknife_nas_',outcomes[j],'_',i, '.rda'))
     no_na_frequency <- rbind(no_na_frequency, cbind(outcomes[j], scenarios[i,1], scenarios[i,2],scenarios[i,3],
                                             coeff_dim, bootstrap_nas, jackknife_nas))
   }

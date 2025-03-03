@@ -256,8 +256,9 @@ for (i in 1:iters){
         dplyr::group_by(id, trial_period) %>% 
         dplyr::mutate(cum_hazard_treatment = cumprod(1-predicted_proba_treatment),
                       cum_hazard_control = cumprod(1-predicted_proba_control)) %>% 
-        dplyr::ungroup() %>% 
+        dplyr::rowwise() %>% 
         dplyr::mutate(weight_boot = length(boot_data[[k]][boot_data[[k]] == id])) %>% 
+        dplyr::ungroup() %>% 
         dplyr::group_by(followup_time) %>% 
         dplyr::summarise(survival_treatment = mean(cum_hazard_treatment*weight_boot),
                          survival_control = mean(cum_hazard_control*weight_boot),
@@ -330,8 +331,9 @@ for (i in 1:iters){
         dplyr::group_by(id, trial_period) %>% 
         dplyr::mutate(cum_hazard_treatment = cumprod(1-predicted_proba_treatment),
                       cum_hazard_control = cumprod(1-predicted_proba_control)) %>% 
-        dplyr::ungroup() %>% 
+        dplyr::rowwise() %>% 
         dplyr::mutate(weight_boot = length(boot_data[[k]][boot_data[[k]] == id])) %>% 
+        dplyr::ungroup() %>% 
         dplyr::group_by(followup_time) %>% 
         dplyr::summarise(survival_treatment = mean(cum_hazard_treatment*weight_boot),
                          survival_control = mean(cum_hazard_control*weight_boot),
@@ -430,8 +432,9 @@ for (i in 1:iters){
         dplyr::group_by(id, trial_period) %>% 
         dplyr::mutate(cum_hazard_treatment = cumprod(1-predicted_proba_treatment),
                       cum_hazard_control = cumprod(1-predicted_proba_control)) %>% 
-        dplyr::ungroup() %>% 
+        dplyr::rowwise() %>% 
         dplyr::mutate(weight_boot = length(boot_data[[k]][boot_data[[k]] == id])) %>% 
+        dplyr::ungroup() %>% 
         dplyr::group_by(followup_time) %>% 
         dplyr::summarise(survival_treatment = mean(cum_hazard_treatment*weight_boot),
                          survival_control = mean(cum_hazard_control*weight_boot),
@@ -532,8 +535,9 @@ for (i in 1:iters){
           dplyr::group_by(id, trial_period) %>% 
           dplyr::mutate(cum_hazard_treatment = cumprod(1-predicted_proba_treatment),
                         cum_hazard_control = cumprod(1-predicted_proba_control)) %>% 
-          dplyr::ungroup() %>% 
+          dplyr::rowwise() %>% 
           dplyr::mutate(weight_boot = length(boot_data[[k]][boot_data[[k]] == id])) %>% 
+          dplyr::ungroup() %>% 
           dplyr::group_by(followup_time) %>% 
           dplyr::summarise(survival_treatment = mean(cum_hazard_treatment*weight_boot),
                            survival_control = mean(cum_hazard_control*weight_boot),
