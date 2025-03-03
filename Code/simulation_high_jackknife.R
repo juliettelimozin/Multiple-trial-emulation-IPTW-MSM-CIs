@@ -1,18 +1,18 @@
 #!/usr/bin R
+
 library(modelr)
 library(tidyverse)
 library(tidyr)
 setwd("~/rds/hpc-work/Project1")
-source("simulate_MSM_simplified.R")
-source("weight_func.R")
-set.seed(NULL)
-library(TrialEmulation)
+source("~/rds/hpc-work/Multiple-trial-emulation-IPTW-MSM-CIs/Code/simulate_MSM_simplified.R")
+source("~/rds/hpc-work/Multiple-trial-emulation-IPTW-MSM-CIs/Code/weight_func.R")
+set.seed(20250228)
+library(TrialEmulation, lib.loc = '/home/jml219/R/x86_64-redhat-linux-gnu-library/4.3')
 library(MASS)
 library(sandwich)
 library(doParallel)
 library(doRNG)
 library(rlist)
-
 iters <- 1000
 bootstrap_iter <- 500
 sampling_size <- 500
@@ -61,7 +61,7 @@ for (i in 1:iters){
     simdata_censored<-DATA_GEN_censored_reduced(as.numeric(scenarios[l,1]), 5, 
                                                 conf = as.numeric(scenarios[l,2]), 
                                                 treat_prev = as.numeric(scenarios[l,3]),
-                                                outcome_prev = -3,
+                                                outcome_prev = -3.0,
                                                 censor = F)
     PP_prep <- TrialEmulation::data_preparation(simdata_censored, id='ID', period='t', treatment='A', outcome='Y', 
                                                 eligible ='eligible',
@@ -159,7 +159,7 @@ for (i in 1:iters){
                     t_4X4 = t_4*X4) %>% 
       dplyr::filter(trial_period == 0)
     
-    fitting_data_treatment <- fitting_data_treatment[!duplicated(fitting_data_treatment),]
+    fitting_data_treatment <- fitting_data_treatment %>% distinct()
     
     fitting_data_control <- fitting_data_treatment %>% 
       dplyr::mutate(assigned_treatment = assigned_treatment*0,
@@ -207,6 +207,8 @@ for (i in 1:iters){
       weights_table_boot <- data.frame(id = 1:as.numeric(scenarios[l,1])) %>% 
         rowwise() %>% 
         dplyr::mutate(weight_boot = length(boot_data[[k]][boot_data[[k]] == id])) #bootstrap weight is number of times they were sampled
+      
+      ### Refitting weights on bootstrap sample without having to redo the data expansion
       IP_model <- weight_func_bootstrap(data = simdata_censored, expanded_data = switch_data, 
                                         switch_d_cov = ~ X2 + X4,
                                         weight_model_d0 = switch_d0,
@@ -215,8 +217,7 @@ for (i in 1:iters){
                                         weight_model_n1 = switch_n1,
                                         boot_idx = boot_data[[k]], remodel = TRUE, quiet = TRUE)
       
-      #calculate IP weights from bootstrap sample
-      
+      #calculate IP weights from bootstrap sample: new weight = refitted weight * bootstrap sampling weight
       boot_design_data <- IP_model$data %>%
         merge(weights_table_boot, by = 'id', all.y = TRUE) %>% 
         dplyr::mutate(weight = ifelse(weight_boot !=0,weight*weight_boot,0))
@@ -243,65 +244,25 @@ for (i in 1:iters){
         na_ind <- 1
       }
       
-      design_mat <- expand.grid(id = 1:tail(boot_design_data$id, n = 1), 
-                                trial_period = 0:4,
-                                followup_time = 0:4)
-      design_mat <- design_mat[which(5 -design_mat$trial_period > design_mat$followup_time),]
-      
-      fitting_data_treatment_boot <- boot_design_data %>% 
-        dplyr::mutate(assigned_treatment = followup_time*0 + 1) %>% 
-        dplyr::select(id,trial_period, followup_time, X2,  X4, assigned_treatment) %>% 
-        merge(design_mat, by = c("id", "trial_period", "followup_time"), all.y = TRUE) %>% 
-        dplyr::group_by(id) %>% 
-        tidyr::fill( X2,X4,assigned_treatment,.direction = "down") %>% 
-        dplyr::ungroup() %>% 
-        dplyr::select(id, trial_period, followup_time, X2, X4, assigned_treatment) %>% 
-        merge(data.frame(id = boot_design_data$id, trial_period = boot_design_data$trial_period), by = c("id", "trial_period"), all.y = TRUE) %>% 
-        dplyr::arrange(id, trial_period, followup_time) %>% 
-        dplyr::mutate(t_1 = ifelse(followup_time == 1,1,0),
-                      t_2 = ifelse(followup_time == 2,1,0),
-                      t_3 = ifelse(followup_time == 3,1,0),
-                      t_4 = ifelse(followup_time == 4,1,0),
-                      t_1A = t_1*assigned_treatment,
-                      t_2A = t_2*assigned_treatment,
-                      t_3A = t_3*assigned_treatment,
-                      t_4A = t_4*assigned_treatment,
-                      t_1X2 = t_1*X2,
-                      t_2X2 = t_2*X2,
-                      t_3X2 = t_3*X2,
-                      t_4X2 = t_4*X2,
-                      t_1X4 = t_1*X4,
-                      t_2X4 = t_2*X4,
-                      t_3X4 = t_3*X4,
-                      t_4X4 = t_4*X4) %>% 
-        dplyr::filter(trial_period == 0)
-      
-      
-      fitting_data_treatment_boot <- fitting_data_treatment_boot[!duplicated(fitting_data_treatment_boot),]
-      
-      fitting_data_control_boot <- fitting_data_treatment_boot %>% 
-        dplyr::mutate(assigned_treatment = assigned_treatment*0,
-                      t_1A = t_1*0,
-                      t_2A = t_2*0,
-                      t_3A = t_3*0,
-                      t_4A = t_4*0)
-      
       Y_pred_PP_treatment_boot <- predict.glm(PP_boot$model, 
-                                              fitting_data_treatment_boot, 
+                                              fitting_data_treatment, 
                                               type = "response")
       Y_pred_PP_control_boot <- predict.glm(PP_boot$model, 
-                                            fitting_data_control_boot,
+                                            fitting_data_control,
                                             type = "response")
-      predicted_probas_PP_boot <- fitting_data_treatment_boot %>% 
+      predicted_probas_PP_boot <- fitting_data_treatment %>% 
         dplyr::mutate(predicted_proba_treatment = Y_pred_PP_treatment_boot,
                       predicted_proba_control = Y_pred_PP_control_boot) %>% 
         dplyr::group_by(id, trial_period) %>% 
         dplyr::mutate(cum_hazard_treatment = cumprod(1-predicted_proba_treatment),
                       cum_hazard_control = cumprod(1-predicted_proba_control)) %>% 
+        dplyr::rowwise() %>% 
+        dplyr::mutate(weight_boot = length(boot_data[[k]][boot_data[[k]] == id])) %>% 
         dplyr::ungroup() %>% 
         dplyr::group_by(followup_time) %>% 
-        dplyr::summarise(survival_treatment = mean(cum_hazard_treatment),
-                         survival_control = mean(cum_hazard_control))
+        dplyr::summarise(survival_treatment = mean(cum_hazard_treatment*weight_boot),
+                         survival_control = mean(cum_hazard_control*weight_boot),
+                         risk_difference = survival_control - survival_treatment)
       
       rbind(na_ind,predicted_probas_PP_boot[,3] - predicted_probas_PP_boot[,2])
       
@@ -370,10 +331,13 @@ for (i in 1:iters){
         dplyr::group_by(id, trial_period) %>% 
         dplyr::mutate(cum_hazard_treatment = cumprod(1-predicted_proba_treatment),
                       cum_hazard_control = cumprod(1-predicted_proba_control)) %>% 
+        dplyr::rowwise() %>% 
+        dplyr::mutate(weight_boot = length(boot_data[[k]][boot_data[[k]] == id])) %>% 
         dplyr::ungroup() %>% 
         dplyr::group_by(followup_time) %>% 
-        dplyr::summarise(survival_treatment = mean(cum_hazard_treatment),
-                         survival_control = mean(cum_hazard_control))
+        dplyr::summarise(survival_treatment = mean(cum_hazard_treatment*weight_boot),
+                         survival_control = mean(cum_hazard_control*weight_boot),
+                         risk_difference = survival_control - survival_treatment)
       predicted_probas_PP_boot[,3] - predicted_probas_PP_boot[,2]
     }
     LEF_outcome_mrd[,,i] <- as.matrix(surv_PP_difference_LEF_outcome_estimates)
@@ -453,13 +417,13 @@ for (i in 1:iters){
       #Calculate \hat \beta(b)
       beta <- PP$model$coefficients + variance_mat%*%LEFs
       
-      PP_boot <- PP$model
-      PP_boot$coefficients <- beta
+      PP_boot <- PP
+      PP_boot$model$coefficients <- beta
       
-      Y_pred_PP_treatment_boot <- predict.glm(PP_boot, 
+      Y_pred_PP_treatment_boot <- predict.glm(PP_boot$model, 
                                               fitting_data_treatment, 
                                               type = "response")
-      Y_pred_PP_control_boot <- predict.glm(PP_boot, 
+      Y_pred_PP_control_boot <- predict.glm(PP_boot$model, 
                                             fitting_data_control,
                                             type = "response")
       predicted_probas_PP_boot <- fitting_data_treatment %>% 
@@ -468,10 +432,13 @@ for (i in 1:iters){
         dplyr::group_by(id, trial_period) %>% 
         dplyr::mutate(cum_hazard_treatment = cumprod(1-predicted_proba_treatment),
                       cum_hazard_control = cumprod(1-predicted_proba_control)) %>% 
+        dplyr::rowwise() %>% 
+        dplyr::mutate(weight_boot = length(boot_data[[k]][boot_data[[k]] == id])) %>% 
         dplyr::ungroup() %>% 
         dplyr::group_by(followup_time) %>% 
-        dplyr::summarise(survival_treatment = mean(cum_hazard_treatment),
-                         survival_control = mean(cum_hazard_control))
+        dplyr::summarise(survival_treatment = mean(cum_hazard_treatment*weight_boot),
+                         survival_control = mean(cum_hazard_control*weight_boot),
+                         risk_difference = survival_control - survival_treatment)
       
       predicted_probas_PP_boot[,3] - predicted_probas_PP_boot[,2]
     }
@@ -556,67 +523,26 @@ for (i in 1:iters){
         } else {
           result$result1 <- 1
         }
-        design_mat <- expand.grid(id = 1:tail(boot_design_data$id, n = 1), 
-                                  trial_period = 0:4,
-                                  followup_time = 0:4)
-        design_mat <- design_mat[which(5 -design_mat$trial_period > design_mat$followup_time),]
-        
-        fitting_data_treatment_boot <- boot_design_data %>% 
-          dplyr::mutate(assigned_treatment = followup_time*0 + 1) %>% 
-          dplyr::select(id,trial_period, followup_time, X2,  X4, assigned_treatment) %>% 
-          merge(design_mat, by = c("id", "trial_period", "followup_time"), all.y = TRUE) %>% 
-          dplyr::group_by(id) %>% 
-          tidyr::fill( X2,X4,assigned_treatment,.direction = "down") %>% 
-          dplyr::ungroup() %>% 
-          dplyr::select(id, trial_period, followup_time, X2, X4, assigned_treatment) %>% 
-          merge(data.frame(id = boot_design_data$id, trial_period = boot_design_data$trial_period), by = c("id", "trial_period"), all.y = TRUE) %>% 
-          dplyr::arrange(id, trial_period, followup_time) %>% 
-          dplyr::mutate(t_1 = ifelse(followup_time == 1,1,0),
-                        t_2 = ifelse(followup_time == 2,1,0),
-                        t_3 = ifelse(followup_time == 3,1,0),
-                        t_4 = ifelse(followup_time == 4,1,0),
-                        t_1A = t_1*assigned_treatment,
-                        t_2A = t_2*assigned_treatment,
-                        t_3A = t_3*assigned_treatment,
-                        t_4A = t_4*assigned_treatment,
-                        t_1X2 = t_1*X2,
-                        t_2X2 = t_2*X2,
-                        t_3X2 = t_3*X2,
-                        t_4X2 = t_4*X2,
-                        t_1X4 = t_1*X4,
-                        t_2X4 = t_2*X4,
-                        t_3X4 = t_3*X4,
-                        t_4X4 = t_4*X4) %>% 
-          dplyr::filter(trial_period == 0)
-        
-        
-        fitting_data_treatment_boot <- fitting_data_treatment_boot[!duplicated(fitting_data_treatment_boot),]
-        
-        fitting_data_control_boot <- fitting_data_treatment_boot %>% 
-          dplyr::mutate(assigned_treatment = assigned_treatment*0,
-                        t_1A = t_1*0,
-                        t_2A = t_2*0,
-                        t_3A = t_3*0,
-                        t_4A = t_4*0)
-        
         Y_pred_PP_treatment_boot <- predict.glm(PP_boot$model, 
-                                                fitting_data_treatment_boot, 
+                                                fitting_data_treatment, 
                                                 type = "response")
         Y_pred_PP_control_boot <- predict.glm(PP_boot$model, 
-                                              fitting_data_control_boot,
+                                              fitting_data_control,
                                               type = "response")
-        predicted_probas_PP_boot <- fitting_data_treatment_boot %>% 
+        predicted_probas_PP_boot <- fitting_data_treatment %>% 
           dplyr::mutate(predicted_proba_treatment = Y_pred_PP_treatment_boot,
                         predicted_proba_control = Y_pred_PP_control_boot) %>% 
           dplyr::group_by(id, trial_period) %>% 
           dplyr::mutate(cum_hazard_treatment = cumprod(1-predicted_proba_treatment),
                         cum_hazard_control = cumprod(1-predicted_proba_control)) %>% 
+          dplyr::rowwise() %>% 
+          dplyr::mutate(weight_boot = length(boot_data[[k]][boot_data[[k]] == id])) %>% 
           dplyr::ungroup() %>% 
           dplyr::group_by(followup_time) %>% 
-          dplyr::summarise(survival_treatment = mean(cum_hazard_treatment),
-                           survival_control = mean(cum_hazard_control),
-                           mrd = survival_control-survival_treatment)
-        result$result3 <-pull(predicted_probas_PP_boot,mrd)
+          dplyr::summarise(survival_treatment = mean(cum_hazard_treatment*weight_boot),
+                           survival_control = mean(cum_hazard_control*weight_boot),
+                           risk_difference = survival_control - survival_treatment)
+        result$result3 <-pull(predicted_probas_PP_boot,risk_difference)
         return(result)
       }
       
@@ -752,26 +678,26 @@ for (i in 1:iters){
   }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
 }
 print(paste0("% not pos def: ", not_pos_def*100/iters))
-save(CI_bootstrap_PP_red, file = paste("NewSimusJ/J_CI_bootstrap_PP_red_high_",as.character(l),".rda", sep = ""))
-save(CI_sandwich_PP_red, file = paste("NewSimusJ/J_CI_sandwich_PP_red_high_",as.character(l),".rda", sep = ""))
-save(CI_LEF_outcome_PP_red, file = paste("NewSimusJ/J_CI_LEF_outcome_PP_red_high_",as.character(l),".rda", sep = ""))
-save(CI_LEF_both_PP_red, file = paste("NewSimusJ/J_CI_LEF_both_PP_red_high_",as.character(l),".rda", sep = ""))
-save(CI_jackknife_mvn_PP_red, file = paste("NewSimusJ/J_CI_jackknife_mvn_PP_red_high_",as.character(l),".rda", sep = ""))
-save(CI_jackknife_wald_PP_red, file = paste("NewSimusJ/J_CI_jackknife_wald_PP_red_high_",as.character(l),".rda", sep = ""))
-save(computation_time, file = paste("NewSimusJ/J_computation_time_high_",as.character(l),".rda", sep = ""))
-save(estimates, file = paste("NewSimusJ/J_estimates_red_high_", as.character(l), ".rda", sep = ""))
-save(survival_treatment_estimates, file = paste("NewSimusJ/J_survival_treatment_estimates_high_", as.character(l), ".rda", sep = ""))
-save(survival_control_estimates, file = paste("NewSimusJ/J_survival_control_estimates_high_", as.character(l), ".rda", sep = ""))
-save(jackknife_SEs, file = paste("NewSimusJ/J_jackknife_SEs_high_", as.character(l), ".rda", sep = ""))
-save(bootstrap_mrd, file = paste("NewSimusJ/J_bootstrap_mrd_high_", as.character(l), ".rda", sep = "")) 
-save(LEF_outcome_mrd, file = paste("NewSimusJ/J_LEF_outcome_mrd_high_", as.character(l), ".rda", sep = "")) 
-save(LEF_both_mrd, file = paste("NewSimusJ/J_LEF_both_mrd_high_", as.character(l), ".rda", sep = "")) 
-save(jackknife_wald_mrd, file = paste("NewSimusJ/J_jackknife_wald_mrd_high_", as.character(l), ".rda", sep = "")) 
-save(jackknife_mvn_mrd, file = paste("NewSimusJ/J_jackknife_mvn_mrd_high_", as.character(l), ".rda", sep = "")) 
-save(sandwich_mrd, file = paste("NewSimusJ/J_sandwich_mrd_high_", as.character(l), ".rda", sep = "")) 
-save(coeff_dim, file = paste("NewSimusJ/coeff_dim_high_", as.character(l), ".rda", sep = "")) 
-save(bootstrap_nas, file = paste("NewSimusJ/bootstrap_nas_high_", as.character(l), ".rda", sep = "")) 
-save(jackknife_nas, file = paste("NewSimusJ/jackknife_nas_high_", as.character(l), ".rda", sep = "")) 
+save(CI_bootstrap_PP_red, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_CI_bootstrap_PP_red_high_",as.character(l),".rda", sep = ""))
+save(CI_sandwich_PP_red, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_CI_sandwich_PP_red_high_",as.character(l),".rda", sep = ""))
+save(CI_LEF_outcome_PP_red, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_CI_LEF_outcome_PP_red_high_",as.character(l),".rda", sep = ""))
+save(CI_LEF_both_PP_red, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_CI_LEF_both_PP_red_high_",as.character(l),".rda", sep = ""))
+save(CI_jackknife_mvn_PP_red, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_CI_jackknife_mvn_PP_red_high_",as.character(l),".rda", sep = ""))
+save(CI_jackknife_wald_PP_red, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_CI_jackknife_wald_PP_red_high_",as.character(l),".rda", sep = ""))
+save(computation_time, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_computation_time_high_",as.character(l),".rda", sep = ""))
+save(estimates, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_estimates_red_high_", as.character(l), ".rda", sep = ""))
+save(survival_treatment_estimates, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_survival_treatment_estimates_high_", as.character(l), ".rda", sep = ""))
+save(survival_control_estimates, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_survival_control_estimates_high_", as.character(l), ".rda", sep = ""))
+save(jackknife_SEs, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_jackknife_SEs_high_", as.character(l), ".rda", sep = ""))
+save(bootstrap_mrd, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_bootstrap_mrd_high_", as.character(l), ".rda", sep = "")) 
+save(LEF_outcome_mrd, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_LEF_outcome_mrd_high_", as.character(l), ".rda", sep = "")) 
+save(LEF_both_mrd, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_LEF_both_mrd_high_", as.character(l), ".rda", sep = "")) 
+save(jackknife_wald_mrd, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_jackknife_wald_mrd_high_", as.character(l), ".rda", sep = "")) 
+save(jackknife_mvn_mrd, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_jackknife_mvn_mrd_high_", as.character(l), ".rda", sep = "")) 
+save(sandwich_mrd, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_sandwich_mrd_high_", as.character(l), ".rda", sep = "")) 
+save(coeff_dim, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/coeff_dim_high_", as.character(l), ".rda", sep = "")) 
+save(bootstrap_nas, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/bootstrap_nas_high_", as.character(l), ".rda", sep = "")) 
+save(jackknife_nas, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/jackknife_nas_high_", as.character(l), ".rda", sep = "")) 
 
 
 

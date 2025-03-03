@@ -633,53 +633,53 @@ annotate_figure(ggarrange(plotlist = mse_plots, nrow = 3, ncol = 9, common.legen
 
 # ############# COVERAGE #####################
 # 
-coverage_ind <- array(0,dim = c(4,5,27,3))
-success <- array(0,dim = c(4,5,27,3))
-
-for (i in 1:1000){
-  for (k in 1:5){
-    for (j in 1:27){
-      for (l in 1:3){
-        scenario <- j%%9
-        if (scenario ==0){scenario <- 9}
-
-        if (is.na(bootstrap[k,1,i,j,l]) == F){
-          success[1,k,j,l] <- success[1,k,j,l] + 1
-          if (all(bootstrap[k,1,i,j,l] <= true_value_red[k,scenario, l])
-              & all(bootstrap[k,2,i,j,l] >= true_value_red[k,scenario, l])){
-            coverage_ind[1,k,j,l] <- coverage_ind[1,k,j,l] + 1
-          }
-        }
-
-        if (is.na(LEF_outcome[k,1,i,j,l]) == F){
-          success[2,k,j,l] <- success[2,k,j,l] + 1
-          if (all(LEF_outcome[k,1,i,j,l] <= true_value_red[k,scenario, l])
-              & all(LEF_outcome[k,2,i,j,l] >= true_value_red[k,scenario, l])){
-            coverage_ind[2,k,j,l] <- coverage_ind[2,k,j,l] + 1
-          }
-        }
-
-        if (is.na(LEF_both[k,1,i,j,l]) == F){
-          success[3,k,j,l] <- success[3,k,j,l] + 1
-          if (all(LEF_both[k,1,i,j,l] <= true_value_red[k,scenario, l])
-              & all(LEF_both[k,2,i,j,l] >= true_value_red[k,scenario, l])){
-            coverage_ind[3,k,j,l] <- coverage_ind[3,k,j,l] + 1
-          }
-        }
-
-        if (all(is.na(sandwich[k,1,i,j,l])) == F){
-          success[4,k,j,l] <- success[4,k,j,l] + 1
-          if (all(sandwich[k,1,i,j,l] <= true_value_red[k,scenario, l])
-              & all(sandwich[k,2,i,j,l] >= true_value_red[k,scenario, l])){
-            coverage_ind[4,k,j,l]<- coverage_ind[4,k,j,l]+ 1
-          }
-        }
-      }
-    }
-  }
-}
-
-coverage_ind <- coverage_ind/success
+# coverage_ind <- array(0,dim = c(4,5,27,3))
+# success <- array(0,dim = c(4,5,27,3))
+# 
+# for (i in 1:1000){
+#   for (k in 1:5){
+#     for (j in 1:27){
+#       for (l in 1:3){
+#         scenario <- j%%9
+#         if (scenario ==0){scenario <- 9}
+# 
+#         if (is.na(bootstrap[k,1,i,j,l]) == F){
+#           success[1,k,j,l] <- success[1,k,j,l] + 1
+#           if (all(bootstrap[k,1,i,j,l] <= true_value_red[k,scenario, l])
+#               & all(bootstrap[k,2,i,j,l] >= true_value_red[k,scenario, l])){
+#             coverage_ind[1,k,j,l] <- coverage_ind[1,k,j,l] + 1
+#           }
+#         }
+# 
+#         if (is.na(LEF_outcome[k,1,i,j,l]) == F){
+#           success[2,k,j,l] <- success[2,k,j,l] + 1
+#           if (all(LEF_outcome[k,1,i,j,l] <= true_value_red[k,scenario, l])
+#               & all(LEF_outcome[k,2,i,j,l] >= true_value_red[k,scenario, l])){
+#             coverage_ind[2,k,j,l] <- coverage_ind[2,k,j,l] + 1
+#           }
+#         }
+# 
+#         if (is.na(LEF_both[k,1,i,j,l]) == F){
+#           success[3,k,j,l] <- success[3,k,j,l] + 1
+#           if (all(LEF_both[k,1,i,j,l] <= true_value_red[k,scenario, l])
+#               & all(LEF_both[k,2,i,j,l] >= true_value_red[k,scenario, l])){
+#             coverage_ind[3,k,j,l] <- coverage_ind[3,k,j,l] + 1
+#           }
+#         }
+# 
+#         if (all(is.na(sandwich[k,1,i,j,l])) == F){
+#           success[4,k,j,l] <- success[4,k,j,l] + 1
+#           if (all(sandwich[k,1,i,j,l] <= true_value_red[k,scenario, l])
+#               & all(sandwich[k,2,i,j,l] >= true_value_red[k,scenario, l])){
+#             coverage_ind[4,k,j,l]<- coverage_ind[4,k,j,l]+ 1
+#           }
+#         }
+#       }
+#     }
+#   }
+# }
+# 
+# coverage_ind <- coverage_ind/success
 # 
 # bias_elim_coverage_ind <- array(0,dim = c(4,5,9,3))
 # bias_elim_success <- array(0,dim = c(4,5,9,3))
