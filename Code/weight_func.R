@@ -305,7 +305,6 @@ weight_func_bootstrap <- function(data,
       t = weight_model_n1_data[, period])
   }
   
-  print('models refitted')
   # -------------- Combine results --------------------
   
   switch_0 <- switch_d0[switch_n0, on = list(
