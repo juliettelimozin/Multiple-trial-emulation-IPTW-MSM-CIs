@@ -1,7 +1,7 @@
 library(dplyr)
 library(tidyverse)
 library(tidyr)
-setwd("/home/juliette/Multiple-trial-emulation-IPTW-MSM-CIs/Code")
+setwd("~/rds/hpc-work/Multiple-trial-emulation-IPTW-MSM-CIs/Code")
 library(ggplot2)
 library(ggpubr)
 load("true_value_red_newsimus.rda")
@@ -57,25 +57,25 @@ mean_time <- data.frame(matrix(,nrow = 0, ncol = 10))
 na_failure_rate <- data.frame(matrix(,nrow = 0, ncol = 7))
 se_ratio <- data.frame(matrix(,nrow = 0, ncol = 5))
 
-load("/home/juliette/UniHPC/NewSimusJ_fixed/J_sandwich_SE.rda")
-load("/home/juliette/UniHPC/NewSimusJ_fixed/J_bootstrap_SE.rda")
-load("/home/juliette/UniHPC/NewSimusJ_fixed/J_LEF_outcome_SE.rda")
-load("/home/juliette/UniHPC/NewSimusJ_fixed/J_LEF_both_SE.rda")
-load("/home/juliette/UniHPC/NewSimusJ_fixed/J_jackknife_mvn_SE.rda")
+load("~/rds/hpc-work/Project1/NewSimusJ/J_sandwich_SE.rda")
+load("~/rds/hpc-work/Project1/NewSimusJ/J_bootstrap_SE.rda")
+load("~/rds/hpc-work/Project1/NewSimusJ/J_LEF_outcome_SE.rda")
+load("~/rds/hpc-work/Project1/NewSimusJ/J_LEF_both_SE.rda")
+load("~/rds/hpc-work/Project1/NewSimusJ/J_jackknife_mvn_SE.rda")
 
-for (i in 1:27){
-  for (j in 1){
-    load(paste0("/home/juliette/UniHPC/NewSimusJ_fixed/J_CI_bootstrap_PP_red_",outcomes[j],'_', i, ".rda"))
-    load(paste0("/home/juliette/UniHPC/NewSimusJ_fixed/J_CI_jackknife_mvn_PP_red_",outcomes[j],'_', i, ".rda"))
-    load(paste0("/home/juliette/UniHPC/NewSimusJ_fixed/J_CI_jackknife_wald_PP_red_",outcomes[j],'_', i, ".rda"))
-    load(paste0("/home/juliette/UniHPC/NewSimusJ_fixed/J_CI_LEF_outcome_PP_red_",outcomes[j],'_', i, ".rda"))
-    load(paste0("/home/juliette/UniHPC/NewSimusJ_fixed/J_CI_LEF_both_PP_red_",outcomes[j],'_', i, ".rda"))
-    load(paste0("/home/juliette/UniHPC/NewSimusJ_fixed/J_CI_sandwich_PP_red_",outcomes[j],'_', i, ".rda"))
-    load(paste0("/home/juliette/UniHPC/NewSimusJ_fixed/J_computation_time_",outcomes[j],'_', i, ".rda"))
-    load(paste0('/home/juliette/UniHPC/NewSimusJ_fixed/J_estimates_red_',outcomes[j],'_',i, '.rda'))
-    load(paste0('/home/juliette/UniHPC/NewSimusJ_fixed/J_survival_treatment_estimates_',outcomes[j],'_',i, '.rda'))
-    load(paste0('/home/juliette/UniHPC/NewSimusJ_fixed/J_survival_control_estimates_',outcomes[j],'_',i, '.rda'))
-    load(paste0('/home/juliette/UniHPC/NewSimusJ_fixed/J_jackknife_SEs_',outcomes[j],'_',i, '.rda'))
+for (i in 10:27){
+  for (j in 1:3){
+    load(paste0("~/rds/hpc-work/Project1/NewSimusJ/J_CI_bootstrap_PP_red_",outcomes[j],'_', i, ".rda"))
+    load(paste0("~/rds/hpc-work/Project1/NewSimusJ/J_CI_jackknife_mvn_PP_red_",outcomes[j],'_', i, ".rda"))
+    load(paste0("~/rds/hpc-work/Project1/NewSimusJ/J_CI_jackknife_wald_PP_red_",outcomes[j],'_', i, ".rda"))
+    load(paste0("~/rds/hpc-work/Project1/NewSimusJ/J_CI_LEF_outcome_PP_red_",outcomes[j],'_', i, ".rda"))
+    load(paste0("~/rds/hpc-work/Project1/NewSimusJ/J_CI_LEF_both_PP_red_",outcomes[j],'_', i, ".rda"))
+    load(paste0("~/rds/hpc-work/Project1/NewSimusJ/J_CI_sandwich_PP_red_",outcomes[j],'_', i, ".rda"))
+    load(paste0("~/rds/hpc-work/Project1/NewSimusJ/J_computation_time_",outcomes[j],'_', i, ".rda"))
+    load(paste0('~/rds/hpc-work/Project1/NewSimusJ/J_estimates_red_',outcomes[j],'_',i, '.rda'))
+    load(paste0('~/rds/hpc-work/Project1/NewSimusJ/J_survival_treatment_estimates_',outcomes[j],'_',i, '.rda'))
+    load(paste0('~/rds/hpc-work/Project1/NewSimusJ/J_survival_control_estimates_',outcomes[j],'_',i, '.rda'))
+    load(paste0('~/rds/hpc-work/Project1/NewSimusJ/J_jackknife_SEs_',outcomes[j],'_',i, '.rda'))
     
     bootstrap[,,,i,j] <- CI_bootstrap_PP_red
     LEF_outcome[,,,i,j] <- CI_LEF_outcome_PP_red
@@ -737,7 +737,7 @@ pivot_success <- array(0,dim = c(6,5,27,3))
 
 for (i in 1:iters){
   for (k in 1:5){
-    for (j in 1:27){
+    for (j in 1:9){
       for (l in 1:3){
         scenario <- j%%9
         if (scenario ==0){scenario <- 9}
@@ -1607,9 +1607,9 @@ print(xtable(failure_table, type = 'latex'), include.rownames = FALSE)
 no_na_frequency <- data.frame(matrix(,nrow = 0, ncol = 7))
 for (i in 1:27){
   for (j in 1:3){
-    load(paste0('/home/juliette/UniHPC/NewSimusJ_fixed/coeff_dim_',outcomes[j],'_',i, '.rda'))
-    load(paste0('/home/juliette/UniHPC/NewSimusJ_fixed/bootstrap_nas_',outcomes[j],'_',i, '.rda'))
-    load(paste0('/home/juliette/UniHPC/NewSimusJ_fixed/jackknife_nas_',outcomes[j],'_',i, '.rda'))
+    load(paste0('~/rds/hpc-work/Project1/NewSimusJ/coeff_dim_',outcomes[j],'_',i, '.rda'))
+    load(paste0('~/rds/hpc-work/Project1/NewSimusJ/bootstrap_nas_',outcomes[j],'_',i, '.rda'))
+    load(paste0('~/rds/hpc-work/Project1/NewSimusJ/jackknife_nas_',outcomes[j],'_',i, '.rda'))
     no_na_frequency <- rbind(no_na_frequency, cbind(outcomes[j], scenarios[i,1], scenarios[i,2],scenarios[i,3],
                                             coeff_dim, bootstrap_nas, jackknife_nas))
   }

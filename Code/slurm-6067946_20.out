@@ -1,0 +1,1049 @@
+Loading [1mrhel8/default-icl[22m
+  [94mLoading requirement[0m: rhel8/slurm singularity/current rhel8/global cuda/11.4
+    vgl/2.5.1/64 intel-oneapi-compilers/2022.1.0/gcc/b6zld2mz ucx/1.15.0
+    intel-oneapi-mpi/2021.6.0/intel/guxuvcpm
+── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+✔ dplyr     1.1.4     ✔ readr     2.1.5
+✔ forcats   1.0.0     ✔ stringr   1.5.1
+✔ ggplot2   3.5.1     ✔ tibble    3.2.1
+✔ lubridate 1.9.4     ✔ tidyr     1.3.1
+✔ purrr     1.0.2     
+── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ dplyr::filter() masks stats::filter()
+✖ dplyr::lag()    masks stats::lag()
+ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
+
+Attaching package: ‘data.table’
+
+The following objects are masked from ‘package:lubridate’:
+
+    hour, isoweek, mday, minute, month, quarter, second, wday, week,
+    yday, year
+
+The following objects are masked from ‘package:dplyr’:
+
+    between, first, last
+
+The following object is masked from ‘package:purrr’:
+
+    transpose
+
+
+Attaching package: ‘MASS’
+
+The following object is masked from ‘package:dplyr’:
+
+    select
+
+Loading required package: foreach
+
+Attaching package: ‘foreach’
+
+The following objects are masked from ‘package:purrr’:
+
+    accumulate, when
+
+Loading required package: iterators
+Loading required package: parallel
+Loading required package: rngtools
+Warning message:
+package ‘rlist’ was built under R version 4.3.2 
+[1] 1
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 2
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 3
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 4
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 5
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 6
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 7
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 8
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 9
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 10
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 11
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 12
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 13
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 14
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 15
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 16
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 17
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 18
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 19
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 20
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 21
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 22
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 23
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 24
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 25
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 26
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 27
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 28
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 29
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 30
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 31
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 32
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 33
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 34
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 35
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 36
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 37
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 38
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 39
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 40
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 41
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 42
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 43
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 44
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 45
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 46
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 47
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 48
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 49
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 50
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 51
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 52
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 53
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 54
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 55
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 56
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 57
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 58
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 59
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 60
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 61
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 62
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 63
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 64
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 65
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 66
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 67
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 68
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 69
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 70
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 71
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 72
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 73
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 74
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 75
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 76
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 77
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 78
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 79
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 80
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 81
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 82
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 83
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 84
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 85
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 86
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 87
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 88
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 89
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 90
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 91
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 92
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 93
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 94
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 95
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 96
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 97
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 98
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 99
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 100
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 101
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 102
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 103
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 104
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 105
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 106
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 107
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 108
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 109
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 110
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 111
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 112
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 113
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 114
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 115
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 116
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 117
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 118
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 119
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 120
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 121
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 122
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 123
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 124
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 125
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 126
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 127
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 128
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 129
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 130
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 131
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 132
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 133
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 134
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 135
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 136
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 137
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 138
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 139
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 140
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 141
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 142
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 143
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 144
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 145
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 146
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 147
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 148
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 149
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 150
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 151
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 152
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 153
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 154
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 155
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 156
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 157
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 158
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 159
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 160
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 161
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 162
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 163
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 164
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 165
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 166
+[1] "Bootstrap"
+[1] "LEF outcome"
+[1] "LEF both"
+[1] "Sandwich"
+[1] "All done"
+[1] 167
+[1] "Bootstrap"
+[1] "LEF outcome"
