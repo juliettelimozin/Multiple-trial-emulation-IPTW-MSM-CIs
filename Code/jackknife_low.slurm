@@ -1,12 +1,12 @@
 #!/bin/bash
-#SBATCH -J jackknife_high_fixed_large
+#SBATCH -J jackknife_high_err_large
 #SBATCH -p icelake
 #SBATCH --time=17:0:0
 #SBATCH -A mrc-bsu-sl2-cpu
 #SBATCH --cpus-per-task=67
 #SBATCH --mail-type=begin,end
 #SBATCH --mail-user=jml219@cam.ac.uk
-#SBATCH --array=19
+#SBATCH --array=19-27
 
 
 . /etc/profile.d/modules.sh   
@@ -17,4 +17,4 @@ module load rhel8/default-icl
 module load R/4.3.1-icelake
 
 
-Rscript simulation_high_jackknife.R
+Rscript simulation_high_jackknife_old.R
