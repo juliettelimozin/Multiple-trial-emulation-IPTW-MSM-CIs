@@ -7,6 +7,7 @@ setwd("~/rds/hpc-work/Project1")
 source("~/rds/hpc-work/Multiple-trial-emulation-IPTW-MSM-CIs/Code/simulate_MSM_simplified.R")
 source("~/rds/hpc-work/Multiple-trial-emulation-IPTW-MSM-CIs/Code/weight_func.R")
 set.seed(20250228)
+seeds <- floor(runif(1000)*10^8)
 library(TrialEmulation, lib.loc = '/home/jml219/R/x86_64-redhat-linux-gnu-library/4.3')
 library(MASS)
 library(sandwich)
@@ -57,6 +58,7 @@ registerDoParallel(cores = 67)
 
 for (i in 1:iters){
   tryCatch({
+    set.seed(seeds[i])
     print(i)
     simdata_censored<-DATA_GEN_censored_reduced(as.numeric(scenarios[l,1]), 5, 
                                                 conf = as.numeric(scenarios[l,2]), 

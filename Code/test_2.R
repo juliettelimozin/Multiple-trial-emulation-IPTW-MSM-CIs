@@ -6,15 +6,17 @@ library(tidyr)
 setwd("~/rds/hpc-work/Project1")
 source("~/rds/hpc-work/Multiple-trial-emulation-IPTW-MSM-CIs/Code/simulate_MSM_simplified.R")
 source("~/rds/hpc-work/Multiple-trial-emulation-IPTW-MSM-CIs/Code/weight_func.R")
+
 set.seed(20250228)
 seeds <- floor(runif(1000)*10^8)
+
 library(TrialEmulation, lib.loc = '/home/jml219/R/x86_64-redhat-linux-gnu-library/4.3')
 library(MASS)
 library(sandwich)
 library(doParallel)
 library(doRNG)
 library(rlist)
-iters <- 1000
+iters <- 2
 bootstrap_iter <- 500
 sampling_size <- 500
 
@@ -36,7 +38,8 @@ estimates <- array(, dim = c(5,iters))
 survival_treatment_estimates <- array(, dim = c(5,iters))
 survival_control_estimates <- array(, dim = c(5,iters))
 
-l <- as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
+#l <- as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
+l <- 2
 
 sandwich_mrd <- array(, dim = c(5,sampling_size,iters))
 bootstrap_mrd <-array(, dim = c(5,bootstrap_iter, iters))
@@ -52,9 +55,10 @@ jackknife_SEs <- array(, dim = c(5,iters))
 
 not_pos_def <- 0.0
 
-data_direction <- paste("~/rds/hpc-work/Project1/models_scenario_high_",l,sep = "")
+data_direction <- paste("~/rds/hpc-work/Project1/models_scenario_low_",l,sep = "")
 # Set number of cores. 67 is sufficient for 200 cores.
-registerDoParallel(cores = 67)
+#registerDoParallel(cores = 67)
+registerDoParallel(cores = 2)
 
 for (i in 1:iters){
   tryCatch({
@@ -63,7 +67,7 @@ for (i in 1:iters){
     simdata_censored<-DATA_GEN_censored_reduced(as.numeric(scenarios[l,1]), 5, 
                                                 conf = as.numeric(scenarios[l,2]), 
                                                 treat_prev = as.numeric(scenarios[l,3]),
-                                                outcome_prev = -3.0,
+                                                outcome_prev = -4.7,
                                                 censor = F)
     PP_prep <- TrialEmulation::data_preparation(simdata_censored, id='ID', period='t', treatment='A', outcome='Y', 
                                                 eligible ='eligible',
@@ -679,27 +683,27 @@ for (i in 1:iters){
     
   }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
 }
-print(paste0("% not pos def: ", not_pos_def*100/iters))
-save(CI_bootstrap_PP_red, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_CI_bootstrap_PP_red_high_",as.character(l),".rda", sep = ""))
-save(CI_sandwich_PP_red, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_CI_sandwich_PP_red_high_",as.character(l),".rda", sep = ""))
-save(CI_LEF_outcome_PP_red, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_CI_LEF_outcome_PP_red_high_",as.character(l),".rda", sep = ""))
-save(CI_LEF_both_PP_red, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_CI_LEF_both_PP_red_high_",as.character(l),".rda", sep = ""))
-save(CI_jackknife_mvn_PP_red, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_CI_jackknife_mvn_PP_red_high_",as.character(l),".rda", sep = ""))
-save(CI_jackknife_wald_PP_red, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_CI_jackknife_wald_PP_red_high_",as.character(l),".rda", sep = ""))
-save(computation_time, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_computation_time_high_",as.character(l),".rda", sep = ""))
-save(estimates, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_estimates_red_high_", as.character(l), ".rda", sep = ""))
-save(survival_treatment_estimates, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_survival_treatment_estimates_high_", as.character(l), ".rda", sep = ""))
-save(survival_control_estimates, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_survival_control_estimates_high_", as.character(l), ".rda", sep = ""))
-save(jackknife_SEs, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_jackknife_SEs_high_", as.character(l), ".rda", sep = ""))
-save(bootstrap_mrd, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_bootstrap_mrd_high_", as.character(l), ".rda", sep = "")) 
-save(LEF_outcome_mrd, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_LEF_outcome_mrd_high_", as.character(l), ".rda", sep = "")) 
-save(LEF_both_mrd, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_LEF_both_mrd_high_", as.character(l), ".rda", sep = "")) 
-save(jackknife_wald_mrd, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_jackknife_wald_mrd_high_", as.character(l), ".rda", sep = "")) 
-save(jackknife_mvn_mrd, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_jackknife_mvn_mrd_high_", as.character(l), ".rda", sep = "")) 
-save(sandwich_mrd, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_sandwich_mrd_high_", as.character(l), ".rda", sep = "")) 
-save(coeff_dim, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/coeff_dim_high_", as.character(l), ".rda", sep = "")) 
-save(bootstrap_nas, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/bootstrap_nas_high_", as.character(l), ".rda", sep = "")) 
-save(jackknife_nas, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/jackknife_nas_high_", as.character(l), ".rda", sep = "")) 
+# print(paste0("% not pos def: ", not_pos_def*100/iters))
+save(CI_bootstrap_PP_red, file = paste("~/rds/hpc-work/Multiple-trial-emulation-IPTW-MSM-CIs/Code/J_CI_bootstrap_PP_2_low_",as.character(l),".rda", sep = ""))
+save(CI_sandwich_PP_red, file = paste("~/rds/hpc-work/Multiple-trial-emulation-IPTW-MSM-CIs/Code/J_CI_sandwich_2_red_low_",as.character(l),".rda", sep = ""))
+# save(CI_LEF_outcome_PP_red, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_CI_LEF_outcome_PP_red_low_",as.character(l),".rda", sep = ""))
+# save(CI_LEF_both_PP_red, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_CI_LEF_both_PP_red_low_",as.character(l),".rda", sep = ""))
+# save(CI_jackknife_mvn_PP_red, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_CI_jackknife_mvn_PP_red_low_",as.character(l),".rda", sep = ""))
+# save(CI_jackknife_wald_PP_red, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_CI_jackknife_wald_PP_red_low_",as.character(l),".rda", sep = ""))
+# save(computation_time, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_computation_time_low_",as.character(l),".rda", sep = "")) 
+save(estimates, file = paste("~/rds/hpc-work/Multiple-trial-emulation-IPTW-MSM-CIs/Code/estimates_2_low_", as.character(l), ".rda", sep = ""))
+# save(survival_treatment_estimates, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_survival_treatment_estimates_low_", as.character(l), ".rda", sep = ""))
+# save(survival_control_estimates, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_survival_control_estimates_low_", as.character(l), ".rda", sep = ""))
+# save(jackknife_SEs, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_jackknife_SEs_low_", as.character(l), ".rda", sep = ""))
+# save(bootstrap_mrd, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_bootstrap_mrd_low_", as.character(l), ".rda", sep = "")) 
+# save(LEF_outcome_mrd, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_LEF_outcome_mrd_low_", as.character(l), ".rda", sep = "")) 
+# save(LEF_both_mrd, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_LEF_both_mrd_low_", as.character(l), ".rda", sep = "")) 
+# save(jackknife_wald_mrd, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_jackknife_wald_mrd_low_", as.character(l), ".rda", sep = "")) 
+# save(jackknife_mvn_mrd, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_jackknife_mvn_mrd_low_", as.character(l), ".rda", sep = "")) 
+# save(sandwich_mrd, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/J_sandwich_mrd_low_", as.character(l), ".rda", sep = "")) 
+# save(coeff_dim, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/coeff_dim_low_", as.character(l), ".rda", sep = "")) 
+# save(bootstrap_nas, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/bootstrap_nas_low_", as.character(l), ".rda", sep = "")) 
+# save(jackknife_nas, file = paste("~/rds/hpc-work/Project1/NewSimusJ_fixed/jackknife_nas_low_", as.character(l), ".rda", sep = "")) 
 
 
 

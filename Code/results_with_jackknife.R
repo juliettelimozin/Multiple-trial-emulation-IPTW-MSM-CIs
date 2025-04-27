@@ -192,7 +192,7 @@ annotate_figure(ggarrange(plotlist = mrd_se_quantiles_low, nrow = 3, ncol = 3, c
                           heights = c(1.1, 0.95, 1)))
 
 mrd_se_quantiles_low <-  lapply(1:9, function(i){
-  ggplot(se_ratio[se_ratio$i == i & se_ratio$j == 1 & se_ratio$CI_type == 'Jackknife MVN',]) +
+  ggplot(se_ratio[se_ratio$i == i & se_ratio$j == 3 & se_ratio$CI_type == 'Jackknife MVN',]) +
     stat_summary(
       mapping = aes(x = Visit, y = SE_ratio, colour = CI_type),
       fun.min = function(z) { quantile(z,0.25) },
@@ -203,7 +203,7 @@ mrd_se_quantiles_low <-  lapply(1:9, function(i){
     scale_color_manual(name = "CI type", values = c("Bootstrap"= "red", "Sandwich" = "blue",
                                                     "LEF outcome" = "green", "LEF both" = "purple",
                                                     "Jackknife MVN" = 'orange',"Jackknife Wald" = 'deepskyblue' )) +
-    ylim(0,2.25) + 
+    #ylim(0,15) + 
     geom_hline(yintercept = 1, linetype = "dashed")+
     theme(legend.text = element_text(size=14))
 }
@@ -251,40 +251,34 @@ mrd_se_quantiles_med <-  lapply(10:27, function(i){
     theme(legend.text = element_text(size=14))
 }
 )
-for(i in 1:18){
-  if(i %in% 1:9){
-    if(i %in% c(2, 5, 8)){
-      mrd_se_quantiles_med[[i]] <- mrd_se_quantiles_med[[i]] +
-        labs(title = bquote(atop(alpha[c] == .(scenarios[i,2]), alpha[a] == .(scenarios[i,3]))))} else{
-          mrd_se_quantiles_med[[i]] <- mrd_se_quantiles_med[[i]] +
-            labs(title = bquote(atop(phantom(3),alpha[a] == .(scenarios[i,3]))))
-        }
-  }
-  if(i %in% c(1,10)){
-    mrd_se_quantiles_med[[i]] <- mrd_se_quantiles_med[[i]] +
-      ylab(bquote(atop(n == .(scenarios[i+9,1]), 'Ratio of SEs')))
-  } else{mrd_se_quantiles_med[[i]] <- mrd_se_quantiles_med[[i]] +
+for(i in 1:9){
+  if(i %in% 1:3){
+    mrd_se_quantiles_low[[i]] <- mrd_se_quantiles_low[[i]] +
+      labs(title = bquote(alpha[a] == .(scenarios[i,3])))}
+  if(i %in% c(1,4,7)){
+    mrd_se_quantiles_low[[i]] <- mrd_se_quantiles_low[[i]] +
+      ylab(bquote(atop(alpha[c] == .(scenarios[i,2]), 'Ratio of SEs')))
+  } else{mrd_se_quantiles_low[[i]] <- mrd_se_quantiles_low[[i]] +
     theme(axis.text.y=element_blank(), 
           axis.ticks.y=element_blank(),
-          axis.title.y = element_blank())
-  }
-  if(i %in% 10:18){
-    mrd_se_quantiles_med[[i]] <- mrd_se_quantiles_med[[i]] +
+          axis.title.y = element_blank())}
+  if(i %in% 7:9){
+    mrd_se_quantiles_low[[i]] <- mrd_se_quantiles_low[[i]] +
       xlab('Visit')
-  } else {mrd_se_quantiles_med[[i]] <- mrd_se_quantiles_med[[i]] +
+  } else {mrd_se_quantiles_low[[i]] <- mrd_se_quantiles_low[[i]] +
     theme(axis.text.x=element_blank(), 
           axis.ticks.x=element_blank(),
-          axis.title.x = element_blank())
-  }
+          axis.title.x = element_blank())}
+  
 }
 
-annotate_figure(ggarrange(plotlist = mrd_se_quantiles_med, nrow = 2, ncol = 9, common.legend = T,
+annotate_figure(ggarrange(plotlist = mrd_se_quantiles_med, nrow = 3, ncol = 3, common.legend = T,
                           legend = 'bottom',
-                          widths = c(1.4,1,1,1,1,1,1,1,1),
-                          heights = c(1.1, 1)))
+                          widths = c(1.2,1,1),
+                          heights = c(1.1, 0.95, 1)))
 
 mrd_se_quantiles_med <-  lapply(1:9, function(i){
-  ggplot(se_ratio[se_ratio$i == i & se_ratio$j == 2 & se_ratio$CI_type == 'Jackknife MVN',]) +
+  ggplot(se_ratio[se_ratio$i == i & se_ratio$j == 3 & se_ratio$CI_type == 'Jackknife MVN',]) +
     stat_summary(
       mapping = aes(x = Visit, y = SE_ratio, colour = CI_type),
       fun.min = function(z) { quantile(z,0.25, na.rm = TRUE) },
@@ -303,15 +297,23 @@ mrd_se_quantiles_med <-  lapply(1:9, function(i){
 )
 for(i in 1:9){
   if(i %in% 1:3){
-    mrd_se_quantiles_med[[i]] <- mrd_se_quantiles_med[[i]] +
+    mrd_se_quantiles_low[[i]] <- mrd_se_quantiles_low[[i]] +
       labs(title = bquote(alpha[a] == .(scenarios[i,3])))}
   if(i %in% c(1,4,7)){
-    mrd_se_quantiles_med[[i]] <- mrd_se_quantiles_med[[i]] +
+    mrd_se_quantiles_low[[i]] <- mrd_se_quantiles_low[[i]] +
       ylab(bquote(atop(alpha[c] == .(scenarios[i,2]), 'Ratio of SEs')))
-  } else{mrd_se_quantiles_med[[i]] <- mrd_se_quantiles_med[[i]] +
+  } else{mrd_se_quantiles_low[[i]] <- mrd_se_quantiles_low[[i]] +
     theme(axis.text.y=element_blank(), 
           axis.ticks.y=element_blank(),
           axis.title.y = element_blank())}
+  if(i %in% 7:9){
+    mrd_se_quantiles_low[[i]] <- mrd_se_quantiles_low[[i]] +
+      xlab('Visit')
+  } else {mrd_se_quantiles_low[[i]] <- mrd_se_quantiles_low[[i]] +
+    theme(axis.text.x=element_blank(), 
+          axis.ticks.x=element_blank(),
+          axis.title.x = element_blank())}
+  
 }
 
 annotate_figure(ggarrange(plotlist = mrd_se_quantiles_med, nrow = 3, ncol = 3, common.legend = T,
@@ -340,6 +342,7 @@ mrd_se_quantiles_high <-  lapply(10:27, function(i){
 )
 annotate_figure(ggarrange(plotlist = mrd_se_quantiles_high, nrow = 2, ncol = 9, common.legend = T,
                           legend = 'bottom'))
+
 mrd_se_quantiles_high <-  lapply(1:9, function(i){
   ggplot(se_ratio[se_ratio$i == i & se_ratio$j == 3 & se_ratio$CI_type == 'Jackknife MVN',]) +
     stat_summary(
@@ -1017,27 +1020,18 @@ coverage_low <-  lapply(1:27, function(i){
     geom_point(aes(x = 0:4, y = pivot_coverage_ind[3,,i,1], colour = "LEF both")) +
     geom_line(aes(x = 0:4, y = pivot_coverage_ind[4,,i,1], colour = "Sandwich")) +
     geom_point(aes(x = 0:4, y = pivot_coverage_ind[4,,i,1], colour = "Sandwich")) +
-    #geom_line(aes(x = 0:4, y = pivot_coverage_ind[5,,i,1], colour = "Jackknife MVN")) +
-    #geom_point(aes(x = 0:4, y = pivot_coverage_ind[5,,i,1], colour = "Jackknife MVN")) +
-    #geom_line(aes(x = 0:4, y = pivot_coverage_ind[6,,i,1], colour = "Jackknife Wald")) +
-    #geom_point(aes(x = 0:4, y = pivot_coverage_ind[6,,i,1], colour = "Jackknife Wald")) +
+    geom_line(aes(x = 0:4, y = pivot_coverage_ind[5,,i,1], colour = "Jackknife MVN")) +
+    geom_point(aes(x = 0:4, y = pivot_coverage_ind[5,,i,1], colour = "Jackknife MVN")) +
+    geom_line(aes(x = 0:4, y = pivot_coverage_ind[6,,i,1], colour = "Jackknife Wald")) +
+    geom_point(aes(x = 0:4, y = pivot_coverage_ind[6,,i,1], colour = "Jackknife Wald")) +
     scale_color_manual(name = "CI type", values = c("Bootstrap"= "red", "Sandwich" = "blue",
                                                     "LEF outcome" = "green", "LEF both" = "purple",
                                                     "Jackknife MVN" = 'orange',"Jackknife Wald" = 'deepskyblue' )) +
     geom_hline(yintercept = 0.95, linetype = "dashed") +
     ylim(0.4,1) + 
-    theme(legend.text = element_text(size=18),
-          legend.title = element_text(size=18),
-    axis.title.x = element_text(size = 24),
-    axis.text.x = element_text(size = 14),
-    axis.title.y = element_text(size = 24),
-    axis.text.y = element_text(size = 14),
-    title = element_text(size = 24),
-    rect = element_rect(fill = "transparent"),
-    plot.background = element_rect(fill='transparent', color=NA))
+    theme(legend.text = element_text(size=14))
 }
 )
-
 for(i in 1:27){
   if(i %in% 1:9){
     if(i %in% c(2, 5, 8)){
@@ -1045,7 +1039,7 @@ for(i in 1:27){
         labs(title = bquote(atop(alpha[c] == .(scenarios[i,2]), alpha[a] == .(scenarios[i,3]))))} else{
           coverage_low[[i]] <- coverage_low[[i]] +
             labs(title = bquote(atop(phantom(3),alpha[a] == .(scenarios[i,3]))))
-    }
+        }
   }
   if(i %in% c(1,10,19)){
     coverage_low[[i]] <- coverage_low[[i]] +
@@ -1069,14 +1063,6 @@ annotate_figure(ggarrange(plotlist = coverage_low, nrow = 3, ncol = 9, common.le
                           legend = 'bottom',
                           widths = c(1.4,1,1,1,1,1,1,1,1),
                           heights = c(1.1, 0.95, 1)))
-
-
-figure <- annotate_figure(ggarrange(plotlist = coverage_low[c(1,2,3,7,8,9,19,20,21,25,26,27)], nrow = 2, ncol = 6, common.legend = T,
-                          legend = 'bottom',
-                          widths = c(1.4,1,1,1,1,1),
-                          heights = c(1.1, 1)))
-ggsave(plot = figure, filename = 'eurocim_low_event.png', path = '/rds/user/jml219/hpc-work/Multiple-trial-emulation-IPTW-MSM-CIs/Results and images/EuroCIM',
-       width = 1800, height = 1000, units = 'px', scale = 4)
 
 coverage_med <-  lapply(1:27, function(i){
   ggplot() +
