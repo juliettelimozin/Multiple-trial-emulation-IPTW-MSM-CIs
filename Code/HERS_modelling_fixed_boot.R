@@ -1,4 +1,4 @@
-setwd("~/Multiple-trial-emulation-IPTW-MSM-CIs/Code")
+setwd("/home/juliette/Multiple-trial-emulation-IPTW-MSM-CIs/Code")
 load('hers.Rdata')
 library(modelr)
 library(reshape2)
