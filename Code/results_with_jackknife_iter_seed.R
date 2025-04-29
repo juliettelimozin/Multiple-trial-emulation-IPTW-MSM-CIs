@@ -430,7 +430,7 @@ mrd_se_quantiles_low <-  lapply(1:9, function(i){
     scale_color_manual(name = "CI type", values = c("Bootstrap"= "red", "Sandwich" = "blue",
                                                     "LEF outcome" = "green", "LEF both" = "purple",
                                                     "Jackknife MVN" = 'orange',"Jackknife Wald" = 'deepskyblue' )) +
-    #ylim(0,15) + 
+    ylim(0,15) + 
     geom_hline(yintercept = 1, linetype = "dashed")+
     theme(legend.text = element_text(size=14))
 }
