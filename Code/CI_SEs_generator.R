@@ -40,7 +40,7 @@ conf <- c(0.1,0.5,0.9)
 
 scenarios <- as.data.frame(tidyr::crossing(size,conf, treat))
 
-for (i in 1:18){
+for (i in 1:27){
   for (j in 1:3){
     load(paste0('~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/J_bootstrap_mrd_',outcomes[j],'_',i, '.rda'))
     load(paste0('~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/J_LEF_outcome_mrd_',outcomes[j],'_',i, '.rda'))

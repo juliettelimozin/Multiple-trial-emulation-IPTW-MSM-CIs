@@ -63,7 +63,7 @@ load("~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/J_LEF_outcome_SE.r
 load("~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/J_LEF_both_SE.rda")
 load("~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/J_jackknife_mvn_SE.rda")
 
-for (i in 1:18){
+for (i in 1:27){
   for (j in 1:3){
     load(paste0("~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/J_CI_bootstrap_PP_red_",outcomes[j],'_', i, ".rda"))
     load(paste0("~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/J_CI_jackknife_mvn_PP_red_",outcomes[j],'_', i, ".rda"))
@@ -142,7 +142,7 @@ mean_time <- mean_time %>%
                    Sandwich = mean(Sandwich))
 print(xtable(mean_time), 
       type = 'latex',include.rownames=FALSE)
-
+save(mean_time, file='mean_time.rda')
 check <- se_ratio %>% 
   group_by(Visit, CI_type, i, j) %>% 
   summarize(mean = mean(SE_ratio, na.rm = TRUE), q1 = quantile(SE_ratio, 0.25,na.rm = TRUE), q3 = quantile(SE_ratio, 0.75,na.rm = TRUE))
@@ -154,7 +154,7 @@ check <- se_ratio %>%
 # 
 # for (i in 1:1000){
 #   for (k in 1:5){
-#     for (j in 1:18){
+#     for (j in 1:27){
 #       for (l in 1:3){
 #         scenario <- j%%9
 #         if (scenario ==0){scenario <- 9}
@@ -253,7 +253,7 @@ pivot_success <- array(0,dim = c(6,5,27,3))
 
 for (i in 1:iters){
   for (k in 1:5){
-    for (j in 1:18){
+    for (j in 1:27){
       for (l in 1:3){
         scenario <- j%%9
         if (scenario ==0){scenario <- 9}
@@ -315,7 +315,7 @@ bias_elim_pivot_success <- array(0,dim = c(6,5,27,3))
 
 for (i in 1:iters){
   for (k in 1:5){
-    for (j in 1:18){
+    for (j in 1:27){
       for (l in 1:3){
         scenario <- j%%9
         if (scenario ==0){scenario <- 9}
@@ -478,31 +478,37 @@ mrd_se_quantiles_med <-  lapply(10:27, function(i){
     theme(legend.text = element_text(size=14))
 }
 )
-for(i in 1:9){
-  if(i %in% 1:3){
-    mrd_se_quantiles_low[[i]] <- mrd_se_quantiles_low[[i]] +
-      labs(title = bquote(alpha[a] == .(scenarios[i,3])))}
-  if(i %in% c(1,4,7)){
-    mrd_se_quantiles_low[[i]] <- mrd_se_quantiles_low[[i]] +
-      ylab(bquote(atop(alpha[c] == .(scenarios[i,2]), 'Ratio of SEs')))
-  } else{mrd_se_quantiles_low[[i]] <- mrd_se_quantiles_low[[i]] +
+for(i in 1:18){
+  if(i %in% 1:9){
+    if(i %in% c(2, 5, 8)){
+      mrd_se_quantiles_med[[i]] <- mrd_se_quantiles_med[[i]] +
+        labs(title = bquote(atop(alpha[c] == .(scenarios[i,2]), alpha[a] == .(scenarios[i,3]))))} else{
+          mrd_se_quantiles_med[[i]] <- mrd_se_quantiles_med[[i]] +
+            labs(title = bquote(atop(phantom(3),alpha[a] == .(scenarios[i,3]))))
+        }
+  }
+  if(i %in% c(1,10)){
+    mrd_se_quantiles_med[[i]] <- mrd_se_quantiles_med[[i]] +
+      ylab(bquote(atop(n == .(scenarios[i+9,1]), 'Ratio of SEs')))
+  } else{mrd_se_quantiles_med[[i]] <- mrd_se_quantiles_med[[i]] +
     theme(axis.text.y=element_blank(), 
           axis.ticks.y=element_blank(),
-          axis.title.y = element_blank())}
-  if(i %in% 7:9){
-    mrd_se_quantiles_low[[i]] <- mrd_se_quantiles_low[[i]] +
+          axis.title.y = element_blank())
+  }
+  if(i %in% 10:18){
+    mrd_se_quantiles_med[[i]] <- mrd_se_quantiles_med[[i]] +
       xlab('Visit')
-  } else {mrd_se_quantiles_low[[i]] <- mrd_se_quantiles_low[[i]] +
+  } else {mrd_se_quantiles_med[[i]] <- mrd_se_quantiles_med[[i]] +
     theme(axis.text.x=element_blank(), 
           axis.ticks.x=element_blank(),
-          axis.title.x = element_blank())}
-  
+          axis.title.x = element_blank())
+  }
 }
 
-annotate_figure(ggarrange(plotlist = mrd_se_quantiles_med, nrow = 3, ncol = 3, common.legend = T,
+annotate_figure(ggarrange(plotlist = mrd_se_quantiles_med, nrow = 2, ncol = 9, common.legend = T,
                           legend = 'bottom',
-                          widths = c(1.2,1,1),
-                          heights = c(1.1, 0.95, 1)))
+                          widths = c(1.4,1,1,1,1,1,1,1,1),
+                          heights = c(1.1, 1)))
 
 mrd_se_quantiles_med <-  lapply(1:9, function(i){
   ggplot(se_ratio[se_ratio$i == i & se_ratio$j == 3 & se_ratio$CI_type == 'Jackknife MVN',]) +
@@ -594,7 +600,7 @@ annotate_figure(ggarrange(plotlist = mrd_se_quantiles_high, nrow = 3, ncol = 3, 
                           legend = 'bottom'))
 
 ##################### MRD DIST ##############################
-mrd_dist1_low <- lapply(1:18, function(i){
+mrd_dist1_low <- lapply(1:27, function(i){
   scenario <- i%%9
   if (scenario ==0){scenario <- 9}
   ggplot() +
@@ -609,7 +615,7 @@ mrd_dist1_low <- lapply(1:18, function(i){
 })
 annotate_figure(ggarrange(plotlist = mrd_dist1_low, nrow = 3, ncol = 9, common.legend = T, legend = 'bottom'))
 
-mrd_dist2_low <- lapply(1:18, function(i){
+mrd_dist2_low <- lapply(1:27, function(i){
   scenario <- i%%9
   if (scenario ==0){scenario <- 9}
   ggplot() +
@@ -625,7 +631,7 @@ mrd_dist2_low <- lapply(1:18, function(i){
 })
 annotate_figure(ggarrange(plotlist = mrd_dist2_low, nrow = 3, ncol = 9, common.legend = T, legend = 'bottom'))
 
-mrd_dist3_low <- lapply(1:18, function(i){
+mrd_dist3_low <- lapply(1:27, function(i){
   scenario <- i%%9
   if (scenario ==0){scenario <- 9}
   ggplot() +
@@ -640,7 +646,7 @@ mrd_dist3_low <- lapply(1:18, function(i){
 })
 annotate_figure(ggarrange(plotlist = mrd_dist3_low, nrow = 3, ncol = 9, common.legend = T, legend = 'bottom'))
 
-mrd_dist4_low <- lapply(1:18, function(i){
+mrd_dist4_low <- lapply(1:27, function(i){
   scenario <- i%%9
   if (scenario ==0){scenario <- 9}
   ggplot() +
@@ -655,7 +661,7 @@ mrd_dist4_low <- lapply(1:18, function(i){
 })
 annotate_figure(ggarrange(plotlist = mrd_dist4_low, nrow = 3, ncol = 9, common.legend = T, legend = 'bottom'))
 
-mrd_dist5_low <- lapply(1:18, function(i){
+mrd_dist5_low <- lapply(1:27, function(i){
   scenario <- i%%9
   if (scenario ==0){scenario <- 9}
   ggplot() +
@@ -671,7 +677,7 @@ mrd_dist5_low <- lapply(1:18, function(i){
 annotate_figure(ggarrange(plotlist = mrd_dist5_low, nrow = 3, ncol = 9, common.legend = T, legend = 'bottom'))
 
 ################BIAS, SD, MSE PLOTS ###################
-bias_plots <- lapply(1:18, function(i){
+bias_plots <- lapply(1:27, function(i){
   ggplot() +
     geom_line(aes(x = 0:4, y = bias_point[,i,1], colour = 'Low')) +
     geom_point(aes(x = 0:4, y = bias_point[,i,1], colour = 'Low')) +
@@ -685,7 +691,7 @@ bias_plots <- lapply(1:18, function(i){
     theme(legend.text = element_text(size=14))
 }
 )
-for(i in 1:18){
+for(i in 1:27){
   if(i %in% 1:9){
     if(i %in% c(2, 5, 8)){
       bias_plots[[i]] <- bias_plots[[i]] +
@@ -717,7 +723,7 @@ annotate_figure(ggarrange(plotlist = bias_plots, nrow = 3, ncol = 9, common.lege
                           widths = c(1.4,1,1,1,1,1,1,1,1),
                           heights = c(1.1, 0.95, 1)))
 
-bias_plots_surv0 <- lapply(1:18, function(i){
+bias_plots_surv0 <- lapply(1:27, function(i){
   ggplot() +
     geom_line(aes(x = 0:4, y = bias_surv0[,i,1], colour = 'Low')) +
     geom_point(aes(x = 0:4, y = bias_surv0[,i,1], colour = 'Low')) +
@@ -734,9 +740,9 @@ bias_plots_surv0 <- lapply(1:18, function(i){
                                                        "High" = "green")) +
     ylim(-0.1,0.1)
 })
-annotate_figure(ggarrange(plotlist = bias_plots_surv0[1:18], nrow = 3, ncol = 9, common.legend = T, legend = 'bottom'))
+annotate_figure(ggarrange(plotlist = bias_plots_surv0[1:27], nrow = 3, ncol = 9, common.legend = T, legend = 'bottom'))
 
-bias_plots_surv1 <- lapply(1:18, function(i){
+bias_plots_surv1 <- lapply(1:27, function(i){
   ggplot() +
     geom_line(aes(x = 0:4, y = bias_surv1[,i,1], colour = 'Low')) +
     geom_point(aes(x = 0:4, y = bias_surv1[,i,1], colour = 'Low')) +
@@ -753,9 +759,9 @@ bias_plots_surv1 <- lapply(1:18, function(i){
                                                        "High" = "green")) +
     ylim(-0.1,0.1)
 })
-annotate_figure(ggarrange(plotlist = bias_plots_surv1[1:18], nrow = 3, ncol = 9, common.legend = T, legend = 'bottom'))
+annotate_figure(ggarrange(plotlist = bias_plots_surv1[1:27], nrow = 3, ncol = 9, common.legend = T, legend = 'bottom'))
 
-sd_plots <- lapply(1:18, function(i){
+sd_plots <- lapply(1:27, function(i){
   ggplot() +
     geom_line(aes(x = 0:4, y = sd_point[,i,1], colour = 'Low')) +
     geom_point(aes(x = 0:4, y = sd_point[,i,1], colour = 'Low')) +
@@ -769,7 +775,7 @@ sd_plots <- lapply(1:18, function(i){
     theme(legend.text = element_text(size=14))
 }
 )
-for(i in 1:18){
+for(i in 1:27){
   if(i %in% 1:9){
     if(i %in% c(2, 5, 8)){
       sd_plots[[i]] <- sd_plots[[i]] +
@@ -800,7 +806,7 @@ annotate_figure(ggarrange(plotlist = sd_plots, nrow = 3, ncol = 9, common.legend
                           legend = 'bottom',
                           widths = c(1.4,1,1,1,1,1,1,1,1),
                           heights = c(1.1, 0.95, 1)))
-bias.se_plots <- lapply(1:18, function(i){
+bias.se_plots <- lapply(1:27, function(i){
   ggplot() +
     geom_line(aes(x = 0:4, y = bias_point[,i,1]/sd_point[,i,1], colour = 'Low')) +
     geom_point(aes(x = 0:4, y = bias_point[,i,1]/sd_point[,i,1], colour = 'Low')) +
@@ -817,9 +823,9 @@ bias.se_plots <- lapply(1:18, function(i){
                                                        "High" = "green")) +
     ylim(-0.25,0.35)
 })
-annotate_figure(ggarrange(plotlist = bias.se_plots[1:18], nrow = 3, ncol = 9, common.legend = T, legend = 'bottom'))
+annotate_figure(ggarrange(plotlist = bias.se_plots[1:27], nrow = 3, ncol = 9, common.legend = T, legend = 'bottom'))
 
-mse_plots <- lapply(1:18, function(i){
+mse_plots <- lapply(1:27, function(i){
   ggplot() +
     geom_line(aes(x = 0:4, y = sqrt(bias_point[,i,1]^2 + sd_point[,i,1]^2), colour = 'Low')) +
     geom_point(aes(x = 0:4, y = sqrt(bias_point[,i,1]^2 + sd_point[,i,1]^2), colour = 'Low')) +
@@ -833,7 +839,7 @@ mse_plots <- lapply(1:18, function(i){
     theme(legend.text = element_text(size=14))
 }
 )
-for(i in 1:18){
+for(i in 1:27){
   if(i %in% 1:9){
     if(i %in% c(2, 5, 8)){
       mse_plots[[i]] <- mse_plots[[i]] +
@@ -1065,7 +1071,7 @@ annotate_figure(ggarrange(plotlist = coverage_low, nrow = 3, ncol = 9, common.le
                           widths = c(1.4,1,1,1,1,1,1,1,1),
                           heights = c(1.1, 0.95, 1)))
 
-coverage_med <-  lapply(1:18, function(i){
+coverage_med <-  lapply(1:27, function(i){
   ggplot() +
     geom_line(aes(x = 0:4, y = pivot_coverage_ind[1,,i,2], colour = "Bootstrap")) +
     geom_point(aes(x = 0:4, y = pivot_coverage_ind[1,,i,2], colour = "Bootstrap")) +
@@ -1087,7 +1093,7 @@ coverage_med <-  lapply(1:18, function(i){
     theme(legend.text = element_text(size=14))
 }
 )
-for(i in 1:18){
+for(i in 1:27){
   if(i %in% 1:9){
     if(i %in% c(2, 5, 8)){
       coverage_med[[i]] <- coverage_med[[i]] +
@@ -1119,7 +1125,7 @@ annotate_figure(ggarrange(plotlist = coverage_med, nrow = 3, ncol = 9, common.le
                           widths = c(1.4,1,1,1,1,1,1,1,1),
                           heights = c(1.1, 0.95, 1)))
 
-coverage_high <-  lapply(1:18, function(i){
+coverage_high <-  lapply(1:27, function(i){
   ggplot() +
     geom_line(aes(x = 0:4, y = pivot_coverage_ind[1,,i,3], colour = "Bootstrap")) +
     geom_point(aes(x = 0:4, y = pivot_coverage_ind[1,,i,3], colour = "Bootstrap")) +
@@ -1142,7 +1148,7 @@ coverage_high <-  lapply(1:18, function(i){
     theme(legend.text = element_text(size=14))
 }
 )
-for(i in 1:18){
+for(i in 1:27){
   if(i %in% 1:9){
     if(i %in% c(2, 5, 8)){
       coverage_high[[i]] <- coverage_high[[i]] +
@@ -1175,7 +1181,7 @@ annotate_figure(ggarrange(plotlist = coverage_high, nrow = 3, ncol = 9, common.l
                           heights = c(1.1, 0.95, 1)))
 
 ######################   BIAS ELIM PIVOT COVERAGE ########################
-coverage_low <-  lapply(1:18, function(i){
+coverage_low <-  lapply(1:27, function(i){
   ggplot() +
     geom_line(aes(x = 0:4, y = bias_elim_pivot_coverage_ind[1,,i,1], colour = "Bootstrap")) +
     geom_point(aes(x = 0:4, y = bias_elim_pivot_coverage_ind[1,,i,1], colour = "Bootstrap")) +
@@ -1197,7 +1203,7 @@ coverage_low <-  lapply(1:18, function(i){
     theme(legend.text = element_text(size=14))
 }
 )
-for(i in 1:18){
+for(i in 1:27){
   if(i %in% 1:9){
     if(i %in% c(2, 5, 8)){
       coverage_low[[i]] <- coverage_low[[i]] +
@@ -1229,7 +1235,7 @@ annotate_figure(ggarrange(plotlist = coverage_low, nrow = 3, ncol = 9, common.le
                           widths = c(1.4,1,1,1,1,1,1,1,1),
                           heights = c(1.1, 0.95, 1)))
 
-coverage_med <-  lapply(1:18, function(i){
+coverage_med <-  lapply(1:27, function(i){
   ggplot() +
     geom_line(aes(x = 0:4, y = bias_elim_pivot_coverage_ind[1,,i,2], colour = "Bootstrap")) +
     geom_point(aes(x = 0:4, y = bias_elim_pivot_coverage_ind[1,,i,2], colour = "Bootstrap")) +
@@ -1251,7 +1257,7 @@ coverage_med <-  lapply(1:18, function(i){
     theme(legend.text = element_text(size=14))
 }
 )
-for(i in 1:18){
+for(i in 1:27){
   if(i %in% 1:9){
     if(i %in% c(2, 5, 8)){
       coverage_med[[i]] <- coverage_med[[i]] +
@@ -1283,7 +1289,7 @@ annotate_figure(ggarrange(plotlist = coverage_med, nrow = 3, ncol = 9, common.le
                           widths = c(1.4,1,1,1,1,1,1,1,1),
                           heights = c(1.1, 0.95, 1)))
 
-coverage_high <-  lapply(1:18, function(i){
+coverage_high <-  lapply(1:27, function(i){
   ggplot() +
     geom_line(aes(x = 0:4, y = bias_elim_pivot_coverage_ind[1,,i,3], colour = "Bootstrap")) +
     geom_point(aes(x = 0:4, y = bias_elim_pivot_coverage_ind[1,,i,3], colour = "Bootstrap")) +
@@ -1305,7 +1311,7 @@ coverage_high <-  lapply(1:18, function(i){
     theme(legend.text = element_text(size=14))
 }
 )
-for(i in 1:18){
+for(i in 1:27){
   if(i %in% 1:9){
     if(i %in% c(2, 5, 8)){
       coverage_high[[i]] <- coverage_high[[i]] +
@@ -1342,7 +1348,7 @@ annotate_figure(ggarrange(plotlist = coverage_high, nrow = 3, ncol = 9, common.l
 CI_width <- array(, dim = c(6,5,27,3))
 
 CI_width <- data.frame(matrix(,nrow = 0, ncol = 7))
-for (j in 1:18){
+for (j in 1:27){
   for (l in 1:3){
     CI_width <-rbind(CI_width,cbind(0:4, 'Bootstrap', rowMeans(abs(bootstrap[,2,,j,l] - bootstrap[,1,,j,l]), na.rm = TRUE), 
                                     rowMeans(abs(bootstrap[,2,,j,l] - bootstrap[,1,,j,l]), na.rm = TRUE) - rowSds(abs(bootstrap[,2,,j,l] - bootstrap[,1,,j,l]), na.rm = TRUE),
@@ -1379,7 +1385,7 @@ CI_width$i <- as.numeric(CI_width$i)
 CI_width$j <- as.numeric(CI_width$j)
 
 
-width_low <-  lapply(1:18, function(i){
+width_low <-  lapply(1:27, function(i){
   ggplot(CI_width[CI_width$i == i & CI_width$j == 1,],aes( x = Visit, y = Mean, group = CI_type, colour = CI_type)) +
     geom_point(position=position_dodge(width=0.5), na.rm = TRUE) +    
     geom_errorbar(aes(x = Visit, ymin = Min, ymax = Max),position=position_dodge(width=0.5), na.rm = TRUE) +
@@ -1395,7 +1401,7 @@ width_low <-  lapply(1:18, function(i){
 annotate_figure(ggarrange(plotlist = width_low, nrow = 3, ncol = 9, common.legend = T,
                           legend = 'bottom'))
 
-width_med <-  lapply(1:18, function(i){
+width_med <-  lapply(1:27, function(i){
   ggplot() +
     geom_line(aes(x = 0:4, y = CI_width[1,,i,2], colour = "Bootstrap")) +
     geom_point(aes(x = 0:4, y = CI_width[1,,i,2], colour = "Bootstrap")) +
@@ -1420,7 +1426,7 @@ width_med <-  lapply(1:18, function(i){
 annotate_figure(ggarrange(plotlist = width_med, nrow = 3, ncol = 9, common.legend = T,
                           legend = 'bottom'))
 
-width_high <-  lapply(1:18, function(i){
+width_high <-  lapply(1:27, function(i){
   ggplot() +
     geom_line(aes(x = 0:4, y = CI_width[1,,i,3], colour = "Bootstrap")) +
     geom_point(aes(x = 0:4, y = CI_width[1,,i,3], colour = "Bootstrap")) +
@@ -1447,7 +1453,7 @@ annotate_figure(ggarrange(plotlist = width_high, nrow = 3, ncol = 9, common.lege
 ############################# CI WIDTH SD###############################
 CI_width_sd <- array(, dim = c(4,5,9,3))
 for (k in 1:5){
-  for (j in 1:18){
+  for (j in 1:27){
     for (l in 1:3){
       CI_width_sd[1,k,j,l] <- sd(abs(bootstrap[k,2,,j,l] - bootstrap[k,1,,j,l]), na.rm = TRUE)
       CI_width_sd[2,k,j,l] <- sd(abs(LEF_outcome[k,2,,j,l] - LEF_outcome[k,1,,j,l]), na.rm = TRUE)
@@ -1455,7 +1461,7 @@ for (k in 1:5){
       CI_width_sd[4,k,j,l] <- sd(abs(sandwich[k,2,,j,l] - sandwich[k,1,,j,l]), na.rm = TRUE)
     }}}
 
-width_low <-  lapply(1:18, function(i){
+width_low <-  lapply(1:27, function(i){
   ggplot() +
     geom_line(aes(x = 0:4, y = CI_width_sd[1,,i,1], colour = "Bootstrap")) +
     geom_point(aes(x = 0:4, y = CI_width_sd[1,,i,1], colour = "Bootstrap")) +
@@ -1476,7 +1482,7 @@ annotate_figure(ggarrange(plotlist = width_low, nrow = 3, ncol = 9, common.legen
                           legend = 'bottom'))
 
 
-width_med <-  lapply(1:18, function(i){
+width_med <-  lapply(1:27, function(i){
   ggplot() +
     geom_line(aes(x = 0:4, y = CI_width_sd[1,,i,2], colour = "Bootstrap")) +
     geom_point(aes(x = 0:4, y = CI_width_sd[1,,i,2], colour = "Bootstrap")) +
@@ -1495,7 +1501,7 @@ width_med <-  lapply(1:18, function(i){
 annotate_figure(ggarrange(plotlist = width_med, nrow = 3, ncol = 9, common.legend = T,
                           legend = 'bottom'))
 
-width_high <-  lapply(1:18, function(i){
+width_high <-  lapply(1:27, function(i){
   ggplot() +
     geom_line(aes(x = 0:4, y = CI_width_sd[1,,i,3], colour = "Bootstrap")) +
     geom_point(aes(x = 0:4, y = CI_width_sd[1,,i,3], colour = "Bootstrap")) +
@@ -1517,7 +1523,7 @@ annotate_figure(ggarrange(plotlist = width_high, nrow = 3, ncol = 9, common.lege
 ########################################### CI WIDTH MEDIAN ##########################
 CI_width_median <- array(, dim = c(4,5,9,3))
 for (k in 1:5){
-  for (j in 1:18){
+  for (j in 1:27){
     for (l in 1:3){
       CI_width_median[1,k,j,l] <- median(abs(bootstrap[k,2,,j,l] - bootstrap[k,1,,j,l]), na.rm = TRUE)
       CI_width_median[2,k,j,l] <- median(abs(LEF_outcome[k,2,,j,l] - LEF_outcome[k,1,,j,l]), na.rm = TRUE)
@@ -1525,7 +1531,7 @@ for (k in 1:5){
       CI_width_median[4,k,j,l] <- median(abs(sandwich[k,2,,j,l] - sandwich[k,1,,j,l]), na.rm = TRUE)
     }}}
 
-width_low <-  lapply(1:18, function(i){
+width_low <-  lapply(1:27, function(i){
   ggplot() +
     geom_line(aes(x = 0:4, y = CI_width_median[1,,i,1], colour = "Bootstrap")) +
     geom_point(aes(x = 0:4, y = CI_width_median[1,,i,1], colour = "Bootstrap")) +
@@ -1546,7 +1552,7 @@ annotate_figure(ggarrange(plotlist = width_low, nrow = 3, ncol = 9, common.legen
                           legend = 'bottom'))
 
 
-width_med <-  lapply(1:18, function(i){
+width_med <-  lapply(1:27, function(i){
   ggplot() +
     geom_line(aes(x = 0:4, y = CI_width_median[1,,i,2], colour = "Bootstrap")) +
     geom_point(aes(x = 0:4, y = CI_width_median[1,,i,2], colour = "Bootstrap")) +
@@ -1565,7 +1571,7 @@ width_med <-  lapply(1:18, function(i){
 annotate_figure(ggarrange(plotlist = width_med, nrow = 3, ncol = 9, common.legend = T,
                           legend = 'bottom'))
 
-width_high <-  lapply(1:18, function(i){
+width_high <-  lapply(1:27, function(i){
   ggplot() +
     geom_line(aes(x = 0:4, y = CI_width_median[1,,i,3], colour = "Bootstrap")) +
     geom_point(aes(x = 0:4, y = CI_width_median[1,,i,3], colour = "Bootstrap")) +
@@ -1586,7 +1592,7 @@ annotate_figure(ggarrange(plotlist = width_high, nrow = 3, ncol = 9, common.lege
 
 ######################PIVOT FAILURE RATE #######################
 failure_table <- data.frame(matrix(,nrow = 0, ncol = 8))
-for (i in 1:18){
+for (i in 1:27){
   for (j in 1:3){
     failure_table <- rbind(failure_table, c(outcomes[j], scenarios[i,1], scenarios[i,2],scenarios[i,3], 
                                             (iters - pivot_success[,1,i,j])/iters))
@@ -1612,8 +1618,10 @@ failure_table <- failure_table %>%
                    Jackknife_MVN = ifelse(Sample_size == 200, mean(as.numeric(Jackknife_MVN)), NA),
                    Jackknife_Wald = ifelse(Sample_size == 200, mean(as.numeric(Jackknife_Wald)), NA))
 print(xtable(failure_table, type = 'latex'), include.rownames = FALSE) 
+save(failure_table, file = "failure_table_iter_seed.rda")
+
 no_na_frequency <- data.frame(matrix(,nrow = 0, ncol = 7))
-for (i in 1:18){
+for (i in 1:27){
   for (j in 1:3){
     load(paste0('~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/coeff_dim_',outcomes[j],'_',i, '.rda'))
     load(paste0('~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/bootstrap_nas_',outcomes[j],'_',i, '.rda'))
@@ -1648,14 +1656,14 @@ con4 <- xtabs(~MSM_coeffs+Bootstrap+ Outcome_prevalence + Confounding + Treatmen
 ftable(con4, row.vars = c('Outcome_prevalence', 'Confounding', 'Treatment_prevalence', 'MSM_coeffs'))
 ################ MC SE PLOTS #######################
 MC_SE_pivot<- array(, dim = c(6,5,27,3))
-for (i in 1:18){
+for (i in 1:27){
   for (j in 1:3){
     MC_SE_pivot[,,i,j] <- sqrt((pivot_coverage_ind[,,i,j]*(1-pivot_coverage_ind[,,i,j]))/iters)
   }
 }
 
 
-MCSE_low <-  lapply(1:18, function(i){
+MCSE_low <-  lapply(1:27, function(i){
   ggplot() +
     geom_line(aes(x = 0:4, y = MC_SE_pivot[1,,i,1], colour = "Bootstrap")) +
     geom_point(aes(x = 0:4, y = MC_SE_pivot[1,,i,1], colour = "Bootstrap")) +
@@ -1676,7 +1684,7 @@ MCSE_low <-  lapply(1:18, function(i){
     theme(legend.text = element_text(size=14))
 }
 )
-for(i in 1:18){
+for(i in 1:27){
   if(i %in% 1:9){
     if(i %in% c(2, 5, 8)){
       MCSE_low[[i]] <- MCSE_low[[i]] +
@@ -1708,7 +1716,7 @@ annotate_figure(ggarrange(plotlist = MCSE_low, nrow = 3, ncol = 9, common.legend
                           widths = c(1.4,1,1,1,1,1,1,1,1),
                           heights = c(1.1, 0.95, 1)))
 
-MCSE_med <-  lapply(1:18, function(i){
+MCSE_med <-  lapply(1:27, function(i){
   ggplot() +
     geom_line(aes(x = 0:4, y = MC_SE_pivot[1,,i,2], colour = "Bootstrap")) +
     geom_point(aes(x = 0:4, y = MC_SE_pivot[1,,i,2], colour = "Bootstrap")) +
@@ -1729,7 +1737,7 @@ MCSE_med <-  lapply(1:18, function(i){
     theme(legend.text = element_text(size=14))
 }
 )
-for(i in 1:18){
+for(i in 1:27){
   if(i %in% 1:9){
     if(i %in% c(2, 5, 8)){
       MCSE_med[[i]] <- MCSE_med[[i]] +
@@ -1761,7 +1769,7 @@ annotate_figure(ggarrange(plotlist = MCSE_med, nrow = 3, ncol = 9, common.legend
                           widths = c(1.4,1,1,1,1,1,1,1,1),
                           heights = c(1.1, 0.95, 1)))
 
-MCSE_high <-  lapply(1:18, function(i){
+MCSE_high <-  lapply(1:27, function(i){
   ggplot() +
     geom_line(aes(x = 0:4, y = MC_SE_pivot[1,,i,3], colour = "Bootstrap")) +
     geom_point(aes(x = 0:4, y = MC_SE_pivot[1,,i,3], colour = "Bootstrap")) +
@@ -1782,7 +1790,7 @@ MCSE_high <-  lapply(1:18, function(i){
     theme(legend.text = element_text(size=14))
 }
 )
-for(i in 1:18){
+for(i in 1:27){
   if(i %in% 1:9){
     if(i %in% c(2, 5, 8)){
       MCSE_high[[i]] <- MCSE_high[[i]] +
@@ -1815,7 +1823,7 @@ annotate_figure(ggarrange(plotlist = MCSE_high, nrow = 3, ncol = 9, common.legen
                           heights = c(1.1, 0.95, 1)))
 ################WEIGHTS########################
 weights <- data.frame(matrix(,nrow = 0, ncol = 7))
-for(i in 1:18){
+for(i in 1:27){
   simdata_censored<-DATA_GEN_censored_reduced(as.numeric(scenarios[i,1]), 5, 
                                               conf = as.numeric(scenarios[i,2]), 
                                               treat_prev = as.numeric(scenarios[i,3]),
@@ -1833,7 +1841,7 @@ for(i in 1:18){
                               mean(PP_prep$data$weight), sd(PP_prep$data$weight), max(PP_prep$data$weight)))
 }
 
-for(i in 1:18){
+for(i in 1:27){
   simdata_censored<-DATA_GEN_censored_reduced(as.numeric(scenarios[i,1]), 5, 
                                               conf = as.numeric(scenarios[i,2]), 
                                               treat_prev = as.numeric(scenarios[i,3]),
@@ -1850,7 +1858,7 @@ for(i in 1:18){
                               mean(PP_prep$data$weight), sd(PP_prep$data$weight), max(PP_prep$data$weight)))
 }
 
-for(i in 1:18){
+for(i in 1:27){
   simdata_censored<-DATA_GEN_censored_reduced(as.numeric(scenarios[i,1]), 5, 
                                               conf = as.numeric(scenarios[i,2]), 
                                               treat_prev = as.numeric(scenarios[i,3]),
