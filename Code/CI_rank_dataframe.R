@@ -1,7 +1,7 @@
 CI_summary <- as.data.frame(cbind(0:4, t(pivot_coverage_ind[,,1,1] ))) %>% 
   mutate(Scenario = 1, Event_rate = 1) 
 for (j in 1:3){
-  for (i in 1:27){
+  for (i in 1:18){
     if(i == 1 & j == 1){ next }
     CI_summary_bis <- as.data.frame(cbind(0:4, t(pivot_coverage_ind[,,i,j] ))) %>% 
       mutate(Scenario = i, Event_rate = j) 
@@ -20,7 +20,7 @@ CI_summary_long <- pivot_longer(CI_summary, cols = 2:7, names_to = 'CI_type', va
 CI_summary_old <- as.data.frame(cbind(0:4, t(pivot_coverage_ind_old[,,1,1] ))) %>% 
   mutate(Scenario = 1, Event_rate = 1) 
 for (j in 1:3){
-  for (i in 1:27){
+  for (i in 1:18){
     if(i == 1 & j == 1){ next }
     CI_summary_bis <- as.data.frame(cbind(0:4, t(pivot_coverage_ind_old[,,i,j] ))) %>% 
       mutate(Scenario = i, Event_rate = j) 
@@ -42,9 +42,7 @@ CI_summary_long$mean_old <- CI_summary_long_old$mean
 CI_summary_long$q1_old <- CI_summary_long_old$q1
 CI_summary_long$q3_old <- CI_summary_long_old$q3
 
-
-save(CI_summary_long, file = 'CI_summary_long.rda')
-write.csv(CI_summary_long,"CI_summary_long_same_seed.csv", row.names = FALSE)
+write.csv(CI_summary_long,"CI_summary_long_same_seed_original_vs_iter_seed.csv", row.names = FALSE)
 
 CI_summary_by_type <- CI_summary_long %>% 
   dplyr::select(Event_rate, Scenario, Visit, CI_type, Coverage, rank) %>% 
@@ -59,7 +57,7 @@ names(CI_summary_by_type) <- c('Event_rate', 'Scenario', 'Visit', 'CI_type', 'Co
                                'q1_se_fixed', 'q3_se_fixed', 'mean_se_old', 'q1_se_old', 'q3_se_old')
 
 
-write.csv(CI_summary_by_type,"CI_summary_by_type_same_seed.csv", row.names = FALSE)
+write.csv(CI_summary_by_type,"CI_summary_by_type_same_seed_original_vs_iter_seed.csv", row.names = FALSE)
 
 
 

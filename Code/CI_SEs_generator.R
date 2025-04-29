@@ -40,13 +40,13 @@ conf <- c(0.1,0.5,0.9)
 
 scenarios <- as.data.frame(tidyr::crossing(size,conf, treat))
 
-for (i in 1:27){
+for (i in 1:18){
   for (j in 1:3){
-    load(paste0('~/rds/hpc-work/Project1/NewSimusJ_error/J_bootstrap_mrd_',outcomes[j],'_',i, '.rda'))
-    load(paste0('~/rds/hpc-work/Project1/NewSimusJ_error/J_LEF_outcome_mrd_',outcomes[j],'_',i, '.rda'))
-    load(paste0('~/rds/hpc-work/Project1/NewSimusJ_error/J_LEF_both_mrd_',outcomes[j],'_',i, '.rda'))
-    load(paste0('~/rds/hpc-work/Project1/NewSimusJ_error/J_sandwich_mrd_',outcomes[j],'_',i, '.rda'))
-    load(paste0('~/rds/hpc-work/Project1/NewSimusJ_error/J_jackknife_mvn_mrd_',outcomes[j],'_',i, '.rda'))
+    load(paste0('~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/J_bootstrap_mrd_',outcomes[j],'_',i, '.rda'))
+    load(paste0('~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/J_LEF_outcome_mrd_',outcomes[j],'_',i, '.rda'))
+    load(paste0('~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/J_LEF_both_mrd_',outcomes[j],'_',i, '.rda'))
+    load(paste0('~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/J_sandwich_mrd_',outcomes[j],'_',i, '.rda'))
+    load(paste0('~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/J_jackknife_mvn_mrd_',outcomes[j],'_',i, '.rda'))
 
     for (k in 1:5){
       sandwich_SE[k,,i,j] <-colSds(sandwich_mrd[k,,], na.rm = TRUE)
@@ -56,8 +56,8 @@ for (i in 1:27){
       if (i %in% 1:9){
         jackknife_mvn_SE[k,,i,j] <- colSds(jackknife_mvn_mrd[k,,], na.rm = TRUE)}}
   }}
-save(sandwich_SE, file = '~/rds/hpc-work/Project1/NewSimusJ_error/J_sandwich_SE.rda')
-save(bootstrap_SE, file = '~/rds/hpc-work/Project1/NewSimusJ_error/J_bootstrap_SE.rda')
-save(LEF_outcome_SE, file = '~/rds/hpc-work/Project1/NewSimusJ_error/J_LEF_outcome_SE.rda')
-save(LEF_both_SE, file = '~/rds/hpc-work/Project1/NewSimusJ_error/J_LEF_both_SE.rda')
-save(jackknife_mvn_SE, file = '~/rds/hpc-work/Project1/NewSimusJ_error/J_jackknife_mvn_SE.rda')
+save(sandwich_SE, file = '~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/J_sandwich_SE.rda')
+save(bootstrap_SE, file = '~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/J_bootstrap_SE.rda')
+save(LEF_outcome_SE, file = '~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/J_LEF_outcome_SE.rda')
+save(LEF_both_SE, file = '~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/J_LEF_both_SE.rda')
+save(jackknife_mvn_SE, file = '~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/J_jackknife_mvn_SE.rda')
