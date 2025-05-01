@@ -63,7 +63,7 @@ for (i in 1:iters){
     simdata_censored<-DATA_GEN_censored_reduced(as.numeric(scenarios[l,1]), 5, 
                                                 conf = as.numeric(scenarios[l,2]), 
                                                 treat_prev = as.numeric(scenarios[l,3]),
-                                                outcome_prev = -4.7,
+                                                outcome_prev = -3.0,
                                                 censor = F)
     PP_prep <- TrialEmulation::data_preparation(simdata_censored, id='ID', period='t', treatment='A', outcome='Y', 
                                                 eligible ='eligible',
