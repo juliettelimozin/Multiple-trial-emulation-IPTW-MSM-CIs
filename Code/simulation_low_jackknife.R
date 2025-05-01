@@ -5,7 +5,7 @@ library(tidyverse)
 library(tidyr)
 setwd("~/rds/hpc-work/Project1")
 source("~/rds/hpc-work/Multiple-trial-emulation-IPTW-MSM-CIs/Code/simulate_MSM_simplified.R")
-source("~/rds/hpc-work/Multiple-trial-emulation-IPTW-MSM-CIs/Code/weight_func.R")
+source("~/rds/hpc-work/Multiple-trial-emulation-IPTW-MSM-CIs/Code/weight_func_efficient.R")
 
 set.seed(20250228)
 seeds <- floor(runif(1000)*10^8)
@@ -207,8 +207,7 @@ for (i in 1:iters){
     ############################# DIRECT BOOTSTRAP #############################
     surv_PP_difference_boostrap_estimates <-as.data.frame(matrix(,6,bootstrap_iter))
     surv_PP_difference_boostrap_estimates <- foreach(k = 1:bootstrap_iter, .combine=cbind) %dopar% {
-      
-      weights_table_boot <- data.frame(id = 1:as.numeric(scenarios[l,1])) %>% 
+      weights_table_boot <- data.frame(id = unique(switch_data$id)) %>% 
         rowwise() %>% 
         dplyr::mutate(weight_boot = length(boot_data[[k]][boot_data[[k]] == id])) #bootstrap weight is number of times they were sampled
       
@@ -219,15 +218,14 @@ for (i in 1:iters){
                                         weight_model_n0 = switch_n0,
                                         weight_model_d1 = switch_d1,
                                         weight_model_n1 = switch_n1,
-                                        boot_idx = boot_data[[k]], remodel = TRUE, quiet = TRUE)
+                                        boot_idx = boot_data[[k]], weights_table_boot = weights_table_boot, remodel = TRUE, quiet = TRUE)
       
       #calculate IP weights from bootstrap sample: new weight = refitted weight * bootstrap sampling weight
       boot_design_data <- IP_model$data %>%
-        merge(weights_table_boot, by = 'id', all.y = TRUE) %>% 
+        right_join(weights_table_boot, by = 'id') %>% 
         dplyr::mutate(weight = ifelse(weight_boot !=0,weight*weight_boot,0))
       
       #Direct bootstrap
-      
       PP_boot <- TrialEmulation::trial_msm(data = boot_design_data,
                                            outcome_cov = my_covariates,
                                            model_var = c('assigned_treatment'),
@@ -259,15 +257,13 @@ for (i in 1:iters){
                       predicted_proba_control = Y_pred_PP_control_boot) %>% 
         dplyr::group_by(id, trial_period) %>% 
         dplyr::mutate(cum_hazard_treatment = cumprod(1-predicted_proba_treatment),
-                      cum_hazard_control = cumprod(1-predicted_proba_control)) %>% 
-        dplyr::rowwise() %>% 
-        dplyr::mutate(weight_boot = length(boot_data[[k]][boot_data[[k]] == id])) %>% 
+                      cum_hazard_control = cumprod(1-predicted_proba_control)) %>%
+        left_join(weights_table_boot, by = 'id') %>% 
         dplyr::ungroup() %>% 
         dplyr::group_by(followup_time) %>% 
         dplyr::summarise(survival_treatment = mean(cum_hazard_treatment*weight_boot),
                          survival_control = mean(cum_hazard_control*weight_boot),
                          risk_difference = survival_control - survival_treatment)
-      
       rbind(na_ind,predicted_probas_PP_boot[,3] - predicted_probas_PP_boot[,2])
       
     }
@@ -295,7 +291,6 @@ for (i in 1:iters){
     
     surv_PP_difference_LEF_outcome_estimates <- as.data.frame(matrix(,5,bootstrap_iter))
     surv_PP_difference_LEF_outcome_estimates <- foreach(k = 1:bootstrap_iter, .combine=cbind) %dopar% {
-      
       weights_table_boot <- data.frame(id = 1:as.numeric(scenarios[l,1])) %>% 
         rowwise() %>% 
         dplyr::mutate(weight_boot = length(boot_data[[k]][boot_data[[k]] == id])) #bootstrap weight is number of times they were sampled
@@ -306,14 +301,13 @@ for (i in 1:iters){
                                         weight_model_n0 = switch_n0,
                                         weight_model_d1 = switch_d1,
                                         weight_model_n1 = switch_n1,
-                                        boot_idx = boot_data[[k]], remodel = TRUE, quiet = TRUE)
+                                        boot_idx = boot_data[[k]], weights_table_boot = weights_table_boot, remodel = TRUE, quiet = TRUE)
       
       #calculate IP weights from bootstrap sample
       
       boot_design_data <- IP_model$data %>%
-        merge(weights_table_boot, by = 'id', all.y = TRUE) %>% 
+        right_join(weights_table_boot, by = 'id') %>% 
         dplyr::mutate(weight = ifelse(weight_boot !=0,weight*weight_boot,0))
-      
       LEFs <- t(X)%*%(boot_design_data$weight*e)
       LEFs[is.na(LEFs)] <- 0
       variance_mat <- vcov(PP$model)
@@ -335,8 +329,7 @@ for (i in 1:iters){
         dplyr::group_by(id, trial_period) %>% 
         dplyr::mutate(cum_hazard_treatment = cumprod(1-predicted_proba_treatment),
                       cum_hazard_control = cumprod(1-predicted_proba_control)) %>% 
-        dplyr::rowwise() %>% 
-        dplyr::mutate(weight_boot = length(boot_data[[k]][boot_data[[k]] == id])) %>% 
+        left_join(weights_table_boot, by = 'id') %>% 
         dplyr::ungroup() %>% 
         dplyr::group_by(followup_time) %>% 
         dplyr::summarise(survival_treatment = mean(cum_hazard_treatment*weight_boot),
@@ -382,8 +375,8 @@ for (i in 1:iters){
         rowwise() %>% 
         dplyr::mutate(weight_boot = length(boot_data[[k]][boot_data[[k]] == id])) #bootstrap weight is number of times they were sampled
       
-      data_0 <- merge(weights_table_boot, switch_d0$data, on = id, all.y = TRUE)
-      data_1 <- merge(weights_table_boot, switch_d1$data, on = id, all.y = TRUE)
+      data_0 <- right_join(weights_table_boot, switch_d0$data, by = 'id')
+      data_1 <- right_join(weights_table_boot, switch_d1$data, by = 'id')
       
       LEF_sw_d0_boot <- t(X_sw_d0)%*%(data_0$weight_boot*e_sw_d0)
       LEF_sw_n0_boot <- t(X_sw_n0)%*%(data_0$weight_boot*e_sw_n0)
@@ -406,12 +399,12 @@ for (i in 1:iters){
                                         new_coef_sw_n0 = beta_sw_n0,
                                         new_coef_sw_d1 = beta_sw_d1,
                                         new_coef_sw_n1 = beta_sw_n1,
-                                        boot_idx = boot_data[[k]], remodel = FALSE, quiet = TRUE)
+                                        boot_idx = boot_data[[k]], weights_table_boot = weights_table_boot, remodel = FALSE, quiet = TRUE)
       
       #calculate IP weights from bootstrap sample
       
       boot_design_data <- IP_model$data %>%
-        merge(weights_table_boot, by = 'id', all.y = TRUE) %>% 
+        right_join(weights_table_boot, by = 'id') %>% 
         dplyr::mutate(weight = ifelse(weight_boot !=0,weight*weight_boot,0))
       
       LEFs <- t(X)%*%(boot_design_data$weight*e)
@@ -435,9 +428,8 @@ for (i in 1:iters){
                       predicted_proba_control = Y_pred_PP_control_boot) %>% 
         dplyr::group_by(id, trial_period) %>% 
         dplyr::mutate(cum_hazard_treatment = cumprod(1-predicted_proba_treatment),
-                      cum_hazard_control = cumprod(1-predicted_proba_control)) %>% 
-        dplyr::rowwise() %>% 
-        dplyr::mutate(weight_boot = length(boot_data[[k]][boot_data[[k]] == id])) %>% 
+                      cum_hazard_control = cumprod(1-predicted_proba_control)) %>%
+        left_join(weights_table_boot, by = 'id') %>% 
         dplyr::ungroup() %>% 
         dplyr::group_by(followup_time) %>% 
         dplyr::summarise(survival_treatment = mean(cum_hazard_treatment*weight_boot),
@@ -463,8 +455,6 @@ for (i in 1:iters){
     CI_LEF_both_PP_red[,2,i] <- surv_PP_difference_LEF_both_estimates$ub
     
     if(as.numeric(scenarios[l,1]) == 200){
-      time <- proc.time()
-      print('Jackknife')
       
       ############################# JACKKNIFE #############################
       # Move the call to bootstrap_construct outside the for loop to avoid problems with random numbers 
@@ -487,7 +477,8 @@ for (i in 1:iters){
         return(me)
       }
       
-      
+      time <- proc.time()
+      print('Jackknife')
       jackknife_est_mrd <- foreach(k = 1:lenid, .combine=cbind) %dopar% {
         result <- multiResultClass()
         weights_table_boot <- data.frame(id = 1:as.numeric(scenarios[l,1])) %>% 
@@ -500,12 +491,12 @@ for (i in 1:iters){
                                           weight_model_n0 = switch_n0,
                                           weight_model_d1 = switch_d1,
                                           weight_model_n1 = switch_n1,
-                                          boot_idx = boot_data[[k]], remodel = TRUE, quiet = TRUE)
+                                          boot_idx = boot_data[[k]], weights_table_boot = weights_table_boot, remodel = TRUE, quiet = TRUE)
         
         #calculate IP weights from bootstrap sample
         
         boot_design_data <- IP_model$data %>%
-          merge(weights_table_boot, by = 'id', all.y = TRUE) %>% 
+          right_join(weights_table_boot, by = 'id') %>% 
           dplyr::mutate(weight = ifelse(weight_boot !=0,weight*weight_boot,0))
         
         PP_boot <- TrialEmulation::trial_msm(data = boot_design_data,
@@ -538,9 +529,8 @@ for (i in 1:iters){
                         predicted_proba_control = Y_pred_PP_control_boot) %>% 
           dplyr::group_by(id, trial_period) %>% 
           dplyr::mutate(cum_hazard_treatment = cumprod(1-predicted_proba_treatment),
-                        cum_hazard_control = cumprod(1-predicted_proba_control)) %>% 
-          dplyr::rowwise() %>% 
-          dplyr::mutate(weight_boot = length(boot_data[[k]][boot_data[[k]] == id])) %>% 
+                        cum_hazard_control = cumprod(1-predicted_proba_control)) %>%
+          left_join(weights_table_boot, by = 'id') %>% 
           dplyr::ungroup() %>% 
           dplyr::group_by(followup_time) %>% 
           dplyr::summarise(survival_treatment = mean(cum_hazard_treatment*weight_boot),

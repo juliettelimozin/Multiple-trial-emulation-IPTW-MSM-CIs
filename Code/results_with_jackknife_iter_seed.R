@@ -1,7 +1,7 @@
 library(dplyr)
 library(tidyverse)
 library(tidyr)
-setwd("~/rds/hpc-work/Multiple-trial-emulation-IPTW-MSM-CIs/Code")
+setwd("/home/juliette/Multiple-trial-emulation-IPTW-MSM-CIs/Code")
 library(ggplot2)
 library(ggpubr)
 load("true_value_red_newsimus.rda")
@@ -57,25 +57,25 @@ mean_time <- data.frame(matrix(,nrow = 0, ncol = 10))
 na_failure_rate <- data.frame(matrix(,nrow = 0, ncol = 7))
 se_ratio <- data.frame(matrix(,nrow = 0, ncol = 5))
 
-load("~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/J_sandwich_SE.rda")
-load("~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/J_bootstrap_SE.rda")
-load("~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/J_LEF_outcome_SE.rda")
-load("~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/J_LEF_both_SE.rda")
-load("~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/J_jackknife_mvn_SE.rda")
+load("/home/juliette/UniHPC/NewSimusJ_correct_seeding_fixed/J_sandwich_SE.rda")
+load("/home/juliette/UniHPC/NewSimusJ_correct_seeding_fixed/J_bootstrap_SE.rda")
+load("/home/juliette/UniHPC/NewSimusJ_correct_seeding_fixed/J_LEF_outcome_SE.rda")
+load("/home/juliette/UniHPC/NewSimusJ_correct_seeding_fixed/J_LEF_both_SE.rda")
+load("/home/juliette/UniHPC/NewSimusJ_correct_seeding_fixed/J_jackknife_mvn_SE.rda")
 
 for (i in 1:27){
   for (j in 1:3){
-    load(paste0("~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/J_CI_bootstrap_PP_red_",outcomes[j],'_', i, ".rda"))
-    load(paste0("~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/J_CI_jackknife_mvn_PP_red_",outcomes[j],'_', i, ".rda"))
-    load(paste0("~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/J_CI_jackknife_wald_PP_red_",outcomes[j],'_', i, ".rda"))
-    load(paste0("~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/J_CI_LEF_outcome_PP_red_",outcomes[j],'_', i, ".rda"))
-    load(paste0("~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/J_CI_LEF_both_PP_red_",outcomes[j],'_', i, ".rda"))
-    load(paste0("~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/J_CI_sandwich_PP_red_",outcomes[j],'_', i, ".rda"))
-    load(paste0("~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/J_computation_time_",outcomes[j],'_', i, ".rda"))
-    load(paste0('~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/J_estimates_red_',outcomes[j],'_',i, '.rda'))
-    load(paste0('~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/J_survival_treatment_estimates_',outcomes[j],'_',i, '.rda'))
-    load(paste0('~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/J_survival_control_estimates_',outcomes[j],'_',i, '.rda'))
-    load(paste0('~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/J_jackknife_SEs_',outcomes[j],'_',i, '.rda'))
+    load(paste0("/home/juliette/UniHPC/NewSimusJ_correct_seeding_fixed/J_CI_bootstrap_PP_red_",outcomes[j],'_', i, ".rda"))
+    load(paste0("/home/juliette/UniHPC/NewSimusJ_correct_seeding_fixed/J_CI_jackknife_mvn_PP_red_",outcomes[j],'_', i, ".rda"))
+    load(paste0("/home/juliette/UniHPC/NewSimusJ_correct_seeding_fixed/J_CI_jackknife_wald_PP_red_",outcomes[j],'_', i, ".rda"))
+    load(paste0("/home/juliette/UniHPC/NewSimusJ_correct_seeding_fixed/J_CI_LEF_outcome_PP_red_",outcomes[j],'_', i, ".rda"))
+    load(paste0("/home/juliette/UniHPC/NewSimusJ_correct_seeding_fixed/J_CI_LEF_both_PP_red_",outcomes[j],'_', i, ".rda"))
+    load(paste0("/home/juliette/UniHPC/NewSimusJ_correct_seeding_fixed/J_CI_sandwich_PP_red_",outcomes[j],'_', i, ".rda"))
+    load(paste0("/home/juliette/UniHPC/NewSimusJ_correct_seeding_fixed/J_computation_time_",outcomes[j],'_', i, ".rda"))
+    load(paste0('/home/juliette/UniHPC/NewSimusJ_correct_seeding_fixed/J_estimates_red_',outcomes[j],'_',i, '.rda'))
+    load(paste0('/home/juliette/UniHPC/NewSimusJ_correct_seeding_fixed/J_survival_treatment_estimates_',outcomes[j],'_',i, '.rda'))
+    load(paste0('/home/juliette/UniHPC/NewSimusJ_correct_seeding_fixed/J_survival_control_estimates_',outcomes[j],'_',i, '.rda'))
+    load(paste0('/home/juliette/UniHPC/NewSimusJ_correct_seeding_fixed/J_jackknife_SEs_',outcomes[j],'_',i, '.rda'))
     
     bootstrap[,,,i,j] <- CI_bootstrap_PP_red
     LEF_outcome[,,,i,j] <- CI_LEF_outcome_PP_red
@@ -139,9 +139,16 @@ mean_time <- mean_time %>%
                    LEF_both = mean(LEF_both),
                    Jackknife_Wald =mean(Jackknife_Wald),
                    Jackknife_MVN = mean(Jackknife_MVN),
-                   Sandwich = mean(Sandwich))
+                   Sandwich = mean(Sandwich)) %>% 
+  dplyr::mutate(Bootstrap = Bootstrap/Sandwich,
+                LEF_outcome = LEF_outcome/Sandwich,
+                LEF_both = LEF_both/Sandwich,
+                Jackknife_Wald = Jackknife_Wald/Sandwich,
+                Jackknife_MVN = Jackknife_MVN/Sandwich,
+                Sandwich = Sandwich/Sandwich)
 print(xtable(mean_time), 
       type = 'latex',include.rownames=FALSE)
+
 save(mean_time, file='mean_time.rda')
 check <- se_ratio %>% 
   group_by(Visit, CI_type, i, j) %>% 
@@ -1623,9 +1630,9 @@ save(failure_table, file = "failure_table_iter_seed.rda")
 no_na_frequency <- data.frame(matrix(,nrow = 0, ncol = 7))
 for (i in 1:27){
   for (j in 1:3){
-    load(paste0('~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/coeff_dim_',outcomes[j],'_',i, '.rda'))
-    load(paste0('~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/bootstrap_nas_',outcomes[j],'_',i, '.rda'))
-    load(paste0('~/rds/hpc-work/Project1/NewSimusJ_correct_seeding_fixed/jackknife_nas_',outcomes[j],'_',i, '.rda'))
+    load(paste0('/home/juliette/UniHPC/NewSimusJ_correct_seeding_fixed/coeff_dim_',outcomes[j],'_',i, '.rda'))
+    load(paste0('/home/juliette/UniHPC/NewSimusJ_correct_seeding_fixed/bootstrap_nas_',outcomes[j],'_',i, '.rda'))
+    load(paste0('/home/juliette/UniHPC/NewSimusJ_correct_seeding_fixed/jackknife_nas_',outcomes[j],'_',i, '.rda'))
     no_na_frequency <- rbind(no_na_frequency, cbind(outcomes[j], scenarios[i,1], scenarios[i,2],scenarios[i,3],
                                                     coeff_dim, bootstrap_nas, jackknife_nas))
   }

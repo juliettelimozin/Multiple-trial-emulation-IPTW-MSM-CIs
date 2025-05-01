@@ -17,7 +17,7 @@ library(lmtest)
 library(xtable)
 library(data.table)
 library(reshape2)
-set.seed(3012)
+set.seed(2804)
 ############# DATA PREPARATION ##################
 HERS$Y <- as.factor(HERS$Y)
 HERS$t <- HERS$visit - 8
