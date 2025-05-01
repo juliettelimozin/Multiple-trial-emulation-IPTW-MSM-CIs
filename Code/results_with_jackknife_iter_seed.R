@@ -1623,7 +1623,7 @@ failure_table <- failure_table %>%
                    LEF_both = mean(as.numeric(LEF_both)),
                    Sandwich = mean(as.numeric(Sandwich)),
                    Jackknife_MVN = ifelse(Sample_size == 200, mean(as.numeric(Jackknife_MVN)), NA),
-                   Jackknife_Wald = ifelse(Sample_size == 200, mean(as.numeric(Jackknife_Wald)), NA))
+                   Jackknife_Wald = ifelse(Sample_size == 200, mean(as.numeric(Jackknife_Wald)), NA)) %>% 
 print(xtable(failure_table, type = 'latex'), include.rownames = FALSE) 
 save(failure_table, file = "failure_table_iter_seed.rda")
 
