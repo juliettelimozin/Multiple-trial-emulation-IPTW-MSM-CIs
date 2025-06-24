@@ -8,6 +8,7 @@ switch_data.csv
 weight_models.rda
 MPhil-dissertation.Rproj
 .Rproj.user
+.DS_Store
 Code/HPC\ output/*
 Results\ and\ images/Archive/*
 Misc/results_KM.RData
