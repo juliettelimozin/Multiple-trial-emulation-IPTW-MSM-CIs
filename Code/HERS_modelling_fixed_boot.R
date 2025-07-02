@@ -17,7 +17,7 @@ library(lmtest)
 library(xtable)
 library(data.table)
 library(reshape2)
-set.seed(2804)
+set.seed(3012)
 ############# DATA PREPARATION ##################
 HERS$Y <- as.factor(HERS$Y)
 HERS$t <- HERS$visit - 8
@@ -802,6 +802,7 @@ CI_summary_long_UB <- pivot_longer(data = CI_summary, cols = c('UB_Bootstrap', '
                                    names_sep = '_', values_to = 'UB')
 CI_summary_long <- merge(CI_summary_long_LB[,-3:-7], CI_summary_long_UB[,-3:-7], by = c("Visit", 'MRD', 'CI_type'))
 
+png('hers_results.png', width = 6.75, height = 4.5, res = 300, units = 'in')
 ggplot(CI_summary_long, aes(x=Visit, y=MRD, color=CI_type)) + 
   geom_pointrange(aes(ymin=LB, ymax=UB), position = position_dodge(width = 0.5)) +
   #xlab(bquote(atop(n ==.(scenarios[i,1]), alpha[c] ==.(scenarios[i,2])~', '~alpha[a] == .(scenarios[i,3])))) +
@@ -810,4 +811,4 @@ ggplot(CI_summary_long, aes(x=Visit, y=MRD, color=CI_type)) +
   scale_color_manual(name = "CI method", values = c("Bootstrap"= "red", "Sandwich" = "blue",
                                                     "LEF outcome" = "green", "LEF both" = "purple",
                                                     "Jackknife MVN" = 'orange',"Jackknife Wald" = 'deepskyblue' ))
-
+dev.off()

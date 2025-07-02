@@ -4,10 +4,9 @@ library(tidyr)
 setwd("/home/juliette/Multiple-trial-emulation-IPTW-MSM-CIs/Code")
 library(ggplot2)
 library(ggpubr)
-load("true_value_red_newsimus.rda")
-true_value_red <- -true_value_red
 load("true_value_surv0.rda")
 load("true_value_surv1.rda")
+true_value_red <- surv0 - surv1
 #load("true_value_boot_200it_200k_fixed_700it.rda")
 #true_value_red <- true_value_boot_200it_200k_fixed
 #load("Rdata.RData")
@@ -382,8 +381,9 @@ save(pivot_coverage_ind, file = "coverage_iter_seed.rda")
 save(check, file = "check_iter_seed.rda")
 
 ################ EMPIRICAL MRD SE ####################
+################ MRD SE PLOTS FOR MAIN TEXT ##########################
 mrd_se_quantiles_low <-  lapply(1:9, function(i){
-  ggplot(se_ratio[se_ratio$i == i & se_ratio$j == 3 & se_ratio$CI_type != 'Jackknife MVN',]) +
+  ggplot(se_ratio[se_ratio$i == i & se_ratio$j == 1 & se_ratio$CI_type != 'Jackknife MVN',]) +
     stat_summary(
       mapping = aes(x = Visit, y = SE_ratio, colour = CI_type),
       fun.min = function(z) { quantile(z,0.25,na.rm = TRUE) },
@@ -396,7 +396,53 @@ mrd_se_quantiles_low <-  lapply(1:9, function(i){
                                                     "Jackknife MVN" = 'orange',"Jackknife Wald" = 'deepskyblue' )) +
     ylim(0,2.25) + 
     geom_hline(yintercept = 1, linetype = "dashed")+
-    theme(legend.text = element_text(size=14))
+    theme(legend.text = element_text(size=14),
+          title = element_text(size=12))
+}
+)
+for(i in 1:9){
+  if(i %in% 1:3){
+    mrd_se_quantiles_low[[i]] <- mrd_se_quantiles_low[[i]] +
+      labs(title = bquote(alpha[a] == .(scenarios[i,3])))}
+  if(i %in% c(1,4,7)){
+    mrd_se_quantiles_low[[i]] <- mrd_se_quantiles_low[[i]] +
+      ylab(bquote(atop(alpha[c] == .(scenarios[i,2]), 'Ratio of SEs')))
+  } else{mrd_se_quantiles_low[[i]] <- mrd_se_quantiles_low[[i]] +
+    theme(axis.text.y=element_blank(), 
+          axis.ticks.y=element_blank(),
+          axis.title.y = element_blank())}
+  if(i %in% 7:9){
+    mrd_se_quantiles_low[[i]] <- mrd_se_quantiles_low[[i]] +
+      xlab('Visit')
+  } else {mrd_se_quantiles_low[[i]] <- mrd_se_quantiles_low[[i]] +
+    theme(axis.text.x=element_blank(), 
+          axis.ticks.x=element_blank(),
+          axis.title.x = element_blank())}
+  
+}
+png('mrd_se_low_200.png', width = 8,height = 9, units = 'in', res = 300)
+ggarrange(plotlist = mrd_se_quantiles_low, nrow = 3, ncol = 3, common.legend = T,
+                          legend = 'bottom',
+                          widths = c(1.2,1,1),
+                          heights = c(1.1, 0.95, 1))
+dev.off()
+
+mrd_se_quantiles_low <-  lapply(1:9, function(i){
+  ggplot(se_ratio[se_ratio$i == i & se_ratio$j == 1 & se_ratio$CI_type == 'Jackknife MVN',]) +
+    stat_summary(
+      mapping = aes(x = Visit, y = SE_ratio, colour = CI_type),
+      fun.min = function(z) { quantile(z,0.25) },
+      fun.max = function(z) { quantile(z,0.75) },
+      fun = mean,
+      size=0.3, 
+      position = position_dodge(width = 0.5))+
+    scale_color_manual(name = "CI type", values = c("Bootstrap"= "red", "Sandwich" = "blue",
+                                                    "LEF outcome" = "green", "LEF both" = "purple",
+                                                    "Jackknife MVN" = 'orange',"Jackknife Wald" = 'deepskyblue' )) +
+    ylim(0,50) + 
+    geom_hline(yintercept = 1, linetype = "dashed")+
+    theme(legend.text = element_text(size=14),
+          title = element_text(size=12))
 }
 )
 for(i in 1:9){
@@ -420,11 +466,14 @@ for(i in 1:9){
   
 }
 
-annotate_figure(ggarrange(plotlist = mrd_se_quantiles_low, nrow = 3, ncol = 3, common.legend = T,
-                          legend = 'bottom',
-                          widths = c(1.2,1,1),
-                          heights = c(1.1, 0.95, 1)))
 
+png('SE_ratio_jackknifeMVN_low.png', width = 8,height = 9, units = 'in', res = 300)
+ggarrange(plotlist = mrd_se_quantiles_low, nrow = 3, ncol = 3, common.legend = T,
+          legend = 'bottom',
+          widths = c(1.2,1,1),
+          heights = c(1.1, 0.95, 1))
+dev.off()
+################## REST OF MRD SE PLOTS #######################
 mrd_se_quantiles_low <-  lapply(1:9, function(i){
   ggplot(se_ratio[se_ratio$i == i & se_ratio$j == 3 & se_ratio$CI_type == 'Jackknife MVN',]) +
     stat_summary(
@@ -695,7 +744,8 @@ bias_plots <- lapply(1:27, function(i){
     scale_color_manual(name = "Event rate", values = c("Low"= "red", "Medium" = "blue",
                                                        "High" = "green")) +
     ylim(-0.1,0.1) +
-    theme(legend.text = element_text(size=14))
+    theme(legend.text = element_text(size=14),
+          title = element_text(size=12))
 }
 )
 for(i in 1:27){
@@ -724,11 +774,12 @@ for(i in 1:27){
           axis.title.x = element_blank())
   }
 }
-
-annotate_figure(ggarrange(plotlist = bias_plots, nrow = 3, ncol = 9, common.legend = T,
+png('bias_all.png', width = 16, height = 8, units = 'in', res = 300)
+ggarrange(plotlist = bias_plots, nrow = 3, ncol = 9, common.legend = T,
                           legend = 'bottom',
                           widths = c(1.4,1,1,1,1,1,1,1,1),
-                          heights = c(1.1, 0.95, 1)))
+                          heights = c(1.1, 0.95, 1))
+dev.off()
 
 bias_plots_surv0 <- lapply(1:27, function(i){
   ggplot() +
@@ -779,7 +830,8 @@ sd_plots <- lapply(1:27, function(i){
     scale_color_manual(name = "Event rate", values = c("Low"= "red", "Medium" = "blue",
                                                        "High" = "green")) +
     ylim(0,0.28) +
-    theme(legend.text = element_text(size=14))
+    theme(legend.text = element_text(size=14),
+          title = element_text(size=12))
 }
 )
 for(i in 1:27){
@@ -808,11 +860,13 @@ for(i in 1:27){
           axis.title.x = element_blank())
   }
 }
+png('sd_all.png', width = 16, height = 8, units = 'in', res = 300)
+ggarrange(plotlist = sd_plots, nrow = 3, ncol = 9, common.legend = T,
+          legend = 'bottom',
+          widths = c(1.4,1,1,1,1,1,1,1,1),
+          heights = c(1.1, 0.95, 1))
+dev.off()
 
-annotate_figure(ggarrange(plotlist = sd_plots, nrow = 3, ncol = 9, common.legend = T,
-                          legend = 'bottom',
-                          widths = c(1.4,1,1,1,1,1,1,1,1),
-                          heights = c(1.1, 0.95, 1)))
 bias.se_plots <- lapply(1:27, function(i){
   ggplot() +
     geom_line(aes(x = 0:4, y = bias_point[,i,1]/sd_point[,i,1], colour = 'Low')) +
@@ -843,7 +897,8 @@ mse_plots <- lapply(1:27, function(i){
     scale_color_manual(name = "Event rate", values = c("Low"= "red", "Medium" = "blue",
                                                        "High" = "green")) +
     ylim(0,0.3) +
-    theme(legend.text = element_text(size=14))
+    theme(legend.text = element_text(size=14),
+          title = element_text(size=12))
 }
 )
 for(i in 1:27){
@@ -872,11 +927,12 @@ for(i in 1:27){
           axis.title.x = element_blank())
   }
 }
-
-annotate_figure(ggarrange(plotlist = mse_plots, nrow = 3, ncol = 9, common.legend = T,
-                          legend = 'bottom',
-                          widths = c(1.4,1,1,1,1,1,1,1,1),
-                          heights = c(1.1, 0.95, 1)))
+png('rmse_all.png', width = 16, height = 8, units = 'in', res = 300)
+ggarrange(plotlist = mse_plots, nrow = 3, ncol = 9, common.legend = T,
+          legend = 'bottom',
+          widths = c(1.4,1,1,1,1,1,1,1,1),
+          heights = c(1.1, 0.95, 1))
+dev.off()
 
 ###############COVERAGE PLOTS ####################
 # coverage_low <-  lapply(1:9, function(i){
@@ -1043,7 +1099,8 @@ coverage_low <-  lapply(1:27, function(i){
                                                     "Jackknife MVN" = 'orange',"Jackknife Wald" = 'deepskyblue' )) +
     geom_hline(yintercept = 0.95, linetype = "dashed") +
     ylim(0.4,1) + 
-    theme(legend.text = element_text(size=14))
+    theme(legend.text = element_text(size=14),
+          title = element_text(size=12))
 }
 )
 for(i in 1:27){
@@ -1072,11 +1129,12 @@ for(i in 1:27){
           axis.title.x = element_blank())
   }
 }
-
-annotate_figure(ggarrange(plotlist = coverage_low, nrow = 3, ncol = 9, common.legend = T,
+png('pivot_coverage_low.png', width = 16, height = 8, units = 'in', res = 300)
+ggarrange(plotlist = coverage_low, nrow = 3, ncol = 9, common.legend = T,
                           legend = 'bottom',
                           widths = c(1.4,1,1,1,1,1,1,1,1),
-                          heights = c(1.1, 0.95, 1)))
+                          heights = c(1.1, 0.95, 1))
+dev.off()
 
 coverage_med <-  lapply(1:27, function(i){
   ggplot() +

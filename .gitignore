@@ -6,7 +6,7 @@ MSM_censor.csv
 sw_data.csv
 switch_data.csv
 weight_models.rda
-MPhil-dissertation.Rproj
+*.Rproj
 .Rproj.user
 .DS_Store
 Code/HPC\ output/*
