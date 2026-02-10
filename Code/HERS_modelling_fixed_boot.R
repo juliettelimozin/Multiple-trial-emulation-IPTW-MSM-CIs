@@ -1,5 +1,5 @@
 setwd("/home/juliette/Multiple-trial-emulation-IPTW-MSM-CIs/Code")
-load('hers.Rdata')
+load('/home/juliette/hers.Rdata')
 library(modelr)
 library(reshape2)
 library(tidyverse)
@@ -587,8 +587,8 @@ surv_PP_difference_LEF_outcome_estimates_conf$ub <- apply(surv_PP_difference_LEF
                                                           probs = c(0.975))
 
 CI_LEF_outcome_coefs_PP_red <- array(,dim = c(5,2))
-CI_LEF_outcome_coefs_PP_red[,1] <- surv_PP_difference_LEF_outcome_estimates_conf$lb
-CI_LEF_outcome_coefs_PP_red[,2] <- surv_PP_difference_LEF_outcome_estimates_conf$ub
+CI_LEF_outcome_coefs_PP_red[,1] <- 2*pull(predicted_probas_PP,risk_difference) - surv_PP_difference_LEF_outcome_estimates_conf$ub
+CI_LEF_outcome_coefs_PP_red[,2] <- 2*pull(predicted_probas_PP,risk_difference) - surv_PP_difference_LEF_outcome_estimates_conf$lb
 
 #################### LEF WEIGHT AND OUTCOME  ##############################
 X_sw_d0 <- model.matrix(switch_d0)
@@ -715,8 +715,8 @@ surv_PP_difference_LEF_both_estimates_conf$ub <- apply(surv_PP_difference_LEF_bo
 
 
 CI_LEF_both_coefs_PP_red <- array(,dim = c(5,2))
-CI_LEF_both_coefs_PP_red[,1] <- surv_PP_difference_LEF_both_estimates_conf$lb
-CI_LEF_both_coefs_PP_red[,2] <- surv_PP_difference_LEF_both_estimates_conf$ub
+CI_LEF_both_coefs_PP_red[,1] <- 2*pull(predicted_probas_PP,risk_difference) - surv_PP_difference_LEF_both_estimates_conf$ub
+CI_LEF_both_coefs_PP_red[,2] <- 2*pull(predicted_probas_PP,risk_difference) - surv_PP_difference_LEF_both_estimates_conf$lb
 
 ############################SANDWICH #######################################
 covariance_mat <-PP$robust$matrix
@@ -802,7 +802,7 @@ CI_summary_long_UB <- pivot_longer(data = CI_summary, cols = c('UB_Bootstrap', '
                                    names_sep = '_', values_to = 'UB')
 CI_summary_long <- merge(CI_summary_long_LB[,-3:-7], CI_summary_long_UB[,-3:-7], by = c("Visit", 'MRD', 'CI_type'))
 
-png('hers_results.png', width = 6.75, height = 4.5, res = 300, units = 'in')
+png('/home/juliette/Multiple-trial-emulation-IPTW-MSM-CIs/Results and images/Accepted plots/hers_results.png', width = 6.75, height = 4.5, res = 300, units = 'in')
 ggplot(CI_summary_long, aes(x=Visit, y=MRD, color=CI_type)) + 
   geom_pointrange(aes(ymin=LB, ymax=UB), position = position_dodge(width = 0.5)) +
   #xlab(bquote(atop(n ==.(scenarios[i,1]), alpha[c] ==.(scenarios[i,2])~', '~alpha[a] == .(scenarios[i,3])))) +
